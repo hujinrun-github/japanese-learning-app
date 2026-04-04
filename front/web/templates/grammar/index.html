@@ -1,0 +1,34 @@
+{{template "base.html" .}}
+
+{{define "title"}}文法一覧{{end}}
+
+{{define "content"}}
+<section class="page">
+    <header class="page__header">
+        <h1 class="page__title">文法ポイント</h1>
+        <div class="filter-bar">
+            <label class="filter-bar__label" for="jlpt-filter">JLPT</label>
+            <select class="filter-bar__select" id="jlpt-filter">
+                <option value="">すべて</option>
+                <option value="N5">N5</option>
+                <option value="N4">N4</option>
+                <option value="N3">N3</option>
+                <option value="N2">N2</option>
+                <option value="N1">N1</option>
+            </select>
+        </div>
+    </header>
+
+    <ul class="card-list" id="grammar-list">
+        <!-- filled by JS -->
+    </ul>
+
+    <div class="empty-state" id="grammar-empty" hidden>
+        <p class="empty-state__message">文法ポイントがありません。</p>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/grammar.js"></script>
+{{end}}

@@ -1,0 +1,48 @@
+{{template "base.html" .}}
+
+{{define "title"}}単語学習{{end}}
+
+{{define "content"}}
+<section class="page">
+    <header class="page__header">
+        <h1 class="page__title">単語フラッシュカード</h1>
+        <p class="page__subtitle" id="word-queue-info">読み込み中…</p>
+    </header>
+
+    <div class="flashcard-container" id="flashcard-container">
+        <!-- Flashcard: front -->
+        <div class="flashcard" id="flashcard" role="button" aria-label="カードをめくる" tabindex="0">
+            <div class="flashcard__inner" id="flashcard-inner">
+                <div class="flashcard__front">
+                    <p class="flashcard__kanji" id="card-kanji"></p>
+                    <p class="flashcard__jlpt" id="card-jlpt"></p>
+                </div>
+                <div class="flashcard__back">
+                    <p class="flashcard__reading" id="card-reading"></p>
+                    <p class="flashcard__pos" id="card-pos"></p>
+                    <p class="flashcard__meaning" id="card-meaning"></p>
+                    <ul class="flashcard__examples" id="card-examples"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rating buttons (shown after flip) -->
+        <div class="rating" id="rating-buttons" hidden>
+            <button class="btn btn--danger"  data-rating="1">忘れた</button>
+            <button class="btn btn--warning" data-rating="2">難しい</button>
+            <button class="btn btn--primary" data-rating="3">覚えた</button>
+            <button class="btn btn--success" data-rating="4">完璧</button>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state" hidden>
+        <p class="empty-state__message">今日のカードはすべて終わりました！お疲れ様でした 🎉</p>
+        <a class="btn btn--primary" href="/word/stats">学習統計を見る</a>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/word.js"></script>
+{{end}}

@@ -1,0 +1,34 @@
+{{template "base.html" .}}
+
+{{define "title"}}課文一覧{{end}}
+
+{{define "content"}}
+<section class="page">
+    <header class="page__header">
+        <h1 class="page__title">課文</h1>
+        <div class="filter-bar">
+            <label class="filter-bar__label" for="lesson-jlpt-filter">JLPT</label>
+            <select class="filter-bar__select" id="lesson-jlpt-filter">
+                <option value="">すべて</option>
+                <option value="N5">N5</option>
+                <option value="N4">N4</option>
+                <option value="N3">N3</option>
+                <option value="N2">N2</option>
+                <option value="N1">N1</option>
+            </select>
+        </div>
+    </header>
+
+    <ul class="card-list" id="lesson-list">
+        <!-- filled by JS -->
+    </ul>
+
+    <div class="empty-state" id="lesson-empty" hidden>
+        <p class="empty-state__message">課文がありません。</p>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/lesson.js"></script>
+{{end}}

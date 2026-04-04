@@ -1,0 +1,59 @@
+{{template "base.html" .}}
+
+{{define "title"}}ライティング練習{{end}}
+
+{{define "content"}}
+<section class="page">
+    <header class="page__header">
+        <h1 class="page__title">ライティング練習</h1>
+        <div class="tab-bar">
+            <button class="tab-bar__tab tab-bar__tab--active" data-mode="input">入力練習</button>
+            <button class="tab-bar__tab" data-mode="sentence">造句練習</button>
+        </div>
+    </header>
+
+    <!-- Progress indicator -->
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="writing-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        <span class="progress-bar__label" id="writing-progress-label">0 / 0</span>
+    </div>
+
+    <!-- Question panel -->
+    <div class="question-panel" id="question-panel">
+        <p class="question-panel__prompt" id="question-prompt"></p>
+        <input
+            class="question-panel__input"
+            id="answer-input"
+            type="text"
+            placeholder="ここに入力…"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+        >
+        <div class="question-panel__feedback" id="answer-feedback" hidden></div>
+        <button class="btn btn--primary" id="submit-btn">回答する</button>
+    </div>
+
+    <!-- AI feedback (sentence mode) -->
+    <div class="ai-feedback" id="ai-feedback-panel" hidden>
+        <h3 class="ai-feedback__title">AI フィードバック</h3>
+        <p class="ai-feedback__corrected" id="ai-corrected"></p>
+        <p class="ai-feedback__explanation" id="ai-explanation"></p>
+        <p class="ai-feedback__score">スコア: <strong id="ai-score"></strong></p>
+        <button class="btn btn--secondary" id="next-question-btn">次の問題</button>
+    </div>
+
+    <!-- Session summary (shown when queue is empty) -->
+    <div class="session-summary" id="session-summary" hidden>
+        <h2 class="session-summary__title">セッション終了！</h2>
+        <p class="session-summary__score">今日の正解率: <strong id="session-accuracy"></strong></p>
+        <a class="btn btn--primary" href="/summary">サマリーを見る</a>
+        <button class="btn btn--secondary" id="restart-btn">もう一度</button>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/writing.js"></script>
+{{end}}

@@ -1,0 +1,59 @@
+{{template "base.html" .}}
+
+{{define "title"}}文法詳細{{end}}
+
+{{define "content"}}
+<section class="page">
+    <nav class="breadcrumb">
+        <a href="/grammar">文法一覧</a> &rsaquo; <span id="gp-name-breadcrumb"></span>
+    </nav>
+
+    <!-- Grammar point explanation -->
+    <div class="grammar-card" id="grammar-detail" hidden>
+        <header class="grammar-card__header">
+            <h1 class="grammar-card__name" id="gp-name"></h1>
+            <span class="badge" id="gp-jlpt"></span>
+        </header>
+        <p class="grammar-card__meaning" id="gp-meaning"></p>
+        <div class="grammar-card__section">
+            <h2>接続</h2>
+            <p id="gp-conjunction"></p>
+        </div>
+        <div class="grammar-card__section">
+            <h2>使い方</h2>
+            <p id="gp-usage"></p>
+        </div>
+        <div class="grammar-card__section">
+            <h2>例文</h2>
+            <ol class="example-list" id="gp-examples"></ol>
+        </div>
+    </div>
+
+    <!-- Quiz section -->
+    <div class="quiz" id="quiz-section" hidden>
+        <h2 class="quiz__title">確認クイズ</h2>
+        <div class="quiz__question-block" id="quiz-question-block">
+            <p class="quiz__question" id="quiz-question-text"></p>
+            <ul class="quiz__options" id="quiz-options"></ul>
+            <div class="quiz__feedback" id="quiz-feedback" hidden></div>
+        </div>
+        <div class="quiz__nav">
+            <button class="btn btn--secondary" id="quiz-next-btn" hidden>次の問題</button>
+        </div>
+        <div class="quiz__result" id="quiz-result" hidden>
+            <p id="quiz-result-text"></p>
+            <button class="btn btn--primary" id="quiz-retry-btn">もう一度</button>
+            <a class="btn btn--secondary" href="/grammar" id="quiz-back-btn">一覧へ戻る</a>
+        </div>
+    </div>
+
+    <div class="page-actions">
+        <button class="btn btn--primary" id="start-quiz-btn">クイズを始める</button>
+        <button class="btn btn--secondary" id="add-review-btn">復習キューに追加</button>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/grammar.js"></script>
+{{end}}
