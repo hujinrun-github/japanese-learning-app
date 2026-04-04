@@ -1,0 +1,47 @@
+{{template "base.html" .}}
+
+{{define "title"}}課文リーダー{{end}}
+
+{{define "content"}}
+<section class="page">
+    <nav class="breadcrumb">
+        <a href="/lesson">課文一覧</a> &rsaquo; <span id="lesson-title-breadcrumb"></span>
+    </nav>
+
+    <header class="page__header">
+        <h1 class="page__title" id="lesson-title"></h1>
+        <span class="badge" id="lesson-jlpt"></span>
+    </header>
+
+    <!-- Audio player -->
+    <div class="audio-player" id="audio-player" hidden>
+        <audio id="lesson-audio" controls></audio>
+        <label class="audio-player__label">
+            <input type="checkbox" id="auto-scroll-toggle" checked>
+            自動スクロール
+        </label>
+    </div>
+
+    <!-- Lesson text with furigana (ruby) -->
+    <div class="lesson-text" id="lesson-text" aria-live="polite">
+        <!-- Each <p> is a sentence; highlighted via JS sync -->
+        <!-- e.g.
+        <p class="lesson-sentence" data-sentence-id="0">
+            <ruby>東京<rt>とうきょう</rt></ruby>は...
+        </p>
+        -->
+    </div>
+
+    <!-- Word popup -->
+    <div class="word-popup" id="word-popup" role="tooltip" hidden>
+        <p class="word-popup__kanji" id="popup-kanji"></p>
+        <p class="word-popup__reading" id="popup-reading"></p>
+        <p class="word-popup__meaning" id="popup-meaning"></p>
+        <button class="btn btn--sm btn--secondary" id="popup-add-bookmark">単語帳に追加</button>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/lesson.js"></script>
+{{end}}

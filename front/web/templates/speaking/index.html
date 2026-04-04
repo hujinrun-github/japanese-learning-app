@@ -1,0 +1,49 @@
+{{template "base.html" .}}
+
+{{define "title"}}口語練習{{end}}
+
+{{define "content"}}
+<section class="page">
+    <header class="page__header">
+        <h1 class="page__title">口語練習</h1>
+        <div class="tab-bar">
+            <button class="tab-bar__tab tab-bar__tab--active" data-mode="shadow">シャドウイング</button>
+            <button class="tab-bar__tab" data-mode="free">フリースピーキング</button>
+        </div>
+    </header>
+
+    <!-- Material list -->
+    <ul class="card-list" id="speaking-material-list">
+        <!-- filled by JS -->
+    </ul>
+
+    <!-- Practice panel (shown when a material is selected) -->
+    <div class="practice-panel" id="practice-panel" hidden>
+        <h2 class="practice-panel__title" id="practice-title"></h2>
+        <p class="practice-panel__text" id="practice-text"></p>
+
+        <!-- Reference audio (shadow mode only) -->
+        <div id="reference-audio-block" hidden>
+            <audio id="reference-audio" controls></audio>
+        </div>
+
+        <div class="recorder">
+            <button class="btn btn--danger recorder__btn" id="record-btn">録音開始</button>
+            <span class="recorder__status" id="record-status">待機中</span>
+        </div>
+
+        <!-- Score result -->
+        <div class="score-result" id="score-result" hidden>
+            <p class="score-result__value" id="score-value"></p>
+            <p class="score-result__label">スコア</p>
+            <div class="score-result__detail" id="score-detail"></div>
+            <button class="btn btn--secondary" id="retry-btn">もう一度</button>
+            <button class="btn btn--primary"  id="next-material-btn">次へ</button>
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/speaking.js"></script>
+{{end}}
