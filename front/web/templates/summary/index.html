@@ -1,0 +1,51 @@
+{{template "base.html" .}}
+
+{{define "title"}}学習サマリー{{end}}
+
+{{define "content"}}
+<section class="page">
+    <header class="page__header">
+        <h1 class="page__title">学習サマリー</h1>
+    </header>
+
+    <ul class="summary-list" id="summary-list">
+        <!-- filled by JS -->
+    </ul>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="summary-empty" hidden>
+        <p class="empty-state__message">まだ学習セッションがありません。練習を始めましょう！</p>
+        <a class="btn btn--primary" href="/word">単語学習へ</a>
+    </div>
+
+    <!-- Detail panel (shown when a summary item is clicked) -->
+    <div class="summary-detail" id="summary-detail" hidden>
+        <button class="btn btn--text" id="summary-back-btn">&larr; 一覧に戻る</button>
+        <h2 class="summary-detail__title" id="summary-detail-title"></h2>
+
+        <div class="summary-detail__section">
+            <h3>スコア概要</h3>
+            <div id="summary-score-block"></div>
+        </div>
+
+        <div class="summary-detail__section">
+            <h3>得意なこと ✅</h3>
+            <ul id="summary-strengths"></ul>
+        </div>
+
+        <div class="summary-detail__section">
+            <h3>改善ポイント ⚠️</h3>
+            <ul id="summary-weaknesses"></ul>
+        </div>
+
+        <div class="summary-detail__section">
+            <h3>次のステップ 💡</h3>
+            <ul id="summary-suggestions"></ul>
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/summary.js"></script>
+{{end}}

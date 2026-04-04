@@ -1,0 +1,45 @@
+{{template "base.html" .}}
+
+{{define "title"}}単語学習統計{{end}}
+
+{{define "content"}}
+<section class="page">
+    <header class="page__header">
+        <h1 class="page__title">学習統計</h1>
+    </header>
+
+    <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+            <p class="stat-card__value" id="stat-total">-</p>
+            <p class="stat-card__label">学習済み単語</p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-card__value" id="stat-due">-</p>
+            <p class="stat-card__label">今日の復習</p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-card__value" id="stat-mastered">-</p>
+            <p class="stat-card__label">マスター済み</p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-card__value" id="stat-streak">-</p>
+            <p class="stat-card__label">連続学習日数</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section__title">JLPT 別進捗</h2>
+        <div class="progress-list" id="jlpt-progress">
+            <!-- filled by JS -->
+        </div>
+    </div>
+
+    <div class="section">
+        <a class="btn btn--primary" href="/word">学習を続ける</a>
+    </div>
+</section>
+{{end}}
+
+{{define "scripts"}}
+<script type="module" src="/static/js/word.js"></script>
+{{end}}
