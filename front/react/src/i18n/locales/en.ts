@@ -85,6 +85,7 @@ const en = {
       progress: '{{current}} / {{total}}',
       isNew: 'New',
       flip: 'Tap to flip',
+	      speak: 'Speak',
       masteryLevel: 'Mastery {{level}}',
       rating: {
         hard: '😓 Hard',

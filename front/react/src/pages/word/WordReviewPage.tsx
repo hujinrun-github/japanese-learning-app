@@ -39,6 +39,14 @@ export function WordReviewPage() {
     }
   }
 
+  function handleSpeak(text: string) {
+    speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ja-JP'
+    u.rate = 0.9
+    speechSynthesis.speak(u)
+  }
+
   async function handleRate(r: 'easy' | 'normal' | 'hard') {
     if (submitting) return
     const card = queue[currentIndex]
@@ -118,13 +126,31 @@ export function WordReviewPage() {
                     </span>
                   )}
                 </div>
-                <div className={styles.kanji}>{card!.word.kanji_form}</div>
+                <div className={styles.kanjiRow}>
+                  <div className={styles.kanji}>{card!.word.kanji_form}</div>
+                  <button
+                    className={styles.speakBtn}
+                    aria-label={t('word.queue.speak')}
+                    onClick={(e) => { e.stopPropagation(); handleSpeak(card!.word.kanji_form) }}
+                  >
+                    🔊
+                  </button>
+                </div>
                 <p className={styles.flipHint}>{t('word.queue.flip')}</p>
               </div>
 
               {/* Back face */}
               <div className={`${styles.cardFace} ${styles.cardBack}`}>
-                <div className={styles.reading}>{card!.word.reading}</div>
+                <div className={styles.readingRow}>
+                  <div className={styles.reading}>{card!.word.reading}</div>
+                  <button
+                    className={styles.speakBtn}
+                    aria-label={t('word.queue.speak')}
+                    onClick={(e) => { e.stopPropagation(); handleSpeak(card!.word.reading) }}
+                  >
+                    🔊
+                  </button>
+                </div>
                 <div className={styles.meaning}>{card!.word.meaning}</div>
                 {card!.word.examples && card!.word.examples.length > 0 && (
                   <>
