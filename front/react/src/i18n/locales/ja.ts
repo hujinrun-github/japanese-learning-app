@@ -85,6 +85,7 @@ const ja = {
       progress: '{{current}} / {{total}} 枚目',
       isNew: '新しい単語',
       flip: 'タップして裏返す',
+	      speak: '読み上げ',
       masteryLevel: '習熟度 {{level}}',
       rating: {
         hard: '😓 難しい',

@@ -27,7 +27,7 @@ func main() {
 
 	// ── Configuration ─────────────────────────────────────────────────────────
 	dbPath := envOrDefault("DB_PATH", "./data/app.db")
-	listenAddr := envOrDefault("LISTEN_ADDR", ":8080")
+	listenAddr := envOrDefault("LISTEN_ADDR", ":8081")
 	jwtSecret := envOrDefault("JWT_SECRET", "change-me-in-production")
 	logLevel := envOrDefault("LOG_LEVEL", "INFO")
 	aiAPIKey := envOrDefault("AI_API_KEY", "")
