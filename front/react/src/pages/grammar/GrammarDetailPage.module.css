@@ -1,0 +1,257 @@
+.page {
+  padding: var(--space-4);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: var(--space-4);
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.name {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.meaning {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.section {
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.codeBlock {
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-family: monospace;
+  font-size: var(--font-size-md);
+  color: var(--color-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.usageNote {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  line-height: 1.7;
+}
+
+.exampleList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.exampleItem {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.exampleJa {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.exampleZh {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Quiz */
+.quizToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+  margin-bottom: var(--space-4);
+}
+
+.quizToggle:hover {
+  border-color: var(--color-primary);
+}
+
+.chevron {
+  transition: transform var(--transition-fast);
+  color: var(--color-text-secondary);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.quizBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.question {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.questionPrompt {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+  line-height: 1.6;
+}
+
+.fillInput {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.fillInput:focus {
+  border-color: var(--color-primary);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--color-bg-base);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.option:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg-surface);
+}
+
+.optionSelected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-surface));
+}
+
+.resultCorrect {
+  border-color: var(--color-success) !important;
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-bg-surface)) !important;
+}
+
+.resultWrong {
+  border-color: var(--color-error) !important;
+  background: color-mix(in srgb, var(--color-error) 8%, var(--color-bg-surface)) !important;
+}
+
+.resultLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-top: var(--space-2);
+}
+
+.labelCorrect {
+  color: var(--color-success);
+}
+
+.labelWrong {
+  color: var(--color-error);
+}
+
+.explanation {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-base);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-border);
+}
+
+.submitRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.scoreCard {
+  text-align: center;
+  padding: var(--space-6);
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--space-4);
+}
+
+.scoreBig {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.scoreLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}

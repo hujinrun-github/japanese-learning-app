@@ -1,0 +1,406 @@
+[
+  {
+    "title": "私の一日",
+    "jlpt_level": "N5",
+    "tags": ["日常生活", "时间"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "毎朝", "reading": "まいあさ"},
+          {"surface": "、", "reading": ""},
+          {"surface": "七時", "reading": "しちじ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "起きます", "reading": "おきます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "每天早上七点起床。",
+        "start_ms": 0,
+        "end_ms": 3000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "朝ごはん", "reading": "あさごはん"},
+          {"surface": "は", "reading": ""},
+          {"surface": "パン", "reading": ""},
+          {"surface": "と", "reading": ""},
+          {"surface": "コーヒー", "reading": ""},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "早饭是面包和咖啡。",
+        "start_ms": 3000,
+        "end_ms": 6000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "八時半", "reading": "はちじはん"},
+          {"surface": "に", "reading": ""},
+          {"surface": "学校", "reading": "がっこう"},
+          {"surface": "へ", "reading": ""},
+          {"surface": "行きます", "reading": "いきます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "八点半去学校。",
+        "start_ms": 6000,
+        "end_ms": 9000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "午後", "reading": "ごご"},
+          {"surface": "は", "reading": ""},
+          {"surface": "図書館", "reading": "としょかん"},
+          {"surface": "で", "reading": ""},
+          {"surface": "勉強", "reading": "べんきょう"},
+          {"surface": "します", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "下午在图书馆学习。",
+        "start_ms": 9000,
+        "end_ms": 12000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "夜", "reading": "よる"},
+          {"surface": "は", "reading": ""},
+          {"surface": "家族", "reading": "かぞく"},
+          {"surface": "と", "reading": ""},
+          {"surface": "一緒", "reading": "いっしょ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "晩ごはん", "reading": "ばんごはん"},
+          {"surface": "を", "reading": ""},
+          {"surface": "食べます", "reading": "たべます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "晚上和家人一起吃晚饭。",
+        "start_ms": 12000,
+        "end_ms": 16000
+      },
+      {
+        "index": 5,
+        "tokens": [
+          {"surface": "十一時", "reading": "じゅういちじ"},
+          {"surface": "ごろ", "reading": ""},
+          {"surface": "に", "reading": ""},
+          {"surface": "寝ます", "reading": "ねます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "大约十一点睡觉。",
+        "start_ms": 16000,
+        "end_ms": 19000
+      }
+    ]
+  },
+  {
+    "title": "はじめまして",
+    "jlpt_level": "N5",
+    "tags": ["自我介绍", "人际关系"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "はじめまして", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "初次见面。",
+        "start_ms": 0,
+        "end_ms": 2000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "私", "reading": "わたし"},
+          {"surface": "は", "reading": ""},
+          {"surface": "田中", "reading": "たなか"},
+          {"surface": "と", "reading": ""},
+          {"surface": "申します", "reading": "もうします"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "我叫田中（敬语）。",
+        "start_ms": 2000,
+        "end_ms": 5000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "東京", "reading": "とうきょう"},
+          {"surface": "大学", "reading": "だいがく"},
+          {"surface": "の", "reading": ""},
+          {"surface": "三年生", "reading": "さんねんせい"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "是东京大学三年级的学生。",
+        "start_ms": 5000,
+        "end_ms": 8000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "趣味", "reading": "しゅみ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "音楽", "reading": "おんがく"},
+          {"surface": "を", "reading": ""},
+          {"surface": "聴く", "reading": "きく"},
+          {"surface": "こと", "reading": ""},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "爱好是听音乐。",
+        "start_ms": 8000,
+        "end_ms": 11000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "どうぞ", "reading": ""},
+          {"surface": "よろしく", "reading": ""},
+          {"surface": "お願いします", "reading": "おねがいします"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "请多关照。",
+        "start_ms": 11000,
+        "end_ms": 14000
+      }
+    ]
+  },
+  {
+    "title": "駅で",
+    "jlpt_level": "N5",
+    "tags": ["交通", "问路"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "すみません", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "東京駅", "reading": "とうきょうえき"},
+          {"surface": "は", "reading": ""},
+          {"surface": "どこ", "reading": ""},
+          {"surface": "ですか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "不好意思，东京站在哪里？",
+        "start_ms": 0,
+        "end_ms": 4000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "あの", "reading": ""},
+          {"surface": "赤い", "reading": "あかい"},
+          {"surface": "建物", "reading": "たてもの"},
+          {"surface": "の", "reading": ""},
+          {"surface": "前", "reading": "まえ"},
+          {"surface": "です", "reading": ""},
+          {"surface": "よ", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "在那栋红色建筑的前面哦。",
+        "start_ms": 4000,
+        "end_ms": 7000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "ありがとう", "reading": ""},
+          {"surface": "ございます", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "非常感谢。",
+        "start_ms": 7000,
+        "end_ms": 9000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "電車", "reading": "でんしゃ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "何番線", "reading": "なんばんせん"},
+          {"surface": "ですか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "电车是几号线？",
+        "start_ms": 9000,
+        "end_ms": 12000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "三番線", "reading": "さんばんせん"},
+          {"surface": "から", "reading": ""},
+          {"surface": "出発", "reading": "しゅっぱつ"},
+          {"surface": "します", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "从3号线出发。",
+        "start_ms": 12000,
+        "end_ms": 15000
+      }
+    ]
+  },
+  {
+    "title": "買い物",
+    "jlpt_level": "N5",
+    "tags": ["购物", "数字"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "このシャツ", "reading": ""},
+          {"surface": "は", "reading": ""},
+          {"surface": "いくら", "reading": ""},
+          {"surface": "ですか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "这件衬衫多少钱？",
+        "start_ms": 0,
+        "end_ms": 3000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "三千円", "reading": "さんぜんえん"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "三千日元。",
+        "start_ms": 3000,
+        "end_ms": 5000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "少し", "reading": "すこし"},
+          {"surface": "高い", "reading": "たかい"},
+          {"surface": "ですね", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "稍微有点贵呢。",
+        "start_ms": 5000,
+        "end_ms": 7000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "では", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "この", "reading": ""},
+          {"surface": "青い", "reading": "あおい"},
+          {"surface": "シャツ", "reading": ""},
+          {"surface": "は", "reading": ""},
+          {"surface": "二千五百円", "reading": "にせんごひゃくえん"},
+          {"surface": "です", "reading": ""},
+          {"surface": "よ", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "那么这件蓝色衬衫是两千五百日元哦。",
+        "start_ms": 7000,
+        "end_ms": 11000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "これ", "reading": ""},
+          {"surface": "を", "reading": ""},
+          {"surface": "ください", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "请给我这个。",
+        "start_ms": 11000,
+        "end_ms": 13000
+      }
+    ]
+  },
+  {
+    "title": "天気の話",
+    "jlpt_level": "N5",
+    "tags": ["天气", "季节"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "今日", "reading": "きょう"},
+          {"surface": "は", "reading": ""},
+          {"surface": "いい", "reading": ""},
+          {"surface": "天気", "reading": "てんき"},
+          {"surface": "ですね", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "今天天气真好呢。",
+        "start_ms": 0,
+        "end_ms": 3000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "そうですね", "reading": ""},
+          {"surface": "。", "reading": ""},
+          {"surface": "散歩", "reading": "さんぽ"},
+          {"surface": "日和", "reading": "びより"},
+          {"surface": "ですよ", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "是啊。正是散步的好天气。",
+        "start_ms": 3000,
+        "end_ms": 6000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "明日", "reading": "あした"},
+          {"surface": "は", "reading": ""},
+          {"surface": "雨", "reading": "あめ"},
+          {"surface": "が", "reading": ""},
+          {"surface": "降る", "reading": "ふる"},
+          {"surface": "そうです", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "听说明天会下雨。",
+        "start_ms": 6000,
+        "end_ms": 9000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "それ", "reading": ""},
+          {"surface": "は", "reading": ""},
+          {"surface": "残念", "reading": "ざんねん"},
+          {"surface": "ですね", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "那真是遗憾呢。",
+        "start_ms": 9000,
+        "end_ms": 11000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "来週", "reading": "らいしゅう"},
+          {"surface": "は", "reading": ""},
+          {"surface": "晴れる", "reading": "はれる"},
+          {"surface": "と", "reading": ""},
+          {"surface": "いいですね", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "下周要是能放晴就好了。",
+        "start_ms": 11000,
+        "end_ms": 14000
+      }
+    ]
+  }
+]

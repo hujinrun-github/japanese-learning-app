@@ -1,0 +1,386 @@
+[
+  {
+    "name": "〜てもいい",
+    "meaning": "可以……（表示许可）",
+    "conjunction_rule": "动词て形 + もいい",
+    "usage_note": "表示允许做某事，比「〜てもいいですか」更直接地表述许可。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "この本を読んでもいいですよ。", "chinese": "这本书你可以读哦。", "linked_word_ids": []},
+      {"japanese": "もう帰ってもいいです。", "chinese": "可以回去了。", "linked_word_ids": []},
+      {"japanese": "好きなものを食べてもいい。", "chinese": "可以吃喜欢的东西。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "もう少し待っ___いいですか。（再等一会儿可以吗？）", "options": null, "answer": "ても", "explanation": "「〜てもいい」表示许可"},
+      {"id": 2, "type": "multi_choice", "prompt": "「ここで遊ん___」表示「可以在这里玩」，空白处填：", "options": ["てはいけない", "てもいい", "てください", "ている"], "answer": "てもいい", "explanation": "「〜てもいい」表示被允许"}
+    ]
+  },
+  {
+    "name": "〜ために",
+    "meaning": "为了……（目的）",
+    "conjunction_rule": "动词辞书形/名词+の + ために",
+    "usage_note": "表示行为的目的。后项是有意识的行为，不能跟自然发生的事情。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "健康のために運動します。", "chinese": "为了健康而运动。", "linked_word_ids": []},
+      {"japanese": "合格するために毎日勉強しています。", "chinese": "为了合格每天学习。", "linked_word_ids": []},
+      {"japanese": "家族のために働いています。", "chinese": "为了家人而工作。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "日本語を上手になる___、毎日練習します。", "options": null, "answer": "ために", "explanation": "「〜ために」表示有目的的行动"},
+      {"id": 2, "type": "multi_choice", "prompt": "「夢を実現する___努力します」（为了实现梦想而努力）空白处填：", "options": ["ように", "ために", "から", "ので"], "answer": "ために", "explanation": "「〜ために」表示目的"}
+    ]
+  },
+  {
+    "name": "〜ようになる",
+    "meaning": "变得能够……／开始……（状态变化）",
+    "conjunction_rule": "动词辞书形/可能形 + ようになる",
+    "usage_note": "表示能力或习惯的逐渐变化，强调从不能到能，或从没有某习惯到有了。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "日本語が話せるようになりました。", "chinese": "能说日语了。", "linked_word_ids": []},
+      {"japanese": "毎朝ジョギングするようになりました。", "chinese": "开始每天早上慢跑了。", "linked_word_ids": []},
+      {"japanese": "野菜が食べられるようになりました。", "chinese": "能吃蔬菜了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "練習を続けて、泳げる___なりました。", "options": null, "answer": "ように", "explanation": "「〜ようになる」表示能力或状态的变化"},
+      {"id": 2, "type": "multi_choice", "prompt": "「漢字が読める___」（变得能读汉字了）空白处填：", "options": ["ようになりました", "ことになりました", "はずです", "わけです"], "answer": "ようになりました", "explanation": "「〜ようになる」强调逐渐变化"}
+    ]
+  },
+  {
+    "name": "〜ことができる",
+    "meaning": "能够……／可以……（表示能力）",
+    "conjunction_rule": "动词辞书形 + ことができる",
+    "usage_note": "表示有能力做某事，与可能形意思相同，但更书面化。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "日本語で話すことができます。", "chinese": "能够用日语说话。", "linked_word_ids": []},
+      {"japanese": "ピアノを弾くことができます。", "chinese": "会弹钢琴。", "linked_word_ids": []},
+      {"japanese": "一人で料理することができます。", "chinese": "能够独自做饭。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "私は自転車に乗る___できます。", "options": null, "answer": "ことが", "explanation": "「〜ことができる」表示能力"},
+      {"id": 2, "type": "multi_choice", "prompt": "「泳ぐ___」（能游泳）空白处填：", "options": ["ことができます", "ようになります", "ことにします", "ためです"], "answer": "ことができます", "explanation": "「ことができます」表示具备某能力"}
+    ]
+  },
+  {
+    "name": "〜てしまう",
+    "meaning": "……完了／不小心……了（遗憾或完成）",
+    "conjunction_rule": "动词て形 + しまう",
+    "usage_note": "表示某动作彻底完成（常含遗憾），或不小心/无意间做了某事。口语中缩写为「ちゃう」。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "財布を忘れてしまいました。", "chinese": "把钱包忘了（真遗憾）。", "linked_word_ids": []},
+      {"japanese": "ケーキを全部食べてしまった。", "chinese": "把蛋糕全吃完了。", "linked_word_ids": []},
+      {"japanese": "大切なデータを消してしまいました。", "chinese": "不小心把重要数据删了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "電車に乗り遅れ___。（赶不上电车了，真糟糕）", "options": null, "answer": "てしまいました", "explanation": "「〜てしまう」表示遗憾或意外发生"},
+      {"id": 2, "type": "multi_choice", "prompt": "「宿題をし___」（把作业做完了）表示完成，空白处填：", "options": ["てしまいました", "てみました", "ておきました", "てあります"], "answer": "てしまいました", "explanation": "「〜てしまう」有完成和遗憾两层意思"}
+    ]
+  },
+  {
+    "name": "〜ておく",
+    "meaning": "提前……（为将来做准备）",
+    "conjunction_rule": "动词て形 + おく",
+    "usage_note": "表示事先做好某事以备将来之需，强调为了某目的提前做准备。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "旅行の前に地図を調べておきました。", "chinese": "旅行前提前查好了地图。", "linked_word_ids": []},
+      {"japanese": "パーティーのために料理を作っておきます。", "chinese": "提前为派对做好饭菜。", "linked_word_ids": []},
+      {"japanese": "試験のために単語を覚えておきます。", "chinese": "提前为考试记好单词。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "明日の会議のために資料を準備し___。（提前准备好明天会议的资料）", "options": null, "answer": "ておきます", "explanation": "「〜ておく」表示提前为未来做准备"},
+      {"id": 2, "type": "multi_choice", "prompt": "「冷蔵庫に食べ物を入れ___」（提前把食物放进冰箱）空白处填：", "options": ["てしまいます", "ておきます", "ていきます", "てみます"], "answer": "ておきます", "explanation": "「〜ておく」表示有意识的提前准备"}
+    ]
+  },
+  {
+    "name": "〜てみる",
+    "meaning": "试试……（尝试做某事）",
+    "conjunction_rule": "动词て形 + みる",
+    "usage_note": "表示尝试性地做某事，带有试验性质。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "この料理を食べてみてください。", "chinese": "请尝尝这道菜。", "linked_word_ids": []},
+      {"japanese": "新しい方法を試してみました。", "chinese": "尝试了新方法。", "linked_word_ids": []},
+      {"japanese": "日本語で話してみましょう。", "chinese": "试着用日语说说吧。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "この服を着___ください。（请试穿这件衣服）", "options": null, "answer": "てみて", "explanation": "「〜てみる」表示尝试"},
+      {"id": 2, "type": "multi_choice", "prompt": "「新しいレストランに行き___」（试着去新餐厅）空白处填：", "options": ["てみます", "ておきます", "てしまいます", "てあります"], "answer": "てみます", "explanation": "「〜てみる」表示尝试做某事"}
+    ]
+  },
+  {
+    "name": "〜てある",
+    "meaning": "……着（某状态已被做成并保持中）",
+    "conjunction_rule": "他动词て形 + ある",
+    "usage_note": "表示某人故意做了某事，其结果状态仍然存在，强调结果状态而非动作者。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "窓が開けてあります。", "chinese": "窗户（被开着，）开着呢。", "linked_word_ids": []},
+      {"japanese": "黒板に名前が書いてあります。", "chinese": "黑板上写着名字。", "linked_word_ids": []},
+      {"japanese": "部屋に花が飾ってあります。", "chinese": "房间里摆放着花。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "multi_choice", "prompt": "「テーブルに料理が並べ___」强调状态，空白处填：", "options": ["ています", "てあります", "ておきます", "てしまいます"], "answer": "てあります", "explanation": "「〜てある」强调有人做了某事并保持该状态"},
+      {"id": 2, "type": "fill_blank", "prompt": "壁に写真が貼っ___。（墙上贴着照片）", "options": null, "answer": "てあります", "explanation": "「〜てある」表示结果状态的保持"}
+    ]
+  },
+  {
+    "name": "〜ことにする",
+    "meaning": "决定……（个人决定）",
+    "conjunction_rule": "动词辞书形/ない形 + ことにする",
+    "usage_note": "表示说话人自己做出的决定，带有主动意志。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "毎朝ジョギングすることにしました。", "chinese": "决定每天早上慢跑。", "linked_word_ids": []},
+      {"japanese": "タバコを吸わないことにしました。", "chinese": "决定不抽烟了。", "linked_word_ids": []},
+      {"japanese": "この仕事を引き受けることにします。", "chinese": "决定接受这份工作。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "ダイエットのために甘いものを食べない___しました。", "options": null, "answer": "ことに", "explanation": "「〜ことにする」表示个人主动决定"},
+      {"id": 2, "type": "multi_choice", "prompt": "「来月から日記を書く___」（决定从下月起写日记）空白处填：", "options": ["ことにします", "ことになります", "ようにします", "ようになります"], "answer": "ことにします", "explanation": "「ことにする」是主动决定，而「ことになる」是外部决定"}
+    ]
+  },
+  {
+    "name": "〜ことになる",
+    "meaning": "（事情）变成……／决定……（外部决定或自然结果）",
+    "conjunction_rule": "动词辞书形/ない形 + ことになる",
+    "usage_note": "表示非说话人主动做出的决定，而是外部情况或规则导致的结果。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "来月、東京に転勤することになりました。", "chinese": "下个月决定调去东京了。", "linked_word_ids": []},
+      {"japanese": "この規則は守ることになっています。", "chinese": "规定必须遵守这条规则。", "linked_word_ids": []},
+      {"japanese": "試合が中止になることになりました。", "chinese": "比赛被决定取消了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "multi_choice", "prompt": "「会社の都合で大阪に行く___」（因公司安排去大阪）空白处填：", "options": ["ことにしました", "ことになりました", "ようにしました", "ようになりました"], "answer": "ことになりました", "explanation": "「ことになる」表示外部原因导致的结果"},
+      {"id": 2, "type": "fill_blank", "prompt": "来年から新しい制度が始まる___なりました。", "options": null, "answer": "こと", "explanation": "「〜ことになる」表示制度等的外部决定"}
+    ]
+  },
+  {
+    "name": "〜ばかり",
+    "meaning": "只……／净……（仅限于某事物）",
+    "conjunction_rule": "名词 + ばかり / 动词て形 + ばかりいる",
+    "usage_note": "表示只做某事或只有某事物，常含批评语气。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "彼はゲームばかりしています。", "chinese": "他净打游戏。", "linked_word_ids": []},
+      {"japanese": "甘いものばかり食べないでください。", "chinese": "请不要光吃甜食。", "linked_word_ids": []},
+      {"japanese": "文句ばかり言わないでください。", "chinese": "请不要净发牢骚。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼女はテレビ___見ています。（她净看电视）", "options": null, "answer": "ばかり", "explanation": "「ばかり」表示只做某事，常含批评"},
+      {"id": 2, "type": "multi_choice", "prompt": "「野菜___食べている」意思是：", "options": ["只吃蔬菜", "也吃蔬菜", "不吃蔬菜", "喜欢蔬菜"], "answer": "只吃蔬菜", "explanation": "「ばかり」表示仅限于某事物"}
+    ]
+  },
+  {
+    "name": "〜はずだ",
+    "meaning": "应该……／理应……（根据推断的确信）",
+    "conjunction_rule": "动词辞书形/形容词/名词+の + はずだ",
+    "usage_note": "表示基于某种根据或逻辑推断，某事应当如此。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "彼は今頃、家にいるはずです。", "chinese": "他现在应该在家。", "linked_word_ids": []},
+      {"japanese": "この薬を飲めば、治るはずです。", "chinese": "吃了这药应该会好的。", "linked_word_ids": []},
+      {"japanese": "もうすぐ電車が来るはずです。", "chinese": "电车应该快来了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼女は日本語を勉強しているから、話せる___です。", "options": null, "answer": "はず", "explanation": "「はずだ」表示有根据的推断"},
+      {"id": 2, "type": "multi_choice", "prompt": "「電話したから、もう知っている___」表示：", "options": ["也许知道", "应该知道", "不知道", "想知道"], "answer": "应该知道", "explanation": "「はずだ」基于逻辑推断表示确信"}
+    ]
+  },
+  {
+    "name": "〜らしい",
+    "meaning": "好像……／听说……（传闻推测）",
+    "conjunction_rule": "动词/形容词/名词（普通体） + らしい",
+    "usage_note": "表示根据某种传闻或信息做出推测，与「そうだ」（传言）相似但更主观一些。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "彼は外国に行くらしいです。", "chinese": "听说他要去国外。", "linked_word_ids": []},
+      {"japanese": "あのレストランは美味しいらしいです。", "chinese": "听说那家餐厅很好吃。", "linked_word_ids": []},
+      {"japanese": "明日は台風が来るらしいです。", "chinese": "听说明天台风要来。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "田中さんは結婚する___ですよ。（据说田中先生要结婚了）", "options": null, "answer": "らしい", "explanation": "「らしい」表示基于传闻的推测"},
+      {"id": 2, "type": "multi_choice", "prompt": "「この映画は面白い___」（听说这部电影很有趣）空白处填：", "options": ["らしい", "はずだ", "ようだ", "かもしれない"], "answer": "らしい", "explanation": "「らしい」基于外部信息推测"}
+    ]
+  },
+  {
+    "name": "〜かもしれない",
+    "meaning": "也许……／可能……（不确定推测）",
+    "conjunction_rule": "动词/形容词（普通体）/名词 + かもしれない",
+    "usage_note": "表示说话人对某事的不确定推测，可能性约为50%左右。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "明日は雨が降るかもしれません。", "chinese": "明天也许会下雨。", "linked_word_ids": []},
+      {"japanese": "彼女は怒っているかもしれません。", "chinese": "她可能在生气。", "linked_word_ids": []},
+      {"japanese": "バスに乗り遅れたかもしれない。", "chinese": "可能赶不上公共汽车了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼はまだ学校にいる___しれません。", "options": null, "answer": "かも", "explanation": "「かもしれない」表示不确定的推测"},
+      {"id": 2, "type": "multi_choice", "prompt": "「このパスワードは間違っている___」（密码也许错了）空白处填：", "options": ["はずです", "かもしれません", "らしいです", "ようです"], "answer": "かもしれません", "explanation": "「かもしれない」表示不确定的可能性"}
+    ]
+  },
+  {
+    "name": "〜でしょう",
+    "meaning": "大概……吧（推测/确认）",
+    "conjunction_rule": "动词/形容词（普通体）/名词 + でしょう",
+    "usage_note": "表示推测或寻求确认，语气比「かもしれない」更确信，有时带有寻求赞同的语感。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "明日は晴れるでしょう。", "chinese": "明天大概会晴天吧。", "linked_word_ids": []},
+      {"japanese": "彼はもう起きているでしょう。", "chinese": "他大概已经起来了吧。", "linked_word_ids": []},
+      {"japanese": "この問題は難しいでしょう。", "chinese": "这道题大概很难吧。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼はもう知っている___。（他应该已经知道了吧）", "options": null, "answer": "でしょう", "explanation": "「でしょう」表示较有把握的推测"},
+      {"id": 2, "type": "multi_choice", "prompt": "「あの映画は面白い___」（那电影大概很有趣吧）空白处填：", "options": ["らしい", "でしょう", "かもしれない", "はずだ"], "answer": "でしょう", "explanation": "「でしょう」表示推测，常寻求对方认同"}
+    ]
+  },
+  {
+    "name": "〜ながら",
+    "meaning": "一边……一边……（同时进行两个动作）",
+    "conjunction_rule": "动词ます形（去ます） + ながら",
+    "usage_note": "表示同一主语同时进行两个动作，主要动作在后句。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "音楽を聴きながら勉強します。", "chinese": "一边听音乐一边学习。", "linked_word_ids": []},
+      {"japanese": "歩きながら食べないでください。", "chinese": "请不要边走边吃。", "linked_word_ids": []},
+      {"japanese": "テレビを見ながら食事をします。", "chinese": "一边看电视一边吃饭。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "コーヒーを飲み___、新聞を読みます。（一边喝咖啡一边看报纸）", "options": null, "answer": "ながら", "explanation": "「〜ながら」表示同时进行两个动作"},
+      {"id": 2, "type": "multi_choice", "prompt": "「歌い___踊ります」（边唱边跳）空白处填：", "options": ["から", "ながら", "ので", "ために"], "answer": "ながら", "explanation": "「〜ながら」表示同时性"}
+    ]
+  },
+  {
+    "name": "〜そうだ（様態）",
+    "meaning": "看起来……（样态）",
+    "conjunction_rule": "动词ます形/形容词词干 + そうだ",
+    "usage_note": "表示根据外观判断，看起来像是要……。与传闻「らしい」区别在于是直接观察所得。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "今にも雨が降りそうです。", "chinese": "感觉马上就要下雨了。", "linked_word_ids": []},
+      {"japanese": "このケーキは美味しそうです。", "chinese": "这个蛋糕看起来很好吃。", "linked_word_ids": []},
+      {"japanese": "彼は疲れそうな顔をしています。", "chinese": "他露出疲惫的样子。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "あの犬は怖い___です。（那只狗看起来很可怕）", "options": null, "answer": "そう", "explanation": "「形容词词干＋そうだ」表示外观上的判断"},
+      {"id": 2, "type": "multi_choice", "prompt": "「この料理は美味しい___」（这道菜看起来好吃）正确形式是：", "options": ["美味しいそうだ", "美味しそうだ", "美味しいらしい", "美味しいようだ"], "answer": "美味しそうだ", "explanation": "形容词「い」前用词干，不含「い」"}
+    ]
+  },
+  {
+    "name": "〜ばよかった",
+    "meaning": "当时要是……就好了（后悔表达）",
+    "conjunction_rule": "动词条件形（ば形） + よかった",
+    "usage_note": "表示对过去没有做某事的遗憾，常用于后悔表达。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "早く起きればよかったです。", "chinese": "要是早点起床就好了。", "linked_word_ids": []},
+      {"japanese": "もっと勉強すればよかったです。", "chinese": "要是再多学一些就好了。", "linked_word_ids": []},
+      {"japanese": "傘を持って来ればよかったです。", "chinese": "要是把伞带来就好了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "あの時、正直に話せ___よかったです。（那时要是说实话就好了）", "options": null, "answer": "ば", "explanation": "「〜ばよかった」表示事后的遗憾"},
+      {"id": 2, "type": "multi_choice", "prompt": "「もっと早く来れ___よかった」（要是早点来就好了）空白处填：", "options": ["ば", "たら", "なら", "と"], "answer": "ば", "explanation": "「〜ばよかった」是常用后悔句型"}
+    ]
+  },
+  {
+    "name": "〜てほしい",
+    "meaning": "希望（对方）……（请求期望）",
+    "conjunction_rule": "动词て形 + ほしい",
+    "usage_note": "表示希望对方为自己做某事，用于请求。注意主语不能用第三人称（用「てもらいたい」代替）。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "もっと静かにしてほしいです。", "chinese": "希望你安静一点。", "linked_word_ids": []},
+      {"japanese": "早く帰ってきてほしいです。", "chinese": "希望你早点回来。", "linked_word_ids": []},
+      {"japanese": "正直に話してほしいです。", "chinese": "希望你说实话。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "手伝っ___。（希望你帮帮我）", "options": null, "answer": "てほしいです", "explanation": "「〜てほしい」表示希望对方为自己做某事"},
+      {"id": 2, "type": "multi_choice", "prompt": "「もっと頑張っ___」（希望你更努力）空白处填：", "options": ["てほしいです", "てください", "てみてください", "てもらいます"], "answer": "てほしいです", "explanation": "「〜てほしい」表达希望对方做某事的愿望"}
+    ]
+  },
+  {
+    "name": "〜ていただけませんか",
+    "meaning": "能否请您……？（最礼貌的请求）",
+    "conjunction_rule": "动词て形 + いただけませんか",
+    "usage_note": "最礼貌的请求表达，用于向长辈或不熟悉的人请求帮助，比「〜てください」正式得多。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "書類を確認していただけませんか。", "chinese": "能否请您确认一下文件？", "linked_word_ids": []},
+      {"japanese": "もう一度説明していただけませんか。", "chinese": "能否请您再解释一次？", "linked_word_ids": []},
+      {"japanese": "写真を撮っていただけませんか。", "chinese": "能否请您帮我拍张照？", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "少し待っ___ませんか。（能否请您稍等？）", "options": null, "answer": "ていただけ", "explanation": "「〜ていただけませんか」是最高礼貌的请求形式"},
+      {"id": 2, "type": "multi_choice", "prompt": "对上司请求时，最礼貌的说法是：", "options": ["手伝ってください", "手伝ってもらえませんか", "手伝っていただけませんか", "手伝ってほしいです"], "answer": "手伝っていただけませんか", "explanation": "「〜ていただけませんか」是最正式礼貌的请求"}
+    ]
+  },
+  {
+    "name": "〜させてください",
+    "meaning": "请允许我……（请求允许）",
+    "conjunction_rule": "动词使役形（させ） + てください",
+    "usage_note": "恳切地请求对方允许自己做某事，比「〜てもいいですか」更正式，常含诚意。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "私にやらせてください。", "chinese": "请让我来做。", "linked_word_ids": []},
+      {"japanese": "一言言わせてください。", "chinese": "请允许我说一句话。", "linked_word_ids": []},
+      {"japanese": "確認させてください。", "chinese": "请允许我确认一下。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "私に説明___ください。（请让我来说明）", "options": null, "answer": "させて", "explanation": "「〜させてください」请求允许自己做某事"},
+      {"id": 2, "type": "multi_choice", "prompt": "「もう少し考え___」（请让我再想想）空白处填：", "options": ["させてください", "てください", "てほしいです", "てもいいですか"], "answer": "させてください", "explanation": "「〜させてください」是主动请求允许的表达"}
+    ]
+  },
+  {
+    "name": "〜し〜し",
+    "meaning": "既……又……（列举原因或事项）",
+    "conjunction_rule": "动词/形容词（普通体） + し + 动词/形容词（普通体） + し",
+    "usage_note": "用于列举多个并列的原因或特征，带有「等等」的语感。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "この町は静かだし、便利だし、とても住みやすいです。", "chinese": "这个城市既安静又方便，很适合居住。", "linked_word_ids": []},
+      {"japanese": "彼女は頭がいいし、優しいし、好きです。", "chinese": "她既聪明又温柔，我很喜欢她。", "linked_word_ids": []},
+      {"japanese": "疲れたし、眠いし、もう帰ります。", "chinese": "又累又困，我先回去了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "雨が降っている___、風も強い___、外に出たくないです。", "options": null, "answer": "し / し", "explanation": "「〜し〜し」列举多个原因"},
+      {"id": 2, "type": "multi_choice", "prompt": "「安い___、美味しい___」（又便宜又好吃）用了什么句型：", "options": ["〜て〜て", "〜し〜し", "〜も〜も", "〜や〜や"], "answer": "〜し〜し", "explanation": "「〜し〜し」用于列举多个事实或原因"}
+    ]
+  },
+  {
+    "name": "〜ので",
+    "meaning": "因为……所以……（客观理由）",
+    "conjunction_rule": "动词/形容词（普通体）/名词+な + ので",
+    "usage_note": "表示客观原因，语气比「から」更婉转，更书面化，有礼貌请求的语感。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "急用があるので、先に失礼します。", "chinese": "因为有急事，先失礼了。", "linked_word_ids": []},
+      {"japanese": "雨が降っているので、傘を持って行ってください。", "chinese": "因为在下雨，请带伞去。", "linked_word_ids": []},
+      {"japanese": "体の具合が悪いので、病院に行きます。", "chinese": "因为身体不舒服，去医院。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "明日は試験がある___、今日は早く寝ます。", "options": null, "answer": "ので", "explanation": "「ので」表示客观、礼貌的原因说明"},
+      {"id": 2, "type": "multi_choice", "prompt": "「ので」和「から」的主要区别是：", "options": ["ので更主观，から更客观", "ので更客观礼貌，から更主观直接", "两者完全相同", "ので表示结果，から表示原因"], "answer": "ので更客观礼貌，から更主观直接", "explanation": "「ので」客观婉转，「から」主观直接"}
+    ]
+  },
+  {
+    "name": "〜のに",
+    "meaning": "明明……却……（表示不满或意外）",
+    "conjunction_rule": "动词/形容词（普通体）/名词+な + のに",
+    "usage_note": "表示说话人认为前项与后项矛盾，带有遗憾、不满、意外的语气。与「けど」区别在于语气更强烈。",
+    "jlpt_level": "N4",
+    "examples": [
+      {"japanese": "頑張ったのに、失敗してしまいました。", "chinese": "明明努力了，却失败了。", "linked_word_ids": []},
+      {"japanese": "もうすぐ着くのに、引き返すのですか。", "chinese": "明明快到了，还要回头吗？", "linked_word_ids": []},
+      {"japanese": "せっかく作ったのに、食べてもらえなかった。", "chinese": "好不容易做了，却没人吃。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "約束した___、来なかった。（明明约好了，却没来）", "options": null, "answer": "のに", "explanation": "「のに」表示前后矛盾，含不满或遗憾"},
+      {"id": 2, "type": "multi_choice", "prompt": "「こんなに練習した___、上手くならない」（练了这么多却没进步）空白处填：", "options": ["から", "ので", "のに", "けど"], "answer": "のに", "explanation": "「のに」强调与预期相反的结果，含遗憾"}
+    ]
+  }
+]

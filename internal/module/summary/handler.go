@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/user"
 )
 
 // SummaryHandler handles HTTP requests for the summary module.
@@ -32,7 +33,7 @@ func (h *SummaryHandler) RegisterRoutes(mux *http.ServeMux) {
 
 // handleRecordSession handles POST /api/v1/summary/sessions
 func (h *SummaryHandler) handleRecordSession(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -47,7 +48,7 @@ func (h *SummaryHandler) handleRecordSession(w http.ResponseWriter, r *http.Requ
 
 	if err := h.svc.RecordSession(session); err != nil {
 		slog.Error("handleRecordSession failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to record study session", "")
 		return
 	}
 
@@ -63,7 +64,7 @@ type generateSummaryRequest struct {
 
 // handleGenerateSummary handles POST /api/v1/summary/generate
 func (h *SummaryHandler) handleGenerateSummary(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -82,7 +83,7 @@ func (h *SummaryHandler) handleGenerateSummary(w http.ResponseWriter, r *http.Re
 	sum, err := h.svc.GenerateSummary(userID, req.SessionID, req.Module, req.ScoreSummary)
 	if err != nil {
 		slog.Error("handleGenerateSummary failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to generate summary", "")
 		return
 	}
 
@@ -91,7 +92,7 @@ func (h *SummaryHandler) handleGenerateSummary(w http.ResponseWriter, r *http.Re
 
 // handleListSummaries handles GET /api/v1/summary
 func (h *SummaryHandler) handleListSummaries(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -100,19 +101,9 @@ func (h *SummaryHandler) handleListSummaries(w http.ResponseWriter, r *http.Requ
 	summaries, err := h.svc.ListSummaries(userID)
 	if err != nil {
 		slog.Error("handleListSummaries failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load summaries", "")
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: summaries})
-}
-
-// contextKeyUserID is the key type for storing userID in context.
-type contextKeyUserID struct{}
-
-// userIDFromContext extracts the userID injected by AuthMiddleware.
-func userIDFromContext(ctx interface{ Value(any) any }) (int64, bool) {
-	v := ctx.Value(contextKeyUserID{})
-	id, ok := v.(int64)
-	return id, ok
 }

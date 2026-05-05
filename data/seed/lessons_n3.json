@@ -1,0 +1,584 @@
+[
+  {
+    "title": "環境問題について",
+    "jlpt_level": "N3",
+    "tags": ["环境", "社会"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "近年", "reading": "きんねん"},
+          {"surface": "、", "reading": ""},
+          {"surface": "地球温暖化", "reading": "ちきゅうおんだんか"},
+          {"surface": "が", "reading": ""},
+          {"surface": "深刻", "reading": "しんこく"},
+          {"surface": "な", "reading": ""},
+          {"surface": "問題", "reading": "もんだい"},
+          {"surface": "と", "reading": ""},
+          {"surface": "なっています", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "近年来，全球变暖已成为严重问题。",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "二酸化炭素", "reading": "にさんかたんそ"},
+          {"surface": "の", "reading": ""},
+          {"surface": "排出量", "reading": "はいしゅつりょう"},
+          {"surface": "が", "reading": ""},
+          {"surface": "増え続けている", "reading": "ふえつづけている"},
+          {"surface": "ことで", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "気温", "reading": "きおん"},
+          {"surface": "が", "reading": ""},
+          {"surface": "上昇", "reading": "じょうしょう"},
+          {"surface": "しています", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "由于二氧化碳排放量持续增加，气温正在上升。",
+        "start_ms": 5000,
+        "end_ms": 11000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "この", "reading": ""},
+          {"surface": "問題", "reading": "もんだい"},
+          {"surface": "を", "reading": ""},
+          {"surface": "解決", "reading": "かいけつ"},
+          {"surface": "するため", "reading": ""},
+          {"surface": "に", "reading": ""},
+          {"surface": "は", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "再生可能", "reading": "さいせいかのう"},
+          {"surface": "エネルギー", "reading": ""},
+          {"surface": "の", "reading": ""},
+          {"surface": "利用", "reading": "りよう"},
+          {"surface": "が", "reading": ""},
+          {"surface": "重要", "reading": "じゅうよう"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "为了解决这个问题，利用可再生能源非常重要。",
+        "start_ms": 11000,
+        "end_ms": 17000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "個人", "reading": "こじん"},
+          {"surface": "レベル", "reading": ""},
+          {"surface": "でも", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "節電", "reading": "せつでん"},
+          {"surface": "や", "reading": ""},
+          {"surface": "リサイクル", "reading": ""},
+          {"surface": "を", "reading": ""},
+          {"surface": "心がける", "reading": "こころがける"},
+          {"surface": "ことが", "reading": ""},
+          {"surface": "大切", "reading": "たいせつ"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "在个人层面，注意节电和回收利用也很重要。",
+        "start_ms": 17000,
+        "end_ms": 23000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "将来", "reading": "しょうらい"},
+          {"surface": "の", "reading": ""},
+          {"surface": "世代", "reading": "せだい"},
+          {"surface": "に", "reading": ""},
+          {"surface": "美しい", "reading": "うつくしい"},
+          {"surface": "地球", "reading": "ちきゅう"},
+          {"surface": "を", "reading": ""},
+          {"surface": "残す", "reading": "のこす"},
+          {"surface": "ために", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "今", "reading": "いま"},
+          {"surface": "すぐ", "reading": ""},
+          {"surface": "行動", "reading": "こうどう"},
+          {"surface": "すべきです", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "为了给未来的世代留下美丽的地球，我们应该立即行动。",
+        "start_ms": 23000,
+        "end_ms": 29000
+      }
+    ]
+  },
+  {
+    "title": "読書の習慣",
+    "jlpt_level": "N3",
+    "tags": ["学习", "习惯"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "読書", "reading": "どくしょ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "知識", "reading": "ちしき"},
+          {"surface": "を", "reading": ""},
+          {"surface": "広げる", "reading": "ひろげる"},
+          {"surface": "だけでなく", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "想像力", "reading": "そうぞうりょく"},
+          {"surface": "を", "reading": ""},
+          {"surface": "豊かに", "reading": "ゆたかに"},
+          {"surface": "します", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "读书不仅能拓展知识，还能丰富想象力。",
+        "start_ms": 0,
+        "end_ms": 6000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "しかし", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "最近", "reading": "さいきん"},
+          {"surface": "の", "reading": ""},
+          {"surface": "若者", "reading": "わかもの"},
+          {"surface": "は", "reading": ""},
+          {"surface": "スマートフォン", "reading": ""},
+          {"surface": "の", "reading": ""},
+          {"surface": "普及", "reading": "ふきゅう"},
+          {"surface": "に", "reading": ""},
+          {"surface": "ともなって", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "本", "reading": "ほん"},
+          {"surface": "を", "reading": ""},
+          {"surface": "読む", "reading": "よむ"},
+          {"surface": "時間", "reading": "じかん"},
+          {"surface": "が", "reading": ""},
+          {"surface": "減っています", "reading": "へっています"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "然而，随着智能手机的普及，最近的年轻人读书的时间正在减少。",
+        "start_ms": 6000,
+        "end_ms": 14000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "読書", "reading": "どくしょ"},
+          {"surface": "習慣", "reading": "しゅうかん"},
+          {"surface": "を", "reading": ""},
+          {"surface": "つけるには", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "まず", "reading": ""},
+          {"surface": "自分", "reading": "じぶん"},
+          {"surface": "の", "reading": ""},
+          {"surface": "興味", "reading": "きょうみ"},
+          {"surface": "のある", "reading": ""},
+          {"surface": "分野", "reading": "ぶんや"},
+          {"surface": "から", "reading": ""},
+          {"surface": "始める", "reading": "はじめる"},
+          {"surface": "とよいでしょう", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "要养成读书习惯，最好先从自己感兴趣的领域开始。",
+        "start_ms": 14000,
+        "end_ms": 20000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "毎日", "reading": "まいにち"},
+          {"surface": "少しずつ", "reading": "すこしずつ"},
+          {"surface": "でも", "reading": ""},
+          {"surface": "読む", "reading": "よむ"},
+          {"surface": "ことで", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "習慣", "reading": "しゅうかん"},
+          {"surface": "が", "reading": ""},
+          {"surface": "身につきます", "reading": "みにつきます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "通过每天坚持读一点，就能养成习惯。",
+        "start_ms": 20000,
+        "end_ms": 26000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "電子書籍", "reading": "でんししょせき"},
+          {"surface": "を", "reading": ""},
+          {"surface": "活用", "reading": "かつよう"},
+          {"surface": "するのも", "reading": ""},
+          {"surface": "一つの", "reading": "ひとつの"},
+          {"surface": "方法", "reading": "ほうほう"},
+          {"surface": "だと", "reading": ""},
+          {"surface": "思います", "reading": "おもいます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "我认为利用电子书也是一种方法。",
+        "start_ms": 26000,
+        "end_ms": 31000
+      }
+    ]
+  },
+  {
+    "title": "職場での人間関係",
+    "jlpt_level": "N3",
+    "tags": ["工作", "人际关系"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "職場", "reading": "しょくば"},
+          {"surface": "での", "reading": ""},
+          {"surface": "人間関係", "reading": "にんげんかんけい"},
+          {"surface": "は", "reading": ""},
+          {"surface": "仕事", "reading": "しごと"},
+          {"surface": "の", "reading": ""},
+          {"surface": "効率", "reading": "こうりつ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "大きく", "reading": "おおきく"},
+          {"surface": "影響", "reading": "えいきょう"},
+          {"surface": "します", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "职场中的人际关系对工作效率有很大影响。",
+        "start_ms": 0,
+        "end_ms": 6000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "良好な", "reading": "りょうこうな"},
+          {"surface": "人間関係", "reading": "にんげんかんけい"},
+          {"surface": "を", "reading": ""},
+          {"surface": "築く", "reading": "きずく"},
+          {"surface": "ために", "reading": ""},
+          {"surface": "は", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "まず", "reading": ""},
+          {"surface": "相手", "reading": "あいて"},
+          {"surface": "の", "reading": ""},
+          {"surface": "立場", "reading": "たちば"},
+          {"surface": "に", "reading": ""},
+          {"surface": "立って", "reading": "たって"},
+          {"surface": "考える", "reading": "かんがえる"},
+          {"surface": "ことが", "reading": ""},
+          {"surface": "必要", "reading": "ひつよう"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "为了建立良好的人际关系，首先需要站在对方的立场上思考。",
+        "start_ms": 6000,
+        "end_ms": 14000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "また", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "積極的", "reading": "せっきょくてき"},
+          {"surface": "に", "reading": ""},
+          {"surface": "コミュニケーション", "reading": ""},
+          {"surface": "を", "reading": ""},
+          {"surface": "取る", "reading": "とる"},
+          {"surface": "ことで", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "信頼関係", "reading": "しんらいかんけい"},
+          {"surface": "が", "reading": ""},
+          {"surface": "生まれます", "reading": "うまれます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "此外，通过积极沟通，可以建立信任关系。",
+        "start_ms": 14000,
+        "end_ms": 20000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "意見", "reading": "いけん"},
+          {"surface": "の", "reading": ""},
+          {"surface": "違い", "reading": "ちがい"},
+          {"surface": "が", "reading": ""},
+          {"surface": "あっても", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "お互い", "reading": "おたがい"},
+          {"surface": "を", "reading": ""},
+          {"surface": "尊重", "reading": "そんちょう"},
+          {"surface": "する", "reading": ""},
+          {"surface": "姿勢", "reading": "しせい"},
+          {"surface": "が", "reading": ""},
+          {"surface": "大切", "reading": "たいせつ"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "即使有意见分歧，互相尊重的态度也很重要。",
+        "start_ms": 20000,
+        "end_ms": 26000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "問題", "reading": "もんだい"},
+          {"surface": "が", "reading": ""},
+          {"surface": "起きた", "reading": "おきた"},
+          {"surface": "場合", "reading": "ばあい"},
+          {"surface": "は", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "できるだけ", "reading": ""},
+          {"surface": "早く", "reading": "はやく"},
+          {"surface": "話し合って", "reading": "はなしあって"},
+          {"surface": "解決", "reading": "かいけつ"},
+          {"surface": "することが", "reading": ""},
+          {"surface": "重要", "reading": "じゅうよう"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "发生问题时，尽早通过交流解决很重要。",
+        "start_ms": 26000,
+        "end_ms": 32000
+      }
+    ]
+  },
+  {
+    "title": "日本の食文化",
+    "jlpt_level": "N3",
+    "tags": ["文化", "饮食"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "日本", "reading": "にほん"},
+          {"surface": "の", "reading": ""},
+          {"surface": "食文化", "reading": "しょくぶんか"},
+          {"surface": "は", "reading": ""},
+          {"surface": "世界", "reading": "せかい"},
+          {"surface": "中", "reading": "じゅう"},
+          {"surface": "で", "reading": ""},
+          {"surface": "高く", "reading": "たかく"},
+          {"surface": "評価", "reading": "ひょうか"},
+          {"surface": "されています", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "日本的饮食文化在全世界都受到高度评价。",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "特に", "reading": "とくに"},
+          {"surface": "寿司", "reading": "すし"},
+          {"surface": "や", "reading": ""},
+          {"surface": "刺身", "reading": "さしみ"},
+          {"surface": "、", "reading": ""},
+          {"surface": "ラーメン", "reading": ""},
+          {"surface": "などは", "reading": ""},
+          {"surface": "海外", "reading": "かいがい"},
+          {"surface": "でも", "reading": ""},
+          {"surface": "人気", "reading": "にんき"},
+          {"surface": "が", "reading": ""},
+          {"surface": "あります", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "尤其是寿司、刺身、拉面等在海外也很受欢迎。",
+        "start_ms": 5000,
+        "end_ms": 11000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "日本食", "reading": "にほんしょく"},
+          {"surface": "の", "reading": ""},
+          {"surface": "特徴", "reading": "とくちょう"},
+          {"surface": "の", "reading": ""},
+          {"surface": "一つ", "reading": "ひとつ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "旬", "reading": "しゅん"},
+          {"surface": "の", "reading": ""},
+          {"surface": "食材", "reading": "しょくざい"},
+          {"surface": "を", "reading": ""},
+          {"surface": "大切", "reading": "たいせつ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "することです", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "日本料理的特点之一是重视时令食材。",
+        "start_ms": 11000,
+        "end_ms": 17000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "また", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "見た目", "reading": "みため"},
+          {"surface": "の", "reading": ""},
+          {"surface": "美しさ", "reading": "うつくしさ"},
+          {"surface": "も", "reading": ""},
+          {"surface": "重要", "reading": "じゅうよう"},
+          {"surface": "視", "reading": "し"},
+          {"surface": "されており", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "盛り付け", "reading": "もりつけ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "も", "reading": ""},
+          {"surface": "こだわります", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "此外，外观的美观也很受重视，对摆盘也很讲究。",
+        "start_ms": 17000,
+        "end_ms": 23000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "ユネスコ", "reading": ""},
+          {"surface": "の", "reading": ""},
+          {"surface": "無形文化遺産", "reading": "むけいぶんかいさん"},
+          {"surface": "に", "reading": ""},
+          {"surface": "登録", "reading": "とうろく"},
+          {"surface": "された", "reading": ""},
+          {"surface": "和食", "reading": "わしょく"},
+          {"surface": "は", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "日本", "reading": "にほん"},
+          {"surface": "の", "reading": ""},
+          {"surface": "誇り", "reading": "ほこり"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "被列入联合国教科文组织非物质文化遗产的和食，是日本的骄傲。",
+        "start_ms": 23000,
+        "end_ms": 29000
+      }
+    ]
+  },
+  {
+    "title": "都市と地方の暮らし",
+    "jlpt_level": "N3",
+    "tags": ["生活", "社会"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "都市部", "reading": "としぶ"},
+          {"surface": "での", "reading": ""},
+          {"surface": "生活", "reading": "せいかつ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "利便性", "reading": "りべんせい"},
+          {"surface": "が", "reading": ""},
+          {"surface": "高い", "reading": "たかい"},
+          {"surface": "一方", "reading": "いっぽう"},
+          {"surface": "、", "reading": ""},
+          {"surface": "生活費", "reading": "せいかつひ"},
+          {"surface": "が", "reading": ""},
+          {"surface": "かかります", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "都市生活便利性高，但另一方面生活费也高。",
+        "start_ms": 0,
+        "end_ms": 6000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "それに", "reading": ""},
+          {"surface": "対して", "reading": "たいして"},
+          {"surface": "、", "reading": ""},
+          {"surface": "地方", "reading": "ちほう"},
+          {"surface": "では", "reading": ""},
+          {"surface": "自然", "reading": "しぜん"},
+          {"surface": "に", "reading": ""},
+          {"surface": "囲まれた", "reading": "かこまれた"},
+          {"surface": "環境", "reading": "かんきょう"},
+          {"surface": "で", "reading": ""},
+          {"surface": "ゆっくり", "reading": ""},
+          {"surface": "暮らす", "reading": "くらす"},
+          {"surface": "ことができます", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "与此相对，在地方可以在被大自然环绕的环境中悠然生活。",
+        "start_ms": 6000,
+        "end_ms": 12000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "近年", "reading": "きんねん"},
+          {"surface": "は", "reading": ""},
+          {"surface": "テレワーク", "reading": ""},
+          {"surface": "の", "reading": ""},
+          {"surface": "普及", "reading": "ふきゅう"},
+          {"surface": "に", "reading": ""},
+          {"surface": "ともなって", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "地方", "reading": "ちほう"},
+          {"surface": "移住", "reading": "いじゅう"},
+          {"surface": "を", "reading": ""},
+          {"surface": "選ぶ", "reading": "えらぶ"},
+          {"surface": "人", "reading": "ひと"},
+          {"surface": "が", "reading": ""},
+          {"surface": "増えています", "reading": "ふえています"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "近年来，随着远程办公的普及，选择移居地方的人越来越多。",
+        "start_ms": 12000,
+        "end_ms": 19000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "どちらの", "reading": ""},
+          {"surface": "生活", "reading": "せいかつ"},
+          {"surface": "が", "reading": ""},
+          {"surface": "良い", "reading": "よい"},
+          {"surface": "かは", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "それぞれの", "reading": ""},
+          {"surface": "価値観", "reading": "かちかん"},
+          {"surface": "や", "reading": ""},
+          {"surface": "ライフスタイル", "reading": ""},
+          {"surface": "によって", "reading": ""},
+          {"surface": "異なります", "reading": "ことなります"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "哪种生活方式更好，因每个人的价值观和生活方式而异。",
+        "start_ms": 19000,
+        "end_ms": 25000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "大切", "reading": "たいせつ"},
+          {"surface": "なのは", "reading": ""},
+          {"surface": "自分", "reading": "じぶん"},
+          {"surface": "に", "reading": ""},
+          {"surface": "合った", "reading": "あった"},
+          {"surface": "生き方", "reading": "いきかた"},
+          {"surface": "を", "reading": ""},
+          {"surface": "見つける", "reading": "みつける"},
+          {"surface": "ことではないでしょうか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "重要的是找到适合自己的生活方式，不是吗？",
+        "start_ms": 25000,
+        "end_ms": 31000
+      }
+    ]
+  }
+]

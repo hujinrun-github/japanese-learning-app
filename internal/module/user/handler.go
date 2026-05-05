@@ -2,6 +2,7 @@ package user
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -21,15 +22,19 @@ func NewUserHandler(svc *UserService) *UserHandler {
 // RegisterRoutes registers user routes (public and protected).
 // Public routes:
 //
-//	POST /api/v1/auth/register  → Register
-//	POST /api/v1/auth/login     → Login
+//	POST /api/v1/auth/register          → Register
+//	POST /api/v1/auth/login             → Login
+//	POST /api/v1/auth/forgot-password   → ForgotPassword
+//	POST /api/v1/auth/reset-password    → ResetPassword
 //
 // Protected routes (require AuthMiddleware upstream):
 //
-//	GET  /api/v1/users/me       → GetProfile
+//	GET  /api/v1/users/me               → GetProfile
 func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/register", h.handleRegister)
 	mux.HandleFunc("POST /api/v1/auth/login", h.handleLogin)
+	mux.HandleFunc("POST /api/v1/auth/forgot-password", h.handleForgotPassword)
+	mux.HandleFunc("POST /api/v1/auth/reset-password", h.handleResetPassword)
 	mux.HandleFunc("GET /api/v1/users/me", h.handleGetProfile)
 }
 
@@ -48,7 +53,11 @@ func (h *UserHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	u, err := h.svc.Register(req)
 	if err != nil {
 		slog.Error("handleRegister failed", "err", err)
-		httputil.WriteError(w, http.StatusConflict, "ERR_CONFLICT", "registration failed", "")
+		if errors.Is(err, ErrEmailTaken) {
+			httputil.WriteError(w, http.StatusConflict, "ERR_EMAIL_TAKEN", "email already registered", "")
+		} else {
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to create account", "")
+		}
 		return
 	}
 
@@ -93,4 +102,57 @@ func (h *UserHandler) handleGetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: u})
+}
+
+// handleForgotPassword handles POST /api/v1/auth/forgot-password
+func (h *UserHandler) handleForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req ForgotPasswordReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
+		return
+	}
+	if req.Email == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "email is required", "")
+		return
+	}
+
+	slog.Debug("handleForgotPassword called", "email", req.Email)
+	if err := h.svc.ForgotPassword(req.Email); err != nil {
+		slog.Error("handleForgotPassword failed", "err", err, "email", req.Email)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to process request", "")
+		return
+	}
+
+	// Always return 200 to avoid email enumeration.
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
+		"message": "If that email is registered, a reset link has been sent.",
+	}})
+}
+
+// handleResetPassword handles POST /api/v1/auth/reset-password
+func (h *UserHandler) handleResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req ResetPasswordReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
+		return
+	}
+	if req.Token == "" || req.NewPassword == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "token and new_password are required", "")
+		return
+	}
+
+	slog.Debug("handleResetPassword called")
+	if err := h.svc.ResetPassword(req.Token, req.NewPassword); err != nil {
+		slog.Error("handleResetPassword failed", "err", err)
+		if errors.Is(err, ErrTokenInvalid) {
+			httputil.WriteError(w, http.StatusBadRequest, "ERR_TOKEN_INVALID", "invalid or expired reset token", "")
+		} else {
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to reset password", "")
+		}
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
+		"message": "Password reset successfully.",
+	}})
 }

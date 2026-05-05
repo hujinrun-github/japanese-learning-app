@@ -1,0 +1,322 @@
+[
+  {
+    "name": "〜は〜です",
+    "meaning": "……是……（表示判断和说明）",
+    "conjunction_rule": "名词 + は + 名词/形容词 + です",
+    "usage_note": "最基本的日语句型，用于说明事物的性质、状态或身份。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "私は学生です。", "chinese": "我是学生。", "linked_word_ids": []},
+      {"japanese": "これは本です。", "chinese": "这是书。", "linked_word_ids": []},
+      {"japanese": "田中さんは先生です。", "chinese": "田中是老师。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "私___学生です。", "options": null, "answer": "は", "explanation": "「は」是主题助词，用于提示句子的主题"},
+      {"id": 2, "type": "multi_choice", "prompt": "「これは本___。」空白处填什么？", "options": ["が", "です", "に", "を"], "answer": "です", "explanation": "「です」是礼貌体的断定助动词"}
+    ]
+  },
+  {
+    "name": "〜が好きです／嫌いです",
+    "meaning": "喜欢……／讨厌……",
+    "conjunction_rule": "名词 + が + 好き/嫌い + です",
+    "usage_note": "表示对某事物的喜好。好き（喜欢）和嫌い（不喜欢）是形容动词。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "私は音楽が好きです。", "chinese": "我喜欢音乐。", "linked_word_ids": []},
+      {"japanese": "猫が好きです。", "chinese": "我喜欢猫。", "linked_word_ids": []},
+      {"japanese": "辛い食べ物が嫌いです。", "chinese": "我不喜欢辣的食物。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "私は日本語___好きです。", "options": null, "answer": "が", "explanation": "好き/嫌い前用「が」而不是「を」"},
+      {"id": 2, "type": "multi_choice", "prompt": "「音楽___好きです」中，空白处应填：", "options": ["は", "を", "が", "で"], "answer": "が", "explanation": "表示喜好对象时用助词「が」"}
+    ]
+  },
+  {
+    "name": "〜があります／います",
+    "meaning": "有……（存在表达）",
+    "conjunction_rule": "场所 + に + 物/人 + があります/います",
+    "usage_note": "あります用于非生物，います用于人或动物。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "机の上に本があります。", "chinese": "桌子上有书。", "linked_word_ids": []},
+      {"japanese": "教室に学生がいます。", "chinese": "教室里有学生。", "linked_word_ids": []},
+      {"japanese": "冷蔵庫にりんごがあります。", "chinese": "冰箱里有苹果。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "multi_choice", "prompt": "犬が公園に___。（狗在公园里）", "options": ["あります", "います", "です", "ます"], "answer": "います", "explanation": "动物是生物，用「います」"},
+      {"id": 2, "type": "fill_blank", "prompt": "机の上に本が___。", "options": null, "answer": "あります", "explanation": "书是非生物，用「あります」"}
+    ]
+  },
+  {
+    "name": "〜ませんか",
+    "meaning": "要不要……？（邀请表达）",
+    "conjunction_rule": "动词ます形（去ます） + ませんか",
+    "usage_note": "用于礼貌地邀请对方一起做某事，语气比「ましょう」更委婉。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "一緒に映画を見ませんか。", "chinese": "要不要一起去看电影？", "linked_word_ids": []},
+      {"japanese": "お茶を飲みませんか。", "chinese": "要不要喝茶？", "linked_word_ids": []},
+      {"japanese": "公園を散歩しませんか。", "chinese": "要不要在公园散步？", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "multi_choice", "prompt": "邀请对方一起吃饭，应说：", "options": ["食べましょう", "食べませんか", "食べますか", "食べてください"], "answer": "食べませんか", "explanation": "「〜ませんか」是委婉的邀请句型"},
+      {"id": 2, "type": "fill_blank", "prompt": "一緒に勉強し___か。（要不要一起学习？）", "options": null, "answer": "ません", "explanation": "邀请句型「〜ませんか」"}
+    ]
+  },
+  {
+    "name": "〜ましょう",
+    "meaning": "我们……吧（提议/建议）",
+    "conjunction_rule": "动词ます形（去ます） + ましょう",
+    "usage_note": "表示说话人自己也参与其中的建议，比「ませんか」更积极主动。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "行きましょう！", "chinese": "走吧！", "linked_word_ids": []},
+      {"japanese": "一緒に頑張りましょう。", "chinese": "一起加油吧。", "linked_word_ids": []},
+      {"japanese": "そろそろ帰りましょう。", "chinese": "差不多该回去了吧。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "さあ、始め___！（来，开始吧！）", "options": null, "answer": "ましょう", "explanation": "「〜ましょう」表示提议共同行动"},
+      {"id": 2, "type": "multi_choice", "prompt": "「行き___」表示什么？", "options": ["我要去", "请去", "我们去吧", "你去吗"], "answer": "我们去吧", "explanation": "「ましょう」是说话双方一起行动的建议"}
+    ]
+  },
+  {
+    "name": "〜てください",
+    "meaning": "请……（礼貌请求）",
+    "conjunction_rule": "动词て形 + ください",
+    "usage_note": "用于礼貌地请求他人做某事。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "ここに名前を書いてください。", "chinese": "请在这里写上名字。", "linked_word_ids": []},
+      {"japanese": "ゆっくり話してください。", "chinese": "请慢慢说。", "linked_word_ids": []},
+      {"japanese": "窓を開けてください。", "chinese": "请打开窗户。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "もう一度言っ___。（请再说一次）", "options": null, "answer": "てください", "explanation": "「〜てください」是礼貌的请求表达"},
+      {"id": 2, "type": "multi_choice", "prompt": "「座っ___」空白处填什么表示「请坐」？", "options": ["てみます", "てください", "ています", "てあります"], "answer": "てください", "explanation": "「てください」用于礼貌请求"}
+    ]
+  },
+  {
+    "name": "〜ています",
+    "meaning": "正在……（进行中的动作）",
+    "conjunction_rule": "动词て形 + います",
+    "usage_note": "表示动作正在进行，或某种状态持续存在。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "今、勉強しています。", "chinese": "现在正在学习。", "linked_word_ids": []},
+      {"japanese": "雨が降っています。", "chinese": "正在下雨。", "linked_word_ids": []},
+      {"japanese": "彼女は音楽を聴いています。", "chinese": "她正在听音乐。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼は今、テレビを見___。（他现在正在看电视）", "options": null, "answer": "ています", "explanation": "「〜ています」表示动作正在进行"},
+      {"id": 2, "type": "multi_choice", "prompt": "「食べ___」表示「正在吃」，空白处填：", "options": ["ます", "ています", "ました", "てください"], "answer": "ています", "explanation": "「〜ています」表示进行时"}
+    ]
+  },
+  {
+    "name": "〜たいです",
+    "meaning": "想……（表示愿望）",
+    "conjunction_rule": "动词ます形（去ます） + たいです",
+    "usage_note": "表示说话人自己的愿望或期望。不用于第三人称。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "日本に行きたいです。", "chinese": "我想去日本。", "linked_word_ids": []},
+      {"japanese": "水が飲みたいです。", "chinese": "我想喝水。", "linked_word_ids": []},
+      {"japanese": "もっと日本語を話したいです。", "chinese": "我想说更多日语。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "お寿司を食べ___。（我想吃寿司）", "options": null, "answer": "たいです", "explanation": "「〜たいです」表示说话人的愿望"},
+      {"id": 2, "type": "multi_choice", "prompt": "「日本語を勉強し___」表示「想学日语」，空白处填：", "options": ["ます", "たいです", "ました", "ましょう"], "answer": "たいです", "explanation": "「〜たいです」表示愿望"}
+    ]
+  },
+  {
+    "name": "〜ないでください",
+    "meaning": "请不要……（否定请求）",
+    "conjunction_rule": "动词ない形 + でください",
+    "usage_note": "礼貌地请求对方不要做某事。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "ここで写真を撮らないでください。", "chinese": "请不要在这里拍照。", "linked_word_ids": []},
+      {"japanese": "遅れないでください。", "chinese": "请不要迟到。", "linked_word_ids": []},
+      {"japanese": "心配しないでください。", "chinese": "请不要担心。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "ここで話さ___。（请不要在这里说话）", "options": null, "answer": "ないでください", "explanation": "「〜ないでください」是否定请求"},
+      {"id": 2, "type": "multi_choice", "prompt": "「忘れ___」表示「请不要忘记」，空白处填：", "options": ["てください", "ないでください", "てはいけません", "なさい"], "answer": "ないでください", "explanation": "否定请求用「〜ないでください」"}
+    ]
+  },
+  {
+    "name": "〜から",
+    "meaning": "因为……（表示原因）",
+    "conjunction_rule": "句子（普通体/丁宁体） + から",
+    "usage_note": "表示理由或原因，说话者主观的理由说明。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "疲れたから、休みます。", "chinese": "因为累了，所以休息。", "linked_word_ids": []},
+      {"japanese": "雨が降っているから、傘を持って行ってください。", "chinese": "因为在下雨，请带伞。", "linked_word_ids": []},
+      {"japanese": "好きだから、毎日練習します。", "chinese": "因为喜欢，所以每天练习。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "お腹が空いた___、何か食べましょう。", "options": null, "answer": "から", "explanation": "「から」表示原因/理由"},
+      {"id": 2, "type": "multi_choice", "prompt": "「寒い___、窓を閉めてください」空白处应填：", "options": ["ので", "から", "けど", "が"], "answer": "から", "explanation": "「から」用于说明原因"}
+    ]
+  },
+  {
+    "name": "〜でも",
+    "meaning": "……也行（表示举例或最低限度）",
+    "conjunction_rule": "名词 + でも",
+    "usage_note": "表示「即使是……也」或举出极端的例子，含「至少……」的意味。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "お茶でも飲みませんか。", "chinese": "要不要喝茶之类的？", "linked_word_ids": []},
+      {"japanese": "子供でもわかります。", "chinese": "就连小孩也能理解。", "linked_word_ids": []},
+      {"japanese": "散歩でもしましょうか。", "chinese": "要不要去散个步之类的？", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "multi_choice", "prompt": "「コーヒー___飲みましょう」中「でも」的意思是：", "options": ["也", "但是", "或者喝点什么", "因为"], "answer": "或者喝点什么", "explanation": "「でも」表示举例，语气随意轻松"},
+      {"id": 2, "type": "fill_blank", "prompt": "映画___見に行きませんか。（要不要去看个电影之类的？）", "options": null, "answer": "でも", "explanation": "「でも」表示随意的提议"}
+    ]
+  },
+  {
+    "name": "〜に行きます",
+    "meaning": "去……（目的地或目的）",
+    "conjunction_rule": "场所 + に + 行きます / 动词ます形（去ます）+ に + 行きます",
+    "usage_note": "表示前往某地，或为了某目的而去。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "学校に行きます。", "chinese": "去学校。", "linked_word_ids": []},
+      {"japanese": "買い物に行きます。", "chinese": "去购物。", "linked_word_ids": []},
+      {"japanese": "映画を見に行きます。", "chinese": "去看电影。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "図書館___本を借りに行きます。", "options": null, "answer": "に", "explanation": "目的地用助词「に」"},
+      {"id": 2, "type": "multi_choice", "prompt": "「食べ___行きます」（去吃东西）空白处填：", "options": ["に", "を", "が", "で"], "answer": "に", "explanation": "「動詞ます形＋に行く」表示目的"}
+    ]
+  },
+  {
+    "name": "〜のほうが〜より",
+    "meaning": "……比……更……（比较表达）",
+    "conjunction_rule": "A + のほうが + B + より + 形容词",
+    "usage_note": "用于两者比较，「のほうが」后面的是程度更高的一方。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "夏のほうが冬より好きです。", "chinese": "比起冬天更喜欢夏天。", "linked_word_ids": []},
+      {"japanese": "電車のほうがバスより速いです。", "chinese": "电车比公共汽车快。", "linked_word_ids": []},
+      {"japanese": "りんごのほうがみかんより高いです。", "chinese": "苹果比橘子贵。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "犬のほうが猫___好きです。（更喜欢狗而非猫）", "options": null, "answer": "より", "explanation": "「より」引出比较基准"},
+      {"id": 2, "type": "multi_choice", "prompt": "「A___B___大きい」（A比B大）正确语序是：", "options": ["AよりBのほうが", "AのほうがBより", "AがBより", "AはBのほうが"], "answer": "AのほうがBより", "explanation": "正确格式：A（程度高）のほうが B（基准）より"}
+    ]
+  },
+  {
+    "name": "〜でした",
+    "meaning": "……是……（过去时）",
+    "conjunction_rule": "名词/形容动词 + でした",
+    "usage_note": "「です」的过去时，用于描述过去的状态或性质。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "昨日は雨でした。", "chinese": "昨天是雨天。", "linked_word_ids": []},
+      {"japanese": "試験は難しかったです。", "chinese": "考试很难。", "linked_word_ids": []},
+      {"japanese": "子供の頃、野球選手でした。", "chinese": "小时候是棒球选手。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "昨日の天気は晴れ___。（昨天是晴天）", "options": null, "answer": "でした", "explanation": "「でした」是「です」的过去时"},
+      {"id": 2, "type": "multi_choice", "prompt": "「彼は学生___」（他曾经是学生）过去时用：", "options": ["です", "でした", "ます", "ました"], "answer": "でした", "explanation": "名词谓语过去时用「でした」"}
+    ]
+  },
+  {
+    "name": "〜ました",
+    "meaning": "……了（动词过去时礼貌体）",
+    "conjunction_rule": "动词ます形（去ます） + ました",
+    "usage_note": "礼貌体的动词过去时，表示已完成的动作。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "昨日、映画を見ました。", "chinese": "昨天看了电影。", "linked_word_ids": []},
+      {"japanese": "朝ごはんを食べました。", "chinese": "吃了早饭。", "linked_word_ids": []},
+      {"japanese": "先生に電話しました。", "chinese": "给老师打了电话。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "昨日、図書館で本を読み___。（昨天在图书馆读了书）", "options": null, "answer": "ました", "explanation": "「〜ました」是动词过去完成时"},
+      {"id": 2, "type": "multi_choice", "prompt": "表示「已经做完了」用：", "options": ["ます", "ました", "ません", "ませんでした"], "answer": "ました", "explanation": "「ました」表示过去完成的动作"}
+    ]
+  },
+  {
+    "name": "〜ませんでした",
+    "meaning": "没有……（动词过去否定礼貌体）",
+    "conjunction_rule": "动词ます形（去ます） + ませんでした",
+    "usage_note": "礼貌体的过去否定，表示过去没有做某事。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "昨日は学校に行きませんでした。", "chinese": "昨天没有去学校。", "linked_word_ids": []},
+      {"japanese": "宿題をしませんでした。", "chinese": "没有做作业。", "linked_word_ids": []},
+      {"japanese": "朝ごはんを食べませんでした。", "chinese": "没有吃早饭。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "昨日は雨が降り___。（昨天没有下雨）", "options": null, "answer": "ませんでした", "explanation": "「〜ませんでした」是过去否定礼貌体"},
+      {"id": 2, "type": "multi_choice", "prompt": "「勉強し___」表示「没有学习」，过去否定用：", "options": ["ません", "ませんでした", "ないです", "なかったです"], "answer": "ませんでした", "explanation": "礼貌体过去否定为「〜ませんでした」"}
+    ]
+  },
+  {
+    "name": "〜と思います",
+    "meaning": "我认为……（表示个人看法）",
+    "conjunction_rule": "句子（普通体） + と思います",
+    "usage_note": "表示说话人的想法或推测，语气比较主观。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "明日は雨だと思います。", "chinese": "我认为明天会下雨。", "linked_word_ids": []},
+      {"japanese": "彼は正しいと思います。", "chinese": "我认为他是对的。", "linked_word_ids": []},
+      {"japanese": "これは難しいと思います。", "chinese": "我认为这很难。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "この映画はおもしろい___思います。", "options": null, "answer": "と", "explanation": "「と思います」表示个人看法，引用助词用「と」"},
+      {"id": 2, "type": "multi_choice", "prompt": "「彼女は来ない___思います」空白处填：", "options": ["と", "が", "は", "を"], "answer": "と", "explanation": "引用内容后接「と思います」"}
+    ]
+  },
+  {
+    "name": "〜てもいいですか",
+    "meaning": "可以……吗？（请求许可）",
+    "conjunction_rule": "动词て形 + もいいですか",
+    "usage_note": "请求对方允许自己做某事，是礼貌的询问句型。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "ここに座ってもいいですか。", "chinese": "可以坐在这里吗？", "linked_word_ids": []},
+      {"japanese": "写真を撮ってもいいですか。", "chinese": "可以拍照吗？", "linked_word_ids": []},
+      {"japanese": "質問してもいいですか。", "chinese": "可以提问吗？", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "ここで電話を使っ___ですか。（可以在这里打电话吗？）", "options": null, "answer": "てもいい", "explanation": "「〜てもいいですか」表示请求许可"},
+      {"id": 2, "type": "multi_choice", "prompt": "请求许可「可以开窗吗」应说：", "options": ["窓を開けますか", "窓を開けてもいいですか", "窓を開けてください", "窓を開けましょうか"], "answer": "窓を開けてもいいですか", "explanation": "「〜てもいいですか」用于请求许可"}
+    ]
+  },
+  {
+    "name": "〜てはいけません",
+    "meaning": "不可以……（表示禁止）",
+    "conjunction_rule": "动词て形 + はいけません",
+    "usage_note": "表示规则性的禁止，比「〜ないでください」语气更强。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "ここでタバコを吸ってはいけません。", "chinese": "这里不可以抽烟。", "linked_word_ids": []},
+      {"japanese": "図書館で大きな声で話してはいけません。", "chinese": "图书馆里不可以大声说话。", "linked_word_ids": []},
+      {"japanese": "授業中に携帯を使ってはいけません。", "chinese": "上课时不可以用手机。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "ここに入っ___いけません。（不可以进入这里）", "options": null, "answer": "ては", "explanation": "「〜てはいけません」表示禁止"},
+      {"id": 2, "type": "multi_choice", "prompt": "「嘘をつい___」（不可以说谎）空白处填：", "options": ["てはいけません", "てはいいです", "てもいいです", "てください"], "answer": "てはいけません", "explanation": "禁止表达用「〜てはいけません」"}
+    ]
+  },
+  {
+    "name": "〜なければなりません",
+    "meaning": "必须……（表示义务）",
+    "conjunction_rule": "动词ない形（去ない） + ければなりません",
+    "usage_note": "表示某种义务或必要性，较为正式。口语中常缩短为「〜なきゃ」。",
+    "jlpt_level": "N5",
+    "examples": [
+      {"japanese": "毎日薬を飲まなければなりません。", "chinese": "必须每天吃药。", "linked_word_ids": []},
+      {"japanese": "宿題をしなければなりません。", "chinese": "必须做作业。", "linked_word_ids": []},
+      {"japanese": "明日早く起きなければなりません。", "chinese": "明天必须早起。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "試験のために勉強し___なりません。", "options": null, "answer": "なければ", "explanation": "「〜なければなりません」表示义务"},
+      {"id": 2, "type": "multi_choice", "prompt": "「もっと練習し___」（必须更多练习）空白处填：", "options": ["てもいいです", "てはいけません", "なければなりません", "てはいいです"], "answer": "なければなりません", "explanation": "「〜なければなりません」表示必要性"}
+    ]
+  }
+]

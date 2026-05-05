@@ -1,0 +1,41 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.mastered {
+  background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+.learning {
+  background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: color-mix(in srgb, var(--color-warning) 80%, #000);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+
+.unlearned {
+  background-color: color-mix(in srgb, var(--color-text-secondary) 10%, transparent);
+  color: var(--color-text-secondary);
+  border-color: color-mix(in srgb, var(--color-text-secondary) 20%, transparent);
+}
+
+.pass {
+  background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+.needs_work {
+  background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: color-mix(in srgb, var(--color-warning) 80%, #000);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
