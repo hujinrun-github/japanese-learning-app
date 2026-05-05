@@ -1,1169 +1,1128 @@
----
-feature: "001-core-functionality"
-title: "前端设计文档"
-status: "草稿"
-version: "1.0"
-created: "2026-04-03"
-relates_to: "spec.md, plan.md, tasks.md"
----
+# 前端设计方案：日语学习 App（React 版）
 
-# 前端设计文档：日语学习应用
-
-> **范围**：本文档覆盖 Web 端（V1~V4）的视觉设计系统、页面布局、组件规范、交互细节和技术实现方案。iOS（V5）不在本文档范围内。
+> 版本：2.0 | 日期：2026-04-04 | 框架：React 18 + TypeScript + Vite
 
 ---
 
-## 一、设计理念
+## 1. 技术栈
 
-### 1.1 核心原则
+| 层次 | 选型 | 说明 |
+|------|------|------|
+| 框架 | React 18 | 并发特性、Suspense |
+| 语言 | TypeScript 5 | 严格类型检查 |
+| 构建 | Vite 5 | 快速 HMR，生产 `dist/` |
+| 路由 | React Router v6 | SPA 客户端路由 |
+| 样式 | CSS Modules + CSS Variables | 零运行时，主题系统 |
+| 状态 | Context + useReducer | 仅全局 Auth，不引入第三方 |
+| 测试 | Vitest + React Testing Library | 组件单元测试 |
+| 代码质量 | ESLint + Prettier | 统一格式 |
 
-| 原则 | 说明 |
-|---|---|
-| **克制** | 不用颜色和动效堆砌，留白和字距是主要设计语言 |
-| **专注** | 每个页面只有一个核心操作，减少决策疲劳 |
-| **及时反馈** | 用户的每次操作（翻牌、评分、提交）必须在 300ms 内有视觉响应 |
-| **可中断** | 每个学习单元自成闭环，随时关闭不丢失进度 |
-
-### 1.2 目标用户使用场景对设计的约束
-
-- **通勤场景（竖屏、单手、嘈杂）**：触控目标 ≥ 44px；关键操作集中在屏幕下半区（拇指可及）；不依赖声音提示
-- **午休/晚间场景（横屏可能、双手、安静）**：可展示更多信息密度；支持键盘快捷操作
+**刻意不引入**：Redux、MobX、styled-components、Tailwind、Ant Design、Material UI。遵循"简单性原则"，标准库/原生 CSS 优先。
 
 ---
 
-## 二、视觉设计系统
+## 2. 项目目录结构
 
-### 2.1 色彩系统
+```
+front/react/
+├── index.html
+├── vite.config.ts
+├── tsconfig.json
+├── package.json
+└── src/
+    ├── main.tsx                  # 应用入口
+    ├── App.tsx                   # 路由根组件
+    ├── api/                      # API 调用层
+    │   ├── client.ts             # fetch 封装（自动带 token）
+    │   ├── word.ts
+    │   ├── grammar.ts
+    │   ├── speaking.ts
+    │   ├── writing.ts
+    │   ├── summary.ts
+    │   └── user.ts
+    ├── types/                    # 共享类型定义
+    │   ├── word.ts
+    │   ├── grammar.ts
+    │   ├── speaking.ts
+    │   ├── writing.ts
+    │   ├── summary.ts
+    │   └── user.ts
+    ├── context/
+    │   └── AuthContext.tsx       # 全局登录状态
+    ├── hooks/
+    │   ├── useApi.ts             # 通用数据加载 hook
+    │   ├── useAudioRecorder.ts   # MediaRecorder 封装
+    │   └── useLocalStorage.ts   # 持久化 hook
+    ├── components/
+    │   ├── ui/                   # 原子组件
+    │   │   ├── Badge/
+    │   │   ├── Button/
+    │   │   ├── Card/
+    │   │   ├── Spinner/
+    │   │   ├── EmptyState/
+    │   │   ├── ProgressBar/
+    │   │   └── Toast/
+    │   └── layout/               # 布局组件
+    │       ├── TopNavBar/
+    │       ├── BottomTabBar/
+    │       └── PageShell/        # 统一页面容器
+    └── pages/
+        ├── auth/
+        │   ├── LoginPage.tsx
+        │   └── RegisterPage.tsx
+        ├── home/
+        │   └── HomePage.tsx
+        ├── word/
+        │   └── WordReviewPage.tsx
+        ├── grammar/
+        │   ├── GrammarListPage.tsx
+        │   ├── GrammarDetailPage.tsx
+        │   └── GrammarQuizPage.tsx
+        ├── lesson/
+        │   ├── LessonListPage.tsx
+        │   └── LessonDetailPage.tsx
+        ├── speaking/
+        │   └── SpeakingPage.tsx
+        ├── writing/
+        │   ├── WritingQueuePage.tsx
+        │   └── WritingRecordsPage.tsx
+        └── summary/
+            └── SummaryPage.tsx
+```
+
+---
+
+## 3. 路由结构
+
+```tsx
+// App.tsx
+<Routes>
+  {/* 公开路由 */}
+  <Route path="/login"    element={<LoginPage />} />
+  <Route path="/register" element={<RegisterPage />} />
+
+  {/* 需要登录 */}
+  <Route element={<ProtectedLayout />}>
+    <Route path="/"                       element={<HomePage />} />
+    <Route path="/words/review"           element={<WordReviewPage />} />
+    <Route path="/grammar"                element={<GrammarListPage />} />
+    <Route path="/grammar/:id"            element={<GrammarDetailPage />} />
+    <Route path="/grammar/:id/quiz"       element={<GrammarQuizPage />} />
+    <Route path="/lessons"                element={<LessonListPage />} />
+    <Route path="/lessons/:id"            element={<LessonDetailPage />} />
+    <Route path="/speaking"               element={<SpeakingPage />} />
+    <Route path="/writing"                element={<WritingQueuePage />} />
+    <Route path="/writing/records"        element={<WritingRecordsPage />} />
+    <Route path="/summary"                element={<SummaryPage />} />
+  </Route>
+</Routes>
+```
+
+**ProtectedLayout**：检查 `AuthContext.isAuthenticated`，未登录自动重定向 `/login`，同时渲染 `TopNavBar` + `BottomTabBar`。
+
+---
+
+## 4. 视觉设计系统
+
+### 4.1 色彩
 
 ```css
 :root {
-  /* 主色调：靛蓝（沉静、专注） */
-  --color-primary:        #3B5BDB;  /* 主要按钮、强调元素 */
-  --color-primary-light:  #748FFC;  /* hover 状态、次级强调 */
-  --color-primary-subtle: #EDF2FF;  /* 轻底色、选中背景 */
-
-  /* 中性色阶 */
-  --color-text-primary:   #1A1A2E;  /* 正文、标题 */
-  --color-text-secondary: #6B7280;  /* 辅助说明、标签 */
-  --color-text-disabled:  #9CA3AF;  /* 禁用状态 */
-  --color-border:         #E5E7EB;  /* 分割线、卡片边框 */
-  --color-bg-surface:     #FFFFFF;  /* 卡片、弹窗背景 */
-  --color-bg-page:        #F9FAFB;  /* 页面背景 */
+  /* 品牌主色 */
+  --color-primary:        #3B5BDB;  /* 靛蓝 */
+  --color-primary-light:  #748FFC;
+  --color-primary-dark:   #2F4AC7;
 
   /* 功能色 */
-  --color-success:        #16A34A;  /* 正确、容易 */
-  --color-success-bg:     #F0FDF4;
-  --color-warning:        #D97706;  /* 一般、注意 */
-  --color-warning-bg:     #FFFBEB;
-  --color-error:          #DC2626;  /* 错误、困难 */
-  --color-error-bg:       #FEF2F2;
+  --color-success:        #2F9E44;
+  --color-warning:        #F08C00;
+  --color-danger:         #E03131;
 
-  /* JLPT 等级徽章色 */
-  --color-n5: #6EE7B7;  /* 绿：入门 */
-  --color-n4: #93C5FD;  /* 蓝：基础 */
-  --color-n3: #FCD34D;  /* 黄：中级 */
-  --color-n2: #F9A8D4;  /* 粉：中高级 */
-  --color-n1: #FCA5A5;  /* 红：高级 */
+  /* JLPT 等级色 */
+  --color-n5:             #74C0FC;  /* 浅蓝 */
+  --color-n4:             #63E6BE;  /* 浅绿 */
+  --color-n3:             #FFD43B;  /* 黄 */
+  --color-n2:             #FF922B;  /* 橙 */
+  --color-n1:             #F03E3E;  /* 红 */
+
+  /* 中性色 */
+  --color-bg:             #F8F9FA;
+  --color-surface:        #FFFFFF;
+  --color-border:         #DEE2E6;
+  --color-text-primary:   #212529;
+  --color-text-secondary: #6C757D;
+  --color-text-disabled:  #ADB5BD;
 }
-```
 
-**深色模式**（后续 V2 迭代添加，预留 CSS 变量切换接口）：
-```css
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-text-primary:  #F3F4F6;
-    --color-bg-surface:    #1F2937;
-    --color-bg-page:       #111827;
-    --color-border:        #374151;
+    --color-bg:             #1A1B1E;
+    --color-surface:        #25262B;
+    --color-border:         #373A40;
+    --color-text-primary:   #F8F9FA;
+    --color-text-secondary: #ADB5BD;
   }
 }
 ```
 
----
-
-### 2.2 字体系统
+### 4.2 字体
 
 ```css
 :root {
-  /* 字体栈：优先系统日文字体，确保振り仮名正确渲染 */
-  --font-japanese: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
-                   "Yu Gothic", "Meiryo", sans-serif;
-  --font-chinese:  "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  --font-mono:     "JetBrains Mono", "Fira Code", monospace;
+  --font-ja: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* 字号阶梯（基于 1rem = 16px） */
-  --text-xs:   0.75rem;   /* 12px — 徽章、辅助标注 */
-  --text-sm:   0.875rem;  /* 14px — 辅助说明、时间戳 */
-  --text-base: 1rem;      /* 16px — 正文 */
-  --text-lg:   1.125rem;  /* 18px — 卡片内容 */
-  --text-xl:   1.25rem;   /* 20px — 小标题 */
-  --text-2xl:  1.5rem;    /* 24px — 日语单词展示 */
-  --text-3xl:  1.875rem;  /* 30px — 大号单词卡片 */
-  --text-4xl:  2.25rem;   /* 36px — 首屏主词 */
+  --text-xs:   0.75rem;   /* 12px */
+  --text-sm:   0.875rem;  /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg:   1.125rem;  /* 18px */
+  --text-xl:   1.25rem;   /* 20px */
+  --text-2xl:  1.5rem;    /* 24px */
+  --text-3xl:  2rem;      /* 32px */
+  --text-4xl:  2.5rem;    /* 40px */
 
-  /* 行高 */
-  --leading-tight:  1.25;  /* 标题 */
-  --leading-normal: 1.6;   /* 正文 */
-  --leading-loose:  2.0;   /* 日语正文（为振り仮名留空间） */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold:   700;
 }
 ```
 
-**日语文本特殊规则**：
-- 课文阅读区行高固定 `2.5rem`，为 `<ruby>` 标签上方的假名预留空间
-- 单词卡片主词使用 `var(--font-japanese)` + `font-weight: 700`
-- 中文释义使用 `var(--font-chinese)` + `font-weight: 400`
-
----
-
-### 2.3 间距与圆角
+### 4.3 间距（8px 基准网格）
 
 ```css
 :root {
-  /* 间距系统（4px 基准） */
-  --space-1:  0.25rem;  /* 4px */
-  --space-2:  0.5rem;   /* 8px */
-  --space-3:  0.75rem;  /* 12px */
-  --space-4:  1rem;     /* 16px */
-  --space-5:  1.25rem;  /* 20px */
-  --space-6:  1.5rem;   /* 24px */
-  --space-8:  2rem;     /* 32px */
-  --space-10: 2.5rem;   /* 40px */
-  --space-12: 3rem;     /* 48px */
-
-  /* 圆角 */
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-full: 9999px;  /* 胶囊形按钮、徽章 */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
 }
 ```
 
----
-
-### 2.4 阴影
+### 4.4 阴影 & 圆角
 
 ```css
 :root {
-  --shadow-sm:  0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04);
-  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
-  --shadow-card: 0 2px 8px rgba(59,91,219,0.08);  /* 蓝调卡片阴影 */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
 }
 ```
 
 ---
 
-## 三、布局系统
+## 5. 布局系统
 
-### 3.1 整体布局结构
-
-```
-┌──────────────────────────────────────────┐
-│              顶部导航栏 (56px)            │  fixed, z-index: 100
-├──────────────────────────────────────────┤
-│                                          │
-│              内容区域                    │  padding-top: 56px
-│         max-width: 768px                 │  max-width: 768px, centered
-│         padding: 0 16px                  │
-│                                          │
-├──────────────────────────────────────────┤
-│           底部标签栏 (桌面端隐藏)         │  fixed, z-index: 100
-│           (移动端: 60px)                 │  仅移动端显示
-└──────────────────────────────────────────┘
-```
-
-### 3.2 响应式断点
-
-```css
-/* 移动优先 */
-/* xs: 0~479px   — 手机竖屏（通勤场景）*/
-/* sm: 480~767px — 手机横屏、小平板 */
-/* md: 768~1023px — 平板 */
-/* lg: 1024px+   — 桌面 */
-
-@media (min-width: 768px) {
-  /* 内容区加宽，显示两列布局（列表页） */
-  .grid-auto { grid-template-columns: repeat(2, 1fr); }
-  /* 底部标签栏改为左侧边栏 */
-  .nav-sidebar { display: flex; }
-  .nav-bottom  { display: none; }
-}
-```
-
-### 3.3 顶部导航栏
+### 5.1 桌面端（≥ 768px）—— 顶部导航栏
 
 ```
-┌────────────────────────────────────────────────────┐
-│  ☰  日本語学習  ·········  [连续7天🔥]  [用户头像] │
-└────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  TopNavBar (56px)                               │
+│  [Logo]  单词 语法 课文 口语 写作    [用户头像] │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│              页面内容区域                        │
+│         max-width: 960px, margin: auto          │
+│                                                 │
+└─────────────────────────────────────────────────┘
 ```
 
-- 左侧：汉堡菜单（移动端）/ Logo 文字
-- 中间：模块面包屑（进入模块后显示）
-- 右侧：连续打卡天数徽章 + 用户头像（点击展开菜单）
-
-### 3.4 底部标签栏（移动端）
+### 5.2 移动端（< 768px）—— 底部标签栏
 
 ```
-┌──────────────────────────────────────────────────┐
-│  [单词]   [语法]   [课文]   [口语]   [写作]      │
-│   📚       📖      📄       🎤       ✏️           │
-└──────────────────────────────────────────────────┘
-```
-
-触控目标高度 60px，每个标签宽度均等，图标 + 文字两行。
-
----
-
-## 四、通用组件规范
-
-### 4.1 JLPT 等级徽章
-
-```
-[N5]  [N4]  [N3]  [N2]  [N1]
-```
-
-```css
-.badge-jlpt {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  font-family: var(--font-mono);
-}
-.badge-n5 { background: var(--color-n5); color: #065F46; }
-.badge-n4 { background: var(--color-n4); color: #1E3A5F; }
-.badge-n3 { background: var(--color-n3); color: #78350F; }
-.badge-n2 { background: var(--color-n2); color: #831843; }
-.badge-n1 { background: var(--color-n1); color: #7F1D1D; }
-```
-
----
-
-### 4.2 按钮规范
-
-```
-[主要操作]      [次要操作]      [危险操作]      [文字按钮]
-  实心蓝色        边框灰色        实心红色         纯文字
-  高度 44px       高度 44px       高度 44px        无背景
-```
-
-```css
-.btn-primary {
-  background: var(--color-primary);
-  color: white;
-  height: 44px;
-  padding: 0 var(--space-6);
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: var(--text-base);
-  transition: background 150ms ease;
-}
-.btn-primary:hover   { background: #364FC7; }
-.btn-primary:active  { background: #2F44AD; transform: scale(0.98); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-```
-
-**评分按钮（单词卡片专用）**：
-
-```
-┌──────────┐  ┌──────────┐  ┌──────────┐
-│  😰 困难  │  │  😐 一般  │  │  😊 容易  │
-│  1天后   │  │  3天后   │  │  7天后   │
-└──────────┘  └──────────┘  └──────────┘
-  红色边框      灰色边框       绿色边框
-  高度 64px     高度 64px      高度 64px
-```
-
----
-
-### 4.3 进度条
-
-```
-今日进度  ████████░░░░░░░  8 / 15
-```
-
-```css
-.progress-bar {
-  height: 6px;
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: var(--color-primary);
-  border-radius: var(--radius-full);
-  transition: width 400ms cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性缓动 */
-}
-```
-
----
-
-### 4.4 释义弹窗（单词点击）
-
-```
-┌──────────────────────────────────┐
-│  勉強   べんきょう              × │
-│  ────────────────────────────── │
-│  名詞                            │
-│  学习；用功                      │
-│                                  │
-│  例：毎日日本語を勉強します。     │
-│      每天学习日语。               │
-│                                  │
-│          [+ 加入单词本]           │
-└──────────────────────────────────┘
-```
-
-- 从屏幕底部滑入（`transform: translateY`）
-- 背景半透明遮罩（`rgba(0,0,0,0.4)`）
-- 点击遮罩或 × 关闭
-- 动画时长 250ms，`ease-out`
-
----
-
-### 4.5 Toast 通知
-
-```
-                  ┌────────────────────────┐
-                  │  ✓  已加入单词本        │
-                  └────────────────────────┘
-```
-
-- 固定在屏幕顶部居中，距顶 72px（导航栏下方）
-- 自动消失：2 秒
-- 动画：从上方淡入 → 停留 → 淡出
-- 类型：success（绿）/ error（红）/ info（蓝）
-
----
-
-### 4.6 加载状态
-
-```
-骨架屏（Skeleton）— 内容加载中
 ┌───────────────────────────┐
-│  ████████░░░░  ░░░░       │  ← 标题骨架
-│                            │
-│  ░░░░░░░░░░░░░░░░░░░░░░  │  ← 内容骨架
-│  ░░░░░░░░░░░░░░          │
+│  页面标题 (TopBar 44px)   │
+├───────────────────────────┤
+│                           │
+│       页面内容区域         │
+│   padding-bottom: 80px    │
+│                           │
+├───────────────────────────┤
+│  BottomTabBar (60px)      │
+│  🏠  📚  🎤  ✏️  📊     │
 └───────────────────────────┘
 ```
 
-```css
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-border) 25%,
-    #f0f0f0 50%,
-    var(--color-border) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: var(--radius-sm);
-}
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+### 5.3 PageShell 组件
+
+```tsx
+// 统一页面容器
+interface PageShellProps {
+  title?: string;         // 移动端顶部标题
+  backTo?: string;        // 显示返回按钮
+  actions?: ReactNode;    // 右上角操作区
+  noPadding?: boolean;    // 全屏内容（如单词卡片）
+  children: ReactNode;
 }
 ```
 
 ---
 
-## 五、页面设计详述
+## 6. 核心 Hook 设计
 
-### 5.1 首页（仪表盘）
-
-```
-┌─────────────────────────────────────┐
-│  日本語学習          🔥7天  [头像]  │
-├─────────────────────────────────────┤
-│                                     │
-│  早上好，继续今天的学习！            │
-│                                     │
-│  ┌──────────────────────────────┐   │
-│  │  今日待完成              3   │   │  ← 任务概览卡片
-│  │  ────────────────────────── │   │
-│  │  📚 单词复习      12张  [开始]│  │
-│  │  📖 语法复习       2条  [开始]│  │
-│  │  ✏️  造句练习       3题  [开始]│  │
-│  └──────────────────────────────┘   │
-│                                     │
-│  ──────── 继续上次 ────────         │
-│  ┌────────────┐  ┌────────────┐    │
-│  │ N3 课文     │  │ 影子跟读   │   │  ← 快速续学卡片
-│  │ 雨の日     │  │ 第3段落    │   │
-│  │ 上次 P.2   │  │ 75分       │   │
-│  └────────────┘  └────────────┘    │
-│                                     │
-│  ──────── 本周统计 ────────         │
-│  [连续天数 7]  [总时长 3.2h]        │
-│  [单词掌握 127] [语法完成 14]       │
-└─────────────────────────────────────┘
-```
-
----
-
-### 5.2 单词记忆模块
-
-#### 5.2.1 复习队列页
-
-```
-┌─────────────────────────────────────┐
-│  ← 单词复习       8 / 12  [结束]   │
-│  ████████████░░░░░░                 │  ← 进度条
-├─────────────────────────────────────┤
-│                                     │
-│                                     │
-│  ┌──────────────────────────────┐   │
-│  │                              │   │
-│  │          勉強                │   │  ← 正面：日语单词
-│  │       べんきょう              │   │     大字 + 假名
-│  │                              │   │
-│  │          [N4]                │   │
-│  │                              │   │
-│  │      ─────────────           │   │
-│  │      点击卡片查看释义          │   │
-│  │                              │   │
-│  └──────────────────────────────┘   │
-│                                     │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-**翻转后（背面）**：
-
-```
-┌─────────────────────────────────────┐
-│  ← 单词复习       8 / 12  [结束]   │
-│  ████████████░░░░░░                 │
-├─────────────────────────────────────┤
-│                                     │
-│  ┌──────────────────────────────┐   │
-│  │  勉強  べんきょう  名詞 [N4] │   │
-│  │  ──────────────────────────  │   │
-│  │  学习；用功                   │   │
-│  │                              │   │
-│  │  例：毎日日本語を勉強します。  │   │
-│  │      每天学习日语。           │   │
-│  └──────────────────────────────┘   │
-│                                     │
-│  ┌──────┐   ┌──────┐   ┌──────┐   │
-│  │😰困难 │   │😐一般 │   │😊容易 │  │  ← 评分按钮区
-│  │1天后  │   │3天后  │   │7天后  │  │
-│  └──────┘   └──────┘   └──────┘   │
-└─────────────────────────────────────┘
-```
-
-**卡片翻转动画**：
-```css
-.card-wrapper {
-  perspective: 1000px;
-}
-.card {
-  transform-style: preserve-3d;
-  transition: transform 400ms ease;
-}
-.card.flipped {
-  transform: rotateY(180deg);
-}
-.card-front, .card-back {
-  backface-visibility: hidden;
-  position: absolute; inset: 0;
-}
-.card-back {
-  transform: rotateY(180deg);
-}
-```
-
-#### 5.2.2 今日完成页（队列清空）
-
-```
-┌─────────────────────────────────────┐
-│           今日复习完成！🎉           │
-│                                     │
-│   ┌─────────────────────────────┐   │
-│   │  本次复习  12 张             │   │
-│   │  容易比例  ████░  58%       │   │
-│   │  困难单词  3 个              │   │
-│   └─────────────────────────────┘   │
-│                                     │
-│  【困难单词，明日优先复习】           │
-│  • 覚える — 记住（困难）             │
-│  • 忘れる — 忘记（困难）             │
-│  • 悲しい — 悲伤（困难）             │
-│                                     │
-│     [提前学习新词]   [返回首页]      │
-└─────────────────────────────────────┘
-```
-
----
-
-### 5.3 语法学习模块
-
-#### 5.3.1 语法点列表页
-
-```
-┌─────────────────────────────────────┐
-│  ← 语法学习                         │
-│  [N5] [N4] [N3] [N2] [N1]  ← 筛选  │
-├─────────────────────────────────────┤
-│  N4 语法点 (32条)                    │
-│                                     │
-│  ┌────────────────────────────────┐ │
-│  │ [N4]  〜てもいい               │ │
-│  │       可以〜（表达许可）        │ │
-│  │       ●●●○○  学习中           │ │  ← 掌握状态
-│  └────────────────────────────────┘ │
-│  ┌────────────────────────────────┐ │
-│  │ [N4]  〜なければならない        │ │
-│  │       必须〜（表达义务）        │ │
-│  │       ○○○○○  未学             │ │
-│  └────────────────────────────────┘ │
-│  ┌────────────────────────────────┐ │
-│  │ [N4]  〜たことがある            │ │
-│  │       曾经〜（表达经历）        │ │
-│  │       ●●●●●  已掌握 ✓        │ │
-│  └────────────────────────────────┘ │
-└─────────────────────────────────────┘
-```
-
-掌握状态显示：
-- 未学：5个空心圆 `○○○○○`，灰色
-- 学习中：部分实心圆 `●●●○○`，蓝色
-- 已掌握：5个实心圆 `●●●●●` + ✓，绿色
-
-#### 5.3.2 语法点详情页（分步骤）
-
-**步骤 1：讲解**
-```
-┌─────────────────────────────────────┐
-│  ← 〜てもいい              [N4]    │
-│  ─────────────────────────────────  │
-│  步骤 1/3：讲解  ●○○               │
-├─────────────────────────────────────┤
-│  意思                               │
-│  可以〜，表达允许或许可              │
-│                                     │
-│  接续方式                           │
-│  ┌─────────────────────────────┐    │
-│  │  動詞て形 + もいい           │    │  ← 接续规则框
-│  │  食べて + もいい = 食べてもいい│   │
-│  └─────────────────────────────┘    │
-│                                     │
-│  使用场景                           │
-│  用于请求对方许可，或告知对方某事    │
-│  被允许，语气较随和。               │
-│                                     │
-│  例句                               │
-│  ここに座ってもいいですか。          │
-│  （可以坐这里吗？）                  │
-│  [単語を見る]  [加入单词本 +]        │
-│                                     │
-│  写真を撮ってもいいですか。          │
-│  （可以拍照吗？）                    │
-│                                     │
-│           [开始检验 →]              │
-└─────────────────────────────────────┘
-```
-
-**步骤 2：检验**
-```
-┌─────────────────────────────────────┐
-│  ← 〜てもいい     步骤 2/3：检验  ●●○│
-├─────────────────────────────────────┤
-│  题目 1 / 2                         │
-│                                     │
-│  请填入正确的语法形式：              │
-│                                     │
-│  「ここに＿＿＿＿＿ですか。」         │
-│   （可以在这里停车吗？）             │
-│                                     │
-│  ┌─────────────────────────────┐    │
-│  │  駐車して                   │    │  ← 输入框（日语输入法）
-│  └─────────────────────────────┘    │
-│                                     │
-│  提示：て形 + _______              │
-│                                     │
-│              [提交答案]             │
-└─────────────────────────────────────┘
-```
-
-**答错后展开解析**：
-```
-┌─────────────────────────────────────┐
-│  ✗  你的答案：駐車して              │  ← 红色背景
-│  ✓  正确答案：駐車してもいい        │  ← 绿色背景
-│                                     │
-│  解析                               │
-│  「てもいい」表示许可，完整形式      │
-│  为「動詞て形 + もいいですか」。    │
-│  「もいい」不可省略。               │
-│                                     │
-│              [我知道了，继续]        │
-└─────────────────────────────────────┘
-```
-
----
-
-### 5.4 课文学习模块
-
-#### 5.4.1 课文阅读页
-
-```
-┌─────────────────────────────────────┐
-│  ← 雨の日        [N3]  [显示翻译]  │
-├─────────────────────────────────────┤
-│  ▶  播放全文   ◀▶  逐句播放  ×1.0  │  ← 音频控制栏
-├─────────────────────────────────────┤
-│                                     │
-│  今日は  雨  が  降って  います。   │  ← 振り仮名渲染
-│         あめ       ふって            │    (ruby标签)
-│                                     │  ← 当前播放句：淡蓝色背景高亮
-│  ────────────────────────────────  │
-│                                     │
-│        昨日  から  ずっと           │
-│        きのう                       │
-│        雨  が  続いて  います。     │
-│        あめ     つづいて            │
-│                                     │
-│       ▶  [播放本句]                 │  ← 每句旁有播放按钮
-│  ────────────────────────────────  │
-│                                     │
-│  ...（更多段落）                    │
-│                                     │
-├─────────────────────────────────────┤
-│  [← 上一句]           [下一句 →]   │
-│          [加入单词本 (3)]           │  ← 已标记3个生词
-└─────────────────────────────────────┘
-```
-
-**振り仮名 HTML 实现**：
-```html
-<!-- 有读音的汉字词 -->
-<ruby>勉強<rt>べんきょう</rt></ruby>
-
-<!-- 无需标注的假名直接输出 -->
-します
-
-<!-- 整句结构 -->
-<span class="sentence" data-index="0" data-start-ms="1200" data-end-ms="3800">
-  毎日
-  <ruby>日本語<rt>にほんご</rt></ruby>
-  を
-  <ruby class="word-clickable" data-word-id="42">勉強<rt>べんきょう</rt></ruby>
-  します。
-</span>
-```
-
-```css
-/* 振り仮名样式 */
-ruby { ruby-align: center; }
-rt {
-  font-size: 0.55em;
-  color: var(--color-text-secondary);
-  font-family: var(--font-japanese);
-}
-
-/* 课文行高必须足够容纳 rt */
-.lesson-text {
-  font-family: var(--font-japanese);
-  font-size: var(--text-lg);
-  line-height: 2.5rem;  /* 固定行高，防止 ruby 行距不一致 */
-}
-
-/* 音频同步高亮 */
-.sentence.active {
-  background: var(--color-primary-subtle);
-  border-radius: var(--radius-sm);
-  padding: 2px 4px;
-  transition: background 200ms ease;
-}
-
-/* 可点击单词 */
-.word-clickable {
-  cursor: pointer;
-  border-bottom: 1px dashed var(--color-primary-light);
-}
-.word-clickable:hover {
-  background: var(--color-primary-subtle);
-  border-radius: 2px;
-}
-```
-
-**音频同步高亮 TypeScript 核心逻辑**：
-```typescript
-// lesson.ts 核心逻辑（伪代码展示思路）
-
-interface Sentence {
-  index: number;
-  startMs: number;
-  endMs: number;
-}
-
-function syncHighlight(audio: HTMLAudioElement, sentences: Sentence[]) {
-  audio.addEventListener('timeupdate', () => {
-    const currentMs = audio.currentTime * 1000;
-    const active = sentences.find(
-      s => currentMs >= s.startMs && currentMs < s.endMs
-    );
-    // 移除所有高亮，添加当前句高亮
-    document.querySelectorAll('.sentence').forEach(el => el.classList.remove('active'));
-    if (active) {
-      document.querySelector(`[data-index="${active.index}"]`)?.classList.add('active');
-    }
-  });
-}
-```
-
----
-
-### 5.5 口语练习模块
-
-#### 5.5.1 影子跟读页
-
-```
-┌─────────────────────────────────────┐
-│  ← 影子跟读       [N3]  材料 3/10  │
-├─────────────────────────────────────┤
-│  速度: [0.5x] [0.75x] [▶1x] [1.25x] [1.5x]│
-├─────────────────────────────────────┤
-│                                     │
-│  今日は雨が降っています。            │  ← 当前句（高亮）
-│  きょうはあめがふっています。         │  ← 假名注音（淡色）
-│                                     │
-│  ────────────────────────────────  │
-│  昨日からずっと雨が続いています。    │  ← 其余句（常规色）
-│                                     │
-│  ────────────────────────────────  │
-│                                     │
-│  ┌────────────────────────────────┐ │
-│  │  ───────────────────────────   │ │  ← 音频进度条
-│  │  ▶  00:12 / 01:35             │ │
-│  └────────────────────────────────┘ │
-│                                     │
-│  ┌────────────────────────────────┐ │
-│  │         ● 开始跟读             │ │  ← 录音按钮（大）
-│  └────────────────────────────────┘ │
-│                                     │
-│  上次得分：78分   历史最高：85分     │
-└─────────────────────────────────────┘
-```
-
-**录音中状态**：
-```
-┌────────────────────────────────────┐
-│  ● 录音中   00:08                  │  ← 红色脉冲动画
-│                                    │
-│  ████████░░░░░░░░░░░░░░░░░░░░░░   │  ← 音频波形可视化
-│                                    │
-│         [■ 结束录音]               │
-└────────────────────────────────────┘
-```
-
-**评分结果**：
-```
-┌────────────────────────────────────┐
-│  本次跟读得分                       │
-│                                    │
-│           78                       │  ← 大号分数
-│          ─────                     │
-│         较上次 +5 ↑                │
-│                                    │
-│  句子得分详情：                     │
-│  今日は雨が...    ████████░  85分  │  ← 绿色
-│  昨日からずっと...  ████░░░░  62分  │  ← 橙色，需注意
-│                                    │
-│  [▶ 回放我的录音]  [▶ 播放原音]    │
-│                                    │
-│          [再来一次]  [继续]         │
-└────────────────────────────────────┘
-```
-
-**音频波形可视化（Canvas + WebAudio API）**：
-```typescript
-// speaking.ts 波形绘制核心逻辑
-
-function drawWaveform(analyser: AnalyserNode, canvas: HTMLCanvasElement) {
-  const bufferLength = analyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
-  const ctx = canvas.getContext('2d')!;
-  const W = canvas.width, H = canvas.height;
-
-  function draw() {
-    requestAnimationFrame(draw);
-    analyser.getByteTimeDomainData(dataArray);
-
-    ctx.fillStyle = 'var(--color-bg-surface)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'var(--color-primary)';
-    ctx.beginPath();
-
-    const sliceWidth = W / bufferLength;
-    let x = 0;
-    for (let i = 0; i < bufferLength; i++) {
-      const v = dataArray[i] / 128.0;
-      const y = (v * H) / 2;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      x += sliceWidth;
-    }
-    ctx.stroke();
-  }
-  draw();
-}
-```
-
----
-
-### 5.6 写作练习模块
-
-#### 5.6.1 造句练习页
-
-```
-┌─────────────────────────────────────┐
-│  ← 造句练习        题目 2 / 3       │
-│  ●●○                               │  ← 进度点
-├─────────────────────────────────────┤
-│                                     │
-│  语法点：〜てもいい          [N4]   │
-│                                     │
-│  请用上述语法点，将下列中文译为日语：│
-│                                     │
-│  ┌─────────────────────────────┐    │
-│  │  "你可以在这里停车。"        │    │  ← 题目框（中文）
-│  └─────────────────────────────┘    │
-│                                     │
-│  你的回答：                         │
-│  ┌─────────────────────────────┐    │
-│  │  ここに駐車してもいいです。  │    │  ← 日语输入区
-│  │                             │    │    支持日语IME
-│  └─────────────────────────────┘    │
-│                                     │
-│  字符数：14    参考长度：10~20字    │
-│                                     │
-│              [提交批改]             │
-│                                     │
-│  ─── AI 批改中，请稍候… ───         │  ← 提交后显示
-│  ┌──────────────────────────────┐   │
-│  │  ⠋ 正在批改...               │   │  ← 加载动画
-│  └──────────────────────────────┘   │
-└─────────────────────────────────────┘
-```
-
-**AI 批改结果**：
-```
-┌─────────────────────────────────────┐
-│  ✓ 语法正确   ✓ 用词准确    92分    │  ← 绿色通过徽章
-│                                     │
-│  你的答案：                          │
-│  ここに駐車してもいいです。          │  ← 绿色底色
-│                                     │
-│  参考答案：                          │
-│  ここに駐車してもいいです。（✓同）   │
-│                                     │
-│  其他地道说法：                      │
-│  • ここで駐車できます。              │
-│  • 駐車場はこちらです。              │
-│                                     │
-│              [下一题 →]             │
-└─────────────────────────────────────┘
-```
-
-**答案有误时**：
-```
-┌─────────────────────────────────────┐
-│  ✗ 语法有误    ✓ 用词准确    65分  │
-│                                     │
-│  你的答案：                          │
-│  ここに駐車してもです。              │  ← 红色标注错误部分
-│             ~~~~~~~~~~              │
-│                                     │
-│  问题说明：                          │
-│  「してもです」不是正确形式，        │
-│  「してもいい」中的「いい」不可省略。│
-│                                     │
-│  正确答案：                          │
-│  ここに駐車して**もいい**です。      │  ← 加粗修正部分
-│                                     │
-│     [再试一次]        [下一题 →]    │
-└─────────────────────────────────────┘
-```
-
----
-
-### 5.7 练习总结模块
-
-```
-┌─────────────────────────────────────┐
-│           本次练习总结              │
-│         单词复习 · 刚刚             │
-├─────────────────────────────────────┤
-│                                     │
-│  ┌───────────────────────────────┐  │
-│  │  复习单词  12  ·  容易 58%    │  │  ← 数字概要卡片
-│  │  ──────────────────────────   │  │
-│  │  连续学习  🔥 7 天             │  │
-│  └───────────────────────────────┘  │
-│                                     │
-│  🌟 亮点                            │
-│  ┌───────────────────────────────┐  │
-│  │  ✓  日本語   连续3次评为容易  │  │
-│  │  ✓  先生     上次困难，今天容易│  │
-│  └───────────────────────────────┘  │
-│                                     │
-│  💪 待改进                          │
-│  ┌───────────────────────────────┐  │
-│  │  •  覚える   本次困难，明日优先│  │
-│  │  •  忘れる   连续2次困难       │  │
-│  │  •  悲しい   本次困难          │  │
-│  └───────────────────────────────┘  │
-│                                     │
-│  💡 建议                            │
-│  「覚える」「忘れる」为同类动词，   │
-│  建议对比记忆，明日一起复习。       │
-│                                     │
-│  [查看详情]                         │
-│                                     │
-│  ┌──────────────┐  ┌────────────┐  │
-│  │  继续学习    │  │ 今日完成  │   │
-│  └──────────────┘  └────────────┘  │
-└─────────────────────────────────────┘
-```
-
----
-
-## 六、关键交互规范
-
-### 6.1 单词卡片翻转
-
-| 触发方式 | 行为 |
-|---|---|
-| 点击/轻触卡片任意位置 | 卡片 3D 翻转（Y 轴旋转 180°，400ms） |
-| 空格键（桌面端） | 同上 |
-| 左滑（已翻开） | 困难评分 |
-| 右滑（已翻开） | 容易评分 |
-| 上滑（已翻开） | 一般评分 |
-
-**滑动手势实现**：
-```typescript
-// 记录触摸起点
-let touchStartX = 0, touchStartY = 0;
-
-card.addEventListener('touchstart', e => {
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-});
-
-card.addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  const threshold = 60; // px
-
-  if (!card.classList.contains('flipped')) return; // 未翻开不响应
-
-  if (Math.abs(dx) > threshold && Math.abs(dx) > Math.abs(dy)) {
-    submitRating(dx < 0 ? 'hard' : 'easy');
-  } else if (dy < -threshold && Math.abs(dy) > Math.abs(dx)) {
-    submitRating('normal');
-  }
-});
-```
-
----
-
-### 6.2 音频播放控制
-
-| 状态 | 视觉表现 |
-|---|---|
-| 未加载 | 播放按钮灰色，进度条骨架屏 |
-| 加载中 | 播放按钮转圈动画 |
-| 播放中 | 按钮变为"暂停"图标，进度条实时更新，当前句高亮 |
-| 暂停 | 按钮变回"播放"图标，高亮保持 |
-| 加载失败 | 按钮显示"重试"图标，Toast 提示"音频加载失败" |
-
-**速度调节**：
-```typescript
-// 使用 Web Audio API 的 playbackRate 确保不失真
-const audioCtx = new AudioContext();
-const source = audioCtx.createBufferSource();
-source.playbackRate.value = 0.75; // 0.5 / 0.75 / 1.0 / 1.25 / 1.5
-```
-
----
-
-### 6.3 录音交互流程
-
-```
-[等待] → 点击"开始跟读" → [请求麦克风权限]
-                              ↓ 授权成功          ↓ 授权失败
-                         [录音中]              [提示授权说明]
-                              ↓ 点击"结束录音"    [只听模式入口]
-                         [上传中，显示进度]
-                              ↓ ≤5s
-                         [评分结果页]
-```
-
-**麦克风权限处理**：
-```typescript
-async function requestMicrophone(): Promise<MediaStream | null> {
-  try {
-    return await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'NotAllowedError') {
-      showPermissionGuide(); // 显示引导弹窗
-      return null;
-    }
-    throw err; // 其他错误继续抛出
-  }
-}
-```
-
----
-
-### 6.4 日语输入法联动（写作练习）
-
-写作练习的输入框需要与日语 IME（输入法）正确配合：
+### 6.1 `useApi<T>`
 
 ```typescript
-// 使用 compositionstart/end 事件避免 IME 候选字期间触发验证
-let isComposing = false;
+interface ApiState<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+}
 
-input.addEventListener('compositionstart', () => isComposing = true);
-input.addEventListener('compositionend', () => {
-  isComposing = false;
-  validateInput(); // 候选字确定后再验证
-});
-
-input.addEventListener('input', () => {
-  if (!isComposing) validateInput();
-});
+function useApi<T>(
+  fetcher: () => Promise<T>,
+  deps: DependencyList = []
+): ApiState<T> & { refetch: () => void }
 ```
+
+- `loading` 初始为 `true`，请求完成后为 `false`
+- 组件卸载时 abort fetch（AbortController）
+- `refetch()` 手动重新发起请求
+
+### 6.2 `useAudioRecorder`
+
+```typescript
+interface AudioRecorderState {
+  isRecording: boolean;
+  audioBlob: Blob | null;
+  duration: number;      // 毫秒
+  error: string | null;
+}
+
+function useAudioRecorder(): AudioRecorderState & {
+  start: () => Promise<void>;
+  stop: () => void;
+  reset: () => void;
+}
+```
+
+- 封装 `navigator.mediaDevices.getUserMedia` + `MediaRecorder`
+- 权限拒绝时 `error` 返回友好提示
+
+### 6.3 `AuthContext`
+
+```typescript
+interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  token: string;
+}
+
+interface AuthContextValue {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+}
+```
+
+- token 持久化到 `localStorage`
+- 所有 API 请求由 `api/client.ts` 自动注入 `Authorization: Bearer <token>`
 
 ---
 
-## 七、离线支持方案
+## 7. 各页面设计
 
-### 7.1 缓存策略
+### 7.1 首页（HomePage）
 
 ```
-缓存分层：
+┌──────────────────────────────────┐
+│  今日学习目标                     │
+│  ████████░░  80%  距完成还差 4题  │
+├──────────────────────────────────┤
+│  快速入口（2×2 网格）             │
+│  ┌──────┐  ┌──────┐             │
+│  │ 📖   │  │ 📝   │             │
+│  │ 单词  │  │ 语法  │             │
+│  │ 复习  │  │ 学习  │             │
+│  └──────┘  └──────┘             │
+│  ┌──────┐  ┌──────┐             │
+│  │ 🎤   │  │ ✏️   │             │
+│  │ 口语  │  │ 写作  │             │
+│  │ 练习  │  │ 练习  │             │
+│  └──────┘  └──────┘             │
+├──────────────────────────────────┤
+│  最近学习记录（Timeline 3条）      │
+│  • 2小时前  单词复习 ×20          │
+│  • 昨天     语法 N5 て形 ✓       │
+│  • 昨天     影子跟读 第3课        │
+└──────────────────────────────────┘
+```
+
+**数据来源**：`GET /api/v1/summary`（最近3条）
+
+---
+
+### 7.2 单词复习页（WordReviewPage）
+
+**布局**：全屏卡片翻转模式
+
+```
+┌────────────────────────────────────────┐
+│  [N5] 进度: 12/30       [×] 退出      │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │                                  │  │
+│  │          食べる                   │  │
+│  │                                  │  │
+│  │   [点击翻转] / [Space 键翻转]    │  │
+│  │                                  │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  ← 向左滑 = 忘记    向右滑 = 记住 →   │
+│                                        │
+│  ┌──────────┐  ┌──────────┐           │
+│  │ 😕 忘记  │  │ 😊 记住  │           │
+│  └──────────┘  └──────────┘           │
+└────────────────────────────────────────┘
+
+翻转后（背面）：
+┌──────────────────────────────────┐
+│  食べる    たべる                 │
+│  ──────────────────               │
+│  动词 [吃]                        │
+│                                   │
+│  例句：ご飯を食べる。             │
+│       我吃饭。                    │
+│                                   │
+│  [🔖 加入书签]                    │
+└──────────────────────────────────┘
+```
+
+**状态管理（useReducer）**：
+
+```typescript
+type WordReviewAction =
+  | { type: 'FLIP' }
+  | { type: 'RATE'; rating: ReviewRating }
+  | { type: 'NEXT' }
+  | { type: 'COMPLETE' };
+
+interface WordReviewState {
+  cards: WordCard[];
+  currentIndex: number;
+  isFlipped: boolean;
+  completed: boolean;
+}
+```
+
+**手势**：`onTouchStart` / `onTouchEnd` 判断水平滑动距离 > 60px，触发评分。
+
+---
+
+### 7.3 语法列表页（GrammarListPage）
+
+```
 ┌────────────────────────────────────────────┐
-│  Layer 1: Service Worker Cache（静态资源）  │
-│  main.css, *.js, 图标、字体               │
-│  策略：Cache First + 后台更新              │
+│  语法学习                                   │
+│  [N5] [N4] [N3] [N2] [N1]  ← 等级 Tab     │
 ├────────────────────────────────────────────┤
-│  Layer 2: localStorage（用户数据）         │
-│  待同步的评分事件、当日单词队列            │
-│  策略：Write-through（立即存本地+异步同步）│
+│  搜索框: 🔍  输入语法点名称...             │
 ├────────────────────────────────────────────┤
-│  Layer 3: IndexedDB（内容缓存）            │
-│  已下载的单词卡片、课文、语法点           │
-│  策略：预取（进入模块时提前缓存今日内容）  │
+│  ┌────────────────────────────────────┐    │
+│  │  [N5]  〜は〜です                  │    │
+│  │  用于陈述某事物的性质或状态         │    │
+│  │                           [未学习]  │    │
+│  └────────────────────────────────────┘    │
+│  ┌────────────────────────────────────┐    │
+│  │  [N5]  〜て形                      │    │
+│  │  动词 て 形，连接两个动作           │    │
+│  │                           [✓ 已掌握]│    │
+│  └────────────────────────────────────┘    │
+│  ...                                       │
 └────────────────────────────────────────────┘
 ```
 
-### 7.2 离线评分同步
+---
+
+### 7.4 语法详情页（GrammarDetailPage）
+
+```
+┌────────────────────────────────────────────┐
+│  ← 返回   〜て形   [N5]                    │
+├────────────────────────────────────────────┤
+│  📖 说明                                   │
+│  动词 て 形是动词的连用形之一，用于连接     │
+│  多个动作，表示先后顺序或并列。             │
+│                                             │
+│  📌 接续方式                               │
+│  ┌──────────────────────────────────────┐  │
+│  │ I 类动词：語尾 u → って / ite        │  │
+│  │ II 类动词：去掉 る + て              │  │
+│  │ III 类：する → して / くる → きて   │  │
+│  └──────────────────────────────────────┘  │
+│                                             │
+│  💬 例句                                   │
+│  1. 朝起きて、歯を磨く。                   │
+│     早上起床，刷牙。                        │
+│  2. 本を読んで、寝る。                     │
+│     看书，睡觉。                            │
+│  3. 友達と会って、話す。                   │
+│     与朋友见面，交谈。                      │
+│                                             │
+├────────────────────────────────────────────┤
+│        [开始测验 →]                        │
+└────────────────────────────────────────────┘
+```
+
+---
+
+### 7.5 语法测验页（GrammarQuizPage）
+
+```
+┌────────────────────────────────────────────┐
+│  ← 返回   测验 1/3                         │
+├────────────────────────────────────────────┤
+│                                             │
+│  请选择正确的 て 形：                        │
+│                                             │
+│  「書く」                                   │
+│                                             │
+│  ○  書いて     ← 点击选择                  │
+│  ○  書って                                 │
+│  ○  書けて                                 │
+│  ○  書して                                 │
+│                                             │
+│         [确认答案]                          │
+└────────────────────────────────────────────┘
+
+答对后：
+┌────────────────────────────────────────────┐
+│  ✅ 正确！                                 │
+│                                             │
+│  書く → 書いて                             │
+│  く 结尾 I 类动词：く → いて              │
+│                                             │
+│         [下一题 →]                         │
+└────────────────────────────────────────────┘
+```
+
+---
+
+### 7.6 课文详情页（LessonDetailPage）
+
+```
+┌────────────────────────────────────────────┐
+│  ← 返回   第3课：駅で                  🔊  │
+├────────────────────────────────────────────┤
+│  段落（带振り仮名）：                       │
+│                                             │
+│        えき
+│  駅のホームで電車を待っていました。         │
+│                                             │
+│  [▶ 播放]  ████████░░  0:15 / 0:32        │
+│                                             │
+│  ─────────────────────────────             │
+│  📌 本课语法点                              │
+│  [N5] 〜ていました（过去进行时）  →         │
+│                                             │
+│  📖 单词表                                 │
+│  駅 (えき) - 车站  [+ 加入单词本]           │
+│  ホーム      - 站台                         │
+└────────────────────────────────────────────┘
+```
+
+- 振り仮名使用 `<ruby>` + `<rt>` HTML 标签
+- 音频进度条使用 `<audio>` 事件同步高亮当前句
+
+---
+
+### 7.7 口语练习页（SpeakingPage）
+
+**Tab 切换：影子跟读 / 自由朗读**
+
+```
+┌────────────────────────────────────────────┐
+│  口语练习                                   │
+│  [影子跟读]  [自由朗读]                     │
+├────────────────────────────────────────────┤
+│  影子跟读模式：                             │
+│                                             │
+│  駅のホームで電車を待っていました。          │
+│                                             │
+│  1. 播放原音：[▶ 播放原文]                 │
+│  2. 跟读录音：                             │
+│     ┌────────────────────────────────┐     │
+│     │  🔴 录音中... 00:05           │     │
+│     │  ████████████░░░░             │     │
+│     └────────────────────────────────┘     │
+│     [■ 停止录音]                           │
+│                                             │
+│  3. 评分结果：                             │
+│     相似度：87%  ⭐⭐⭐⭐☆            │
+│     [重录]    [下一句 →]                   │
+└────────────────────────────────────────────┘
+```
+
+**录音状态机**（useReducer）：
+`idle` → `playing_ref` → `recording` → `processing` → `result` → `idle`
+
+---
+
+### 7.8 写作练习页（WritingQueuePage）
+
+**Tab 切换：输入练习 / 造句练习**
+
+```
+┌────────────────────────────────────────────┐
+│  写作练习                                   │
+│  [输入练习]  [造句练习]                     │
+├────────────────────────────────────────────┤
+│  输入练习（N4 汉字书写）：                  │
+│                                             │
+│  请输入以下假名对应的汉字：                  │
+│                                             │
+│  　　　たべる                               │
+│  ┌────────────────────────────────────┐    │
+│  │  食べる                            │    │
+│  └────────────────────────────────────┘    │
+│                                             │
+│  ✅ 正确！              12/20              │
+│                                             │
+│  ─────────────────────────────────         │
+│  造句练习：                                 │
+│                                             │
+│  语法点：〜て形   提示：[吃饭之后看书]       │
+│                                             │
+│  ご飯を食べて、本を読みます。               │
+│                                             │
+│  [提交批改]                                │
+│                                             │
+│  AI 批改结果：                             │
+│  ✅ 语法正确  ✅ 用词自然                  │
+│  建议：可以加上时间词让句子更完整。          │
+└────────────────────────────────────────────┘
+```
+
+---
+
+### 7.9 学习总结页（SummaryPage）
+
+```
+┌────────────────────────────────────────────┐
+│  学习记录                                   │
+├────────────────────────────────────────────┤
+│  本周概览                                   │
+│  ┌────────┬────────┬────────┬────────┐     │
+│  │ 单词   │ 语法   │ 口语   │ 写作   │     │
+│  │  120   │   8    │   5次  │  12句  │     │
+│  │  个    │ 个点   │        │        │     │
+│  └────────┴────────┴────────┴────────┘     │
+│                                             │
+│  连续打卡：🔥 7 天                          │
+│                                             │
+│  最近记录                                   │
+│  ┌────────────────────────────────────┐    │
+│  │ 今天 14:30  语法学习 て形           │    │
+│  │             得分：3/3  🌟🌟🌟      │    │
+│  └────────────────────────────────────┘    │
+│  ┌────────────────────────────────────┐    │
+│  │ 今天 10:15  单词复习 N5 ×20        │    │
+│  │             记住：18  忘记：2       │    │
+│  └────────────────────────────────────┘    │
+└────────────────────────────────────────────┘
+```
+
+---
+
+## 8. UI 组件规范
+
+### Badge（等级标签）
+
+```tsx
+<Badge level="N5" />  // 浅蓝底
+<Badge level="N1" />  // 红底
+<Badge status="mastered" />   // 绿色 ✓ 已掌握
+<Badge status="learning" />   // 黄色 学习中
+<Badge status="new" />        // 灰色 未学习
+```
+
+### Button
+
+```tsx
+// 变体
+<Button variant="primary">开始学习</Button>
+<Button variant="secondary">查看记录</Button>
+<Button variant="ghost">跳过</Button>
+<Button variant="danger">重置进度</Button>
+
+// 尺寸
+<Button size="sm" />   // 32px
+<Button size="md" />   // 40px（默认）
+<Button size="lg" />   // 48px
+
+// 状态
+<Button loading />
+<Button disabled />
+```
+
+### Card
+
+```tsx
+<Card
+  onClick={handleClick}
+  hoverable        // 悬停阴影效果
+  padding="md"     // sm | md | lg
+>
+  内容
+</Card>
+```
+
+### Spinner
+
+```tsx
+<Spinner size="sm" />   // 16px 内联
+<Spinner size="md" />   // 32px 居中
+<Spinner size="lg" />   // 48px 全页加载
+```
+
+### EmptyState
+
+```tsx
+<EmptyState
+  icon="📭"
+  title="暂无数据"
+  description="今日单词已全部复习完成！"
+  action={<Button>返回首页</Button>}
+/>
+```
+
+---
+
+## 9. API 客户端设计
 
 ```typescript
-// 离线时评分事件存入队列，恢复网络后批量同步
-interface PendingReview {
-  wordId: number;
-  rating: 'easy' | 'normal' | 'hard';
-  reviewedAt: string; // ISO 8601
+// api/client.ts
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown
+): Promise<T> {
+  const token = localStorage.getItem('auth_token');
+  const res = await fetch(`/api/v1${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (res.status === 401) {
+    // 清除 token，重定向到登录页
+    localStorage.removeItem('auth_token');
+    window.location.href = '/login';
+  }
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || 'Unknown error');
+  }
+
+  const json = await res.json();
+  return json.data as T;
 }
 
-function submitRating(wordId: number, rating: string) {
-  const event: PendingReview = { wordId, rating, reviewedAt: new Date().toISOString() };
+export const api = {
+  get:    <T>(path: string)                => request<T>('GET', path),
+  post:   <T>(path: string, body: unknown) => request<T>('POST', path, body),
+  delete: <T>(path: string)               => request<T>('DELETE', path),
+};
+```
 
-  if (navigator.onLine) {
-    apiFetch('POST', `/api/v1/words/review/${wordId}`, { rating });
-  } else {
-    // 存入离线队列
-    const queue: PendingReview[] = JSON.parse(localStorage.getItem('pending_reviews') || '[]');
-    queue.push(event);
-    localStorage.setItem('pending_reviews', JSON.stringify(queue));
-    showToast('已离线保存，网络恢复后自动同步', 'info');
-  }
-}
+---
 
-// 网络恢复后批量提交
-window.addEventListener('online', async () => {
-  const queue: PendingReview[] = JSON.parse(localStorage.getItem('pending_reviews') || '[]');
-  if (queue.length === 0) return;
+## 10. 移动端优化
 
-  for (const event of queue) {
-    await apiFetch('POST', `/api/v1/words/review/${event.wordId}`, {
-      rating: event.rating,
-      reviewed_at: event.reviewedAt,
-    });
-  }
-  localStorage.removeItem('pending_reviews');
-  showToast(`已同步 ${queue.length} 条学习记录`, 'success');
+| 场景 | 方案 |
+|------|------|
+| 单词卡片翻转 | CSS `perspective` + `rotateY` 3D 翻转动画 |
+| 左右滑动评分 | `touchstart`/`touchend` 判断 deltaX |
+| 底部安全区域 | `env(safe-area-inset-bottom)` |
+| 软键盘弹出 | `visualViewport` resize 事件推上内容 |
+| 音频录制 | `useAudioRecorder` hook，权限请求前显示说明 |
+| 长列表优化 | 100 条以内不做虚拟滚动，超出使用分页 |
+| 触摸目标大小 | 所有可点击元素最小 44×44px |
+
+---
+
+## 11. 后端集成（Go + Vite）
+
+### 构建流程
+
+```bash
+# 前端构建输出到 dist/
+cd front/react && npm run build
+# 输出：front/react/dist/index.html + assets/
+
+# Go 嵌入静态文件
+//go:embed dist
+var staticFiles embed.FS
+```
+
+### Go SPA 路由回退
+
+```go
+// 所有非 /api/ 请求返回 index.html（支持前端 SPA 路由）
+mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    if strings.HasPrefix(r.URL.Path, "/api/") {
+        http.NotFound(w, r)
+        return
+    }
+    // 先尝试静态文件
+    f, err := staticFiles.Open("dist" + r.URL.Path)
+    if err != nil {
+        // fallback to index.html
+        http.ServeFileFS(w, r, staticFiles, "dist/index.html")
+        return
+    }
+    f.Close()
+    http.FileServerFS(staticFiles).ServeHTTP(w, r)
+})
+```
+
+### 开发代理（Vite 反向代理）
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
 });
 ```
 
----
-
-## 八、无障碍与国际化
-
-### 8.1 无障碍（a11y）要求
-
-| 要求 | 实现方式 |
-|---|---|
-| 键盘导航完整 | 所有交互元素可 Tab 聚焦；卡片评分支持方向键 |
-| 屏幕阅读器支持 | 日语单词加 `lang="ja"` 属性；按钮有 `aria-label` |
-| 色彩对比度 | 正文与背景对比度 ≥ 4.5:1（WCAG AA） |
-| 触控目标 | 所有可点击区域 ≥ 44×44px |
-| 动效开关 | 遵守 `prefers-reduced-motion`，关闭翻转动画 |
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  .card { transition: none; }
-  .skeleton { animation: none; }
-  * { transition-duration: 0.01ms !important; }
-}
-```
-
-```html
-<!-- 日语内容加 lang 属性，确保屏幕阅读器正确发音 -->
-<span lang="ja"><ruby>勉強<rt>べんきょう</rt></ruby></span>
-<span lang="zh-CN">学习</span>
-```
-
-### 8.2 字体加载策略
-
-```css
-/* 避免 FOUT（无样式文字闪烁）*/
-@font-face {
-  font-family: 'Noto Sans JP';
-  font-display: swap; /* 立即显示回退字体，加载完成后切换 */
-  src: url('/static/fonts/NotoSansJP-Regular.woff2') format('woff2');
-  unicode-range: U+3000-9FFF, U+FF00-FFEF; /* 仅加载日文字符范围 */
-}
-```
+开发时：`npm run dev`（`:5173`）自动代理 API 到后端 `:8080`。
+生产时：Go 直接服务 `dist/`，无需 Node.js。
 
 ---
 
-## 九、前端文件与任务对应关系
+## 12. 登录页密码可见性功能
 
-| 文件 | 关联任务 | 核心职责 |
-|---|---|---|
-| `main.css` | T079 | 设计系统变量、全局样式、组件基础样式 |
-| `api.ts` | T072 | Fetch 封装、token 注入、错误处理、离线队列 |
-| `word.ts` | T073 | 卡片翻转、滑动手势、评分提交、进度更新 |
-| `grammar.ts` | T074 | 检验题交互、答案收集、结果渲染、解析展开 |
-| `lesson.ts` | T075 | 音频同步高亮、释义弹窗、翻译切换、生词收藏 |
-| `speaking.ts` | T076 | 录音控制、波形可视化、音频上传、评分展示 |
-| `writing.ts` | T077 | IME 联动、即时判题、AI 反馈轮询与展示 |
-| `summary.ts` | T078 | 总结数据渲染、亮点/待改进列表、跳转逻辑 |
-| `base.html` | T062 | 公共布局、导航栏、字体引用 |
-| `word/index.html` | T063 | 单词卡片容器、评分按钮组 |
-| `grammar/detail.html` | T066 | 步骤进度、讲解区、检验题区 |
-| `lesson/detail.html` | T068 | `<ruby>` 振り仮名结构、音频控制区 |
-| `speaking/index.html` | T069 | 录音按钮、Canvas 波形区、评分结果区 |
-| `writing/index.html` | T070 | 输入框、AI 反馈展示区 |
-| `summary/index.html` | T071 | 总结卡片、亮点/待改进列表 |
+### 功能描述
+
+登录页密码输入框右侧提供一个眼睛图标按钮，允许用户切换密码的显示/隐藏状态，便于确认输入是否正确。
+
+### 交互设计
+
+```
+┌────────────────────────────────────────┐
+│  パスワード                             │
+│  ┌──────────────────────────────────┐  │
+│  │  ••••••••                    👁  │  │  ← 点击切换为明文
+│  └──────────────────────────────────┘  │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │  mypassword123               🙈  │  │  ← 再次点击恢复隐藏
+│  └──────────────────────────────────┘  │
+└────────────────────────────────────────┘
+```
+
+### 实现规范
+
+| 属性 | 说明 |
+|------|------|
+| 默认状态 | `type="password"`，密码隐藏，显示眼睛图标 |
+| 点击后 | `type="text"`，密码明文显示，显示划线眼睛图标 |
+| 按钮类型 | `type="button"`，防止触发表单提交 |
+| 无障碍 | `aria-label` 随状态切换（"パスワードを表示する" / "パスワードを隠す"） |
+| 键盘访问 | 支持 Tab 聚焦，`:focus-visible` 显示轮廓 |
+| 图标 | 内联 SVG，无额外依赖；显示时为普通眼睛，隐藏时为带斜线眼睛 |
+| 触摸目标 | 按钮尺寸 40×40px，满足移动端最小触摸目标要求 |
+
+### 组件结构
+
+```tsx
+// LoginPage.tsx — 密码字段
+<div className={styles.passwordWrapper}>
+  <input
+    type={showPassword ? 'text' : 'password'}
+    ...
+  />
+  <button
+    type="button"
+    className={styles.eyeButton}
+    onClick={() => setShowPassword(v => !v)}
+    aria-label={showPassword ? 'パスワードを隐す' : 'パスワードを表示する'}
+  >
+    <EyeIcon visible={showPassword} />
+  </button>
+</div>
+```
+
+### 状态
+
+```typescript
+const [showPassword, setShowPassword] = useState(false)
+```
+
+---
+
+## 14. 忘记密码 / 密码重置功能
+
+> 新增日期：2026-04-06
+
+### 功能流程
+
+```
+用户点击「パスワードをお忘れですか？」
+         ↓
+/forgot-password 页面
+  输入注册邮箱 → POST /api/v1/auth/forgot-password
+         ↓
+后端：生成 32 字节随机 token（有效期 30 分钟）
+      存入 password_reset_tokens 表
+      发送重置邮件（含 /reset-password?token=xxx 链接）
+         ↓
+用户点击邮件中的链接 → /reset-password?token=xxx
+  输入新密码 + 确认 → POST /api/v1/auth/reset-password
+         ↓
+后端：验证 token（未过期、未使用）
+      更新 users.password_hash
+      将 token 标记为 used
+         ↓
+页面显示「パスワードが正常にリセットされました。」
+  → 跳转至登录页
+```
+
+---
+
+### 14.1 页面：ForgotPasswordPage（`/forgot-password`）
+
+```
+┌─────────────────────────────────────┐
+│               🔑                    │
+│          日本語学習                  │
+│      パスワードをお忘れですか？       │
+├─────────────────────────────────────┤
+│  ご登録のメールアドレスを入力してくだ │
+│  さい。リセット用リンクをお送りします  │
+│                                     │
+│  メールアドレス                      │
+│  ┌───────────────────────────────┐  │
+│  │  example@mail.com             │  │
+│  └───────────────────────────────┘  │
+│                                     │
+│  ┌───────────────────────────────┐  │
+│  │   リセットリンクを送信         │  │
+│  └───────────────────────────────┘  │
+│                                     │
+│         ← ログインに戻る             │
+└─────────────────────────────────────┘
+
+送信成功後（anti-enumeration：不透露邮箱是否注册）：
+┌─────────────────────────────────────┐
+│  ✅ 登録済みのメールアドレスの場合、 │
+│     パスワードリセットリンクを       │
+│     お送りしました。                 │
+│                                     │
+│         ← ログインに戻る             │
+└─────────────────────────────────────┘
+```
+
+**路由**：`/forgot-password`（公开路由，无需登录）
+
+**API**：`POST /api/v1/auth/forgot-password`
+- 请求体：`{ "email": "..." }`
+- 响应：始终返回 200（防止邮箱枚举攻击）
+
+---
+
+### 14.2 页面：ResetPasswordPage（`/reset-password`）
+
+```
+┌─────────────────────────────────────┐
+│               🔒                    │
+│          日本語学習                  │
+│       新しいパスワードを設定          │
+├─────────────────────────────────────┤
+│  新しいパスワード                    │
+│  ┌────────────────────────────  👁 ┐ │
+│  │  ••••••••                       │ │
+│  └─────────────────────────────────┘ │
+│                                     │
+│  パスワード（確認）                  │
+│  ┌────────────────────────────  👁 ┐ │
+│  │  ••••••••                       │ │
+│  └─────────────────────────────────┘ │
+│                                     │
+│  ┌───────────────────────────────┐  │
+│  │   パスワードをリセット         │  │
+│  └───────────────────────────────┘  │
+│                                     │
+│         ← ログインに戻る             │
+└─────────────────────────────────────┘
+
+成功後：
+┌─────────────────────────────────────┐
+│  ✅ パスワードが正常にリセットされ  │
+│     ました。                        │
+│                                     │
+│            ログインページへ          │
+└─────────────────────────────────────┘
+```
+
+**路由**：`/reset-password?token=<TOKEN>`（公开路由）
+- URL 中无 token 时自动跳转 `/forgot-password`
+
+**API**：`POST /api/v1/auth/reset-password`
+- 请求体：`{ "token": "...", "new_password": "..." }`
+- 错误码：
+  - `ERR_TOKEN_INVALID` → 400（token 不存在、已使用、或已过期）
+  - `ERR_INTERNAL` → 500
+
+---
+
+### 14.3 LoginPage 改动
+
+在提交按钮下方新增"忘记密码"链接：
+
+```tsx
+<Button type="submit" ...>ログイン</Button>
+
+<p className={styles.forgotLink}>
+  <Link to="/forgot-password">パスワードをお忘れですか？</Link>
+</p>
+```
+
+样式：`.forgotLink` — 居中、小字、`color-text-secondary`，带下划线。
+
+---
+
+### 14.4 后端实现
+
+#### 数据库（migration 005）
+
+```sql
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token      TEXT    NOT NULL PRIMARY KEY,
+    user_id    INTEGER NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used       INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+#### API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/auth/forgot-password` | 生成 token 并发送邮件 |
+| POST | `/api/v1/auth/reset-password` | 验证 token 并更新密码 |
+
+两个端点均为**公开路由**（无需 JWT）。
+
+#### 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `SMTP_HOST` | `""` | SMTP 服务器主机名；为空时使用 StubMailer（仅打印日志） |
+| `SMTP_PORT` | `"587"` | SMTP 端口 |
+| `SMTP_USER` | `""` | SMTP 认证用户名 |
+| `SMTP_PASS` | `""` | SMTP 认证密码 |
+| `SMTP_FROM` | `"noreply@japanese-learning.app"` | 发件人地址 |
+| `APP_BASE_URL` | `"http://localhost:5173"` | 重置链接前缀 |
+
+#### Token 生命周期
+
+- 有效期：**30 分钟**
+- 生成方式：`crypto/rand` 32 字节，hex 编码（64 字符）
+- 一次性：使用后立即标记 `used=1`，重复使用返回 `ERR_TOKEN_INVALID`
+
+#### Anti-enumeration
+
+`POST /api/v1/auth/forgot-password` 无论邮箱是否注册，始终返回 HTTP 200，不向前端泄露"此邮箱未注册"信息。
+
+---
+
+### 14.5 受影响的文件
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `internal/data/migrations/005_password_reset_tokens.sql` | **新建** | DB 表 |
+| `internal/data/user_store.go` | **修改** | 新增 `CreateResetToken`、`GetResetToken`、`MarkTokenUsed`、`UpdatePassword` |
+| `internal/data/adapters.go` | **修改** | `UserStoreAdapter` 实现新接口方法 |
+| `internal/module/user/model.go` | **修改** | 新增 `ResetToken`、`ForgotPasswordReq`、`ResetPasswordReq` 类型 |
+| `internal/module/user/mailer.go` | **新建** | `Mailer` 接口 + `SMTPMailer` + `StubMailer` |
+| `internal/module/user/service.go` | **修改** | 扩展 `UserStoreInterface`；新增 `ForgotPassword`、`ResetPassword`；`NewUserService` 增加 `mailer`、`appBaseURL` 参数 |
+| `internal/module/user/handler.go` | **修改** | 新增 `handleForgotPassword`、`handleResetPassword` |
+| `internal/module/user/service_test.go` | **修改** | `fakeUserStore` 实现新接口；新增 6 条测试 |
+| `backend/cmd/server/main.go` | **修改** | SMTP 环境变量；构建 `Mailer`；更新 `NewUserService` 调用 |
+| `front/react/src/App.tsx` | **修改** | 添加 `/forgot-password`、`/reset-password` 路由 |
+| `front/react/src/pages/auth/LoginPage.tsx` | **修改** | 添加"忘记密码"链接 |
+| `front/react/src/pages/auth/ForgotPasswordPage.tsx` | **新建** | 忘记密码页 |
+| `front/react/src/pages/auth/ResetPasswordPage.tsx` | **新建** | 重置密码页 |
+| `front/react/src/pages/auth/AuthPage.module.css` | **修改** | 新增 `.successBox`、`.hint`、`.forgotLink` |
+
+
+
+### Phase 1：基础设施（1-2 天）
+- [ ] 初始化 Vite + React 18 + TypeScript 项目到 `front/react/`
+- [ ] 配置 ESLint + Prettier + CSS Modules
+- [ ] 实现设计系统（CSS Variables + 全局样式）
+- [ ] 实现布局组件（TopNavBar、BottomTabBar、PageShell）
+- [ ] 实现原子组件（Badge、Button、Card、Spinner、EmptyState）
+- [ ] 实现 `AuthContext` + 登录/注册页
+- [ ] 实现 `useApi` hook + `api/client.ts`
+- [ ] 配置路由 + ProtectedLayout
+- [ ] Go 后端配置 SPA 回退 + embed 静态文件
+
+### Phase 2：核心模块（2-3 天）
+- [ ] 首页（Dashboard）
+- [ ] 单词复习页（翻转卡片 + 手势 + useReducer）
+- [ ] 语法列表页 + 语法详情页
+- [ ] 语法测验页
+
+### Phase 3：进阶模块（2-3 天）
+- [ ] 课文列表 + 课文详情（ruby 标注 + 音频同步）
+- [ ] 口语练习页（`useAudioRecorder` + 跟读/自由朗读）
+- [ ] 写作练习页（输入练习 + 造句 + AI 批改）
+
+### Phase 4：完善（1-2 天）
+- [ ] 学习总结页
+- [ ] 错误边界（ErrorBoundary）
+- [ ] 加载骨架屏（Skeleton）
+- [ ] Toast 全局通知
+- [ ] `prefers-color-scheme: dark` 暗色主题
+- [ ] `prefers-reduced-motion` 无动画模式
+- [ ] 基础组件测试（Vitest + RTL）
+
+---
+
+## 13. 与现有后端 API 的映射
+
+| 页面 | API |
+|------|-----|
+| 单词复习 | `GET /api/v1/words/queue?level=N5` |
+| 单词评分 | `POST /api/v1/words/{id}/rate` |
+| 单词书签 | `POST /api/v1/words/{id}/bookmark` |
+| 语法列表 | `GET /api/v1/grammar?level=N5` |
+| 语法详情 | `GET /api/v1/grammar/{id}` |
+| 语法测验 | `POST /api/v1/grammar/{id}/quiz` |
+| 口语练习 | `POST /api/v1/speaking/practice` （multipart） |
+| 口语记录 | `GET /api/v1/speaking/records` |
+| 写作队列 | `GET /api/v1/writing/queue` |
+| 写作提交 | `POST /api/v1/writing/input` |
+| 造句提交 | `POST /api/v1/writing/sentence` |
+| 写作记录 | `GET /api/v1/writing/records` |
+| 学习总结 | `GET /api/v1/summary` |
+| 登录 | `POST /api/v1/users/login` |
+| 注册 | `POST /api/v1/users/register` |

@@ -1,12 +1,15 @@
 package grammar
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/user"
 )
 
 // GrammarHandler handles HTTP requests for the grammar module.
@@ -36,10 +39,13 @@ func (h *GrammarHandler) handleListByLevel(w http.ResponseWriter, r *http.Reques
 		level = LevelN5
 	}
 
-	points, err := h.svc.ListByLevel(level)
+	// Extract userID from context (set by AuthMiddleware); fall back to 0 for unauthenticated requests.
+	userID, _ := user.UserIDFromContext(r.Context())
+
+	points, err := h.svc.ListByLevelWithStatus(userID, level)
 	if err != nil {
 		slog.Error("handleListByLevel failed", "err", err)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to list grammar points", "")
 		return
 	}
 
@@ -56,7 +62,11 @@ func (h *GrammarHandler) handleGetPoint(w http.ResponseWriter, r *http.Request) 
 	p, err := h.svc.GetPoint(id)
 	if err != nil {
 		slog.Error("handleGetPoint failed", "err", err, "grammar_point_id", id)
-		httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "grammar point not found", "")
+		if errors.Is(err, sql.ErrNoRows) {
+			httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "grammar point not found", "")
+		} else {
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load grammar point", "")
+		}
 		return
 	}
 
@@ -64,7 +74,7 @@ func (h *GrammarHandler) handleGetPoint(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *GrammarHandler) handleScoreQuiz(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -85,19 +95,9 @@ func (h *GrammarHandler) handleScoreQuiz(w http.ResponseWriter, r *http.Request)
 	result, err := h.svc.ScoreQuiz(userID, grammarPointID, submissions)
 	if err != nil {
 		slog.Error("handleScoreQuiz failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to score quiz", "")
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: result})
-}
-
-// contextKeyUserID is the key type for storing userID in context.
-type contextKeyUserID struct{}
-
-// userIDFromContext extracts the userID injected by AuthMiddleware.
-func userIDFromContext(ctx interface{ Value(any) any }) (int64, bool) {
-	v := ctx.Value(contextKeyUserID{})
-	id, ok := v.(int64)
-	return id, ok
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/user"
 )
 
 // WordHandler handles HTTP requests for the word module.
@@ -32,7 +33,7 @@ func (h *WordHandler) RegisterRoutes(mux *http.ServeMux) {
 
 // handleGetReviewQueue handles GET /api/v1/words/queue?level=N5
 func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -46,7 +47,7 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 	cards, err := h.svc.GetReviewQueue(userID, level)
 	if err != nil {
 		slog.Error("handleGetReviewQueue failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load review queue", "")
 		return
 	}
 
@@ -55,7 +56,7 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 
 // handleSubmitRating handles POST /api/v1/words/{id}/rate
 func (h *WordHandler) handleSubmitRating(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -77,7 +78,7 @@ func (h *WordHandler) handleSubmitRating(w http.ResponseWriter, r *http.Request)
 
 	if err := h.svc.SubmitRating(userID, wordID, req.Rating); err != nil {
 		slog.Error("handleSubmitRating failed", "err", err, "user_id", userID, "word_id", wordID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to save rating", "")
 		return
 	}
 
@@ -86,7 +87,7 @@ func (h *WordHandler) handleSubmitRating(w http.ResponseWriter, r *http.Request)
 
 // handleBookmark handles POST /api/v1/words/{id}/bookmark
 func (h *WordHandler) handleBookmark(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -100,20 +101,9 @@ func (h *WordHandler) handleBookmark(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.svc.Bookmark(userID, wordID); err != nil {
 		slog.Error("handleBookmark failed", "err", err, "user_id", userID, "word_id", wordID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to update bookmark", "")
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{"status": "ok"}})
 }
-
-// userIDFromContext extracts the userID injected by AuthMiddleware.
-// Returns (0, false) if not present.
-func userIDFromContext(ctx interface{ Value(any) any }) (int64, bool) {
-	v := ctx.Value(contextKeyUserID{})
-	id, ok := v.(int64)
-	return id, ok
-}
-
-// contextKeyUserID is the key type for storing userID in context.
-type contextKeyUserID struct{}

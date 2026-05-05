@@ -34,6 +34,13 @@ func main() {
 	aiEndpoint := envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages")
 	staticDir := envOrDefault("STATIC_DIR", "./front/web/static")
 	templateDir := envOrDefault("TEMPLATE_DIR", "./front/web/templates")
+	// SMTP settings for password reset emails
+	smtpHost := envOrDefault("SMTP_HOST", "")
+	smtpPort := envOrDefault("SMTP_PORT", "587")
+	smtpUser := envOrDefault("SMTP_USER", "")
+	smtpPass := envOrDefault("SMTP_PASS", "")
+	smtpFrom := envOrDefault("SMTP_FROM", "noreply@japanese-learning.app")
+	appBaseURL := envOrDefault("APP_BASE_URL", "http://localhost:5173")
 
 	setupLogger(logLevel)
 
@@ -69,6 +76,16 @@ func main() {
 		aiReviewer = &writing.StubReviewer{}
 	}
 
+	// ── Mailer (password reset) ───────────────────────────────────────────────
+	var mailer user.Mailer
+	if smtpHost != "" {
+		slog.Info("using SMTPMailer for password reset", "smtp_host", smtpHost)
+		mailer = user.NewSMTPMailer(smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom)
+	} else {
+		slog.Warn("SMTP_HOST not set — using StubMailer (reset URLs logged only)")
+		mailer = &user.StubMailer{}
+	}
+
 	// ── Store adapters (bridge data.*Store to module.*StoreInterface) ─────────
 	wordAdapter    := data.NewWordStoreAdapter(wordStore)
 	lessonAdapter  := data.NewLessonStoreAdapter(lessonStore)
@@ -81,7 +98,7 @@ func main() {
 	lessonSvc   := lesson.NewLessonService(lessonAdapter)
 	speakingSvc := speaking.NewSpeakingService(speakingStore, speaking.NewWaveformScorer())
 	writingSvc  := writing.NewWritingService(writingStore, aiReviewer)
-	userSvc     := user.NewUserService(userAdapter, jwtSecret)
+	userSvc     := user.NewUserService(userAdapter, jwtSecret, mailer, appBaseURL)
 	summarySvc  := summary.NewSummaryService(sessionAdapter)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
