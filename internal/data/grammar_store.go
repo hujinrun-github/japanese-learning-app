@@ -97,6 +97,57 @@ func (s *GrammarStore) ListByLevel(level grammar.JLPTLevel) ([]grammar.GrammarPo
 	return points, nil
 }
 
+// ListByLevelWithStatus 查询指定 JLPT 等级的所有语法点，并附带用户学习状态（LEFT JOIN grammar_records）。
+func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLevel) ([]grammar.GrammarPointWithStatus, error) {
+	slog.Debug("GrammarStore.ListByLevelWithStatus called", "user_id", userID, "level", level)
+
+	rows, err := s.db.Query(
+		`SELECT gp.id, gp.name, gp.meaning, gp.conjunction_rule, gp.usage_note,
+		        gp.examples_json, gp.quiz_questions_json, gp.jlpt_level,
+		        COALESCE(gr.status, 'unlearned') AS user_status
+		 FROM grammar_points gp
+		 LEFT JOIN grammar_records gr ON gr.grammar_point_id = gp.id AND gr.user_id = ?
+		 WHERE gp.jlpt_level = ?
+		 ORDER BY gp.id`,
+		userID, level,
+	)
+	if err != nil {
+		slog.Error("failed to query grammar_points with status", "err", err, "user_id", userID, "level", level)
+		return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus query: %w", err)
+	}
+	defer rows.Close()
+
+	var items []grammar.GrammarPointWithStatus
+	for rows.Next() {
+		var gp grammar.GrammarPoint
+		var examplesJSON, quizJSON string
+		var userStatus grammar.GrammarStatus
+		if err := rows.Scan(&gp.ID, &gp.Name, &gp.Meaning, &gp.ConjunctionRule, &gp.UsageNote,
+			&examplesJSON, &quizJSON, &gp.JLPTLevel, &userStatus); err != nil {
+			slog.Error("failed to scan grammar_point+status row", "err", err)
+			return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus scan: %w", err)
+		}
+		if err := json.Unmarshal([]byte(examplesJSON), &gp.Examples); err != nil {
+			slog.Error("failed to unmarshal examples_json", "err", err, "grammar_point_id", gp.ID)
+			return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus unmarshal examples: %w", err)
+		}
+		if err := json.Unmarshal([]byte(quizJSON), &gp.QuizQuestions); err != nil {
+			slog.Error("failed to unmarshal quiz_questions_json", "err", err, "grammar_point_id", gp.ID)
+			return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus unmarshal quiz: %w", err)
+		}
+		items = append(items, grammar.GrammarPointWithStatus{
+			GrammarPoint: gp,
+			UserStatus:   userStatus,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus rows: %w", err)
+	}
+
+	slog.Debug("GrammarStore.ListByLevelWithStatus done", "user_id", userID, "level", level, "count", len(items))
+	return items, nil
+}
+
 // GetRecord 查询用户对某语法点的学习记录，不存在时返回 error。
 func (s *GrammarStore) GetRecord(userID, grammarPointID int64) (*grammar.GrammarRecord, error) {
 	slog.Debug("GrammarStore.GetRecord called", "user_id", userID, "grammar_point_id", grammarPointID)

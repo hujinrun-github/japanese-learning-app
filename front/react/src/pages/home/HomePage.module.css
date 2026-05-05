@@ -1,0 +1,125 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* Hero */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-6);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-surface) 100%);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+}
+
+.heroLeft {
+  flex: 1;
+}
+
+.greeting {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.heroName {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-3);
+  line-height: var(--line-height-tight);
+}
+
+.heroBadges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.streak {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-warning);
+}
+
+/* Section */
+.section {}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-4);
+}
+
+/* Module grid */
+.moduleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.moduleLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.moduleLink:hover {
+  text-decoration: none;
+}
+
+.moduleCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.moduleHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.moduleIcon {
+  font-size: 1.4rem;
+}
+
+.moduleLabel {
+  font-weight: var(--font-weight-medium);
+  flex: 1;
+}
+
+.dueBadge {
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-full);
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-1);
+}
+
+/* Tip card */
+.tipCard {}
+
+.tipText {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .moduleGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .heroName {
+    font-size: var(--font-size-2xl);
+  }
+}

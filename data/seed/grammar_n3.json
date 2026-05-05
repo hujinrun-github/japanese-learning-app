@@ -1,0 +1,380 @@
+[
+  {
+    "name": "〜にもかかわらず",
+    "meaning": "尽管……仍然……（表示转折）",
+    "conjunction_rule": "动词/形容词（普通体）/名词 + にもかかわらず",
+    "usage_note": "表示与预期相反的结果，书面语，比「のに」更正式。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "雨にもかかわらず、大勢の人が集まりました。", "chinese": "尽管下雨，仍然聚集了很多人。", "linked_word_ids": []},
+      {"japanese": "反対意見にもかかわらず、計画を続けました。", "chinese": "尽管有反对意见，仍然继续了计划。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "体の具合が悪い______、彼女は出勤しました。", "options": null, "answer": "にもかかわらず", "explanation": "「〜にもかかわらず」书面语，表示克服障碍"},
+      {"id": 2, "type": "multi_choice", "prompt": "「努力した___、失敗した」（尽管努力了仍然失败）空白处填：", "options": ["ので", "にもかかわらず", "から", "ために"], "answer": "にもかかわらず", "explanation": "「〜にもかかわらず」表示与预期相反"}
+    ]
+  },
+  {
+    "name": "〜に対して",
+    "meaning": "对于……（对象/态度）",
+    "conjunction_rule": "名词 + に対して",
+    "usage_note": "表示行为或态度指向的对象，可以是人或事。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "先生に対して失礼なことを言ってしまいました。", "chinese": "对老师说了失礼的话。", "linked_word_ids": []},
+      {"japanese": "この問題に対して真剣に取り組んでいます。", "chinese": "对这个问题认真地面对着。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "環境問題___して、もっと関心を持つべきです。", "options": null, "answer": "に対", "explanation": "「〜に対して」表示行为/态度的对象"},
+      {"id": 2, "type": "multi_choice", "prompt": "「お客様___丁寧に対応する」（对顾客礼貌应对）空白处填：", "options": ["にとって", "に対して", "について", "において"], "answer": "に対して", "explanation": "「〜に対して」表示针对某对象的行为"}
+    ]
+  },
+  {
+    "name": "〜について",
+    "meaning": "关于……（话题/内容）",
+    "conjunction_rule": "名词 + について",
+    "usage_note": "表示谈论或思考的话题或内容，可以翻译为「关于」「就……而言」。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "日本の文化について勉強しています。", "chinese": "正在学习关于日本文化的内容。", "linked_word_ids": []},
+      {"japanese": "この事件についてどう思いますか。", "chinese": "你对这件事有什么看法？", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "環境問題___レポートを書きました。", "options": null, "answer": "について", "explanation": "「〜について」表示话题"},
+      {"id": 2, "type": "multi_choice", "prompt": "「〜について」和「〜に対して」的区别：", "options": ["完全相同", "について说话题，に対して说态度/行为方向", "について表原因，に対して表结果", "两者不能互换"], "answer": "について说话题，に対して说态度/行为方向", "explanation": "「について」表话题，「に対して」表行为态度"}
+    ]
+  },
+  {
+    "name": "〜によって",
+    "meaning": "根据……／由于……／因……而异",
+    "conjunction_rule": "名词 + によって",
+    "usage_note": "有多个用法：①表示原因，②表示手段方法，③表示因人/物而异，④表示被动句中的动作者。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "この絵はピカソによって描かれました。", "chinese": "这幅画是由毕加索画的。", "linked_word_ids": []},
+      {"japanese": "人によって意見が違います。", "chinese": "因人而异，意见不同。", "linked_word_ids": []},
+      {"japanese": "努力によって夢を叶えることができます。", "chinese": "通过努力可以实现梦想。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "季節___気温が変わります。（气温随季节变化）", "options": null, "answer": "によって", "explanation": "「によって」表示因……而异"},
+      {"id": 2, "type": "multi_choice", "prompt": "「この法律は政府___作られた」（这条法律由政府制定）空白处填：", "options": ["によって", "について", "に対して", "において"], "answer": "によって", "explanation": "被动句中动作者用「によって」"}
+    ]
+  },
+  {
+    "name": "〜において",
+    "meaning": "在……方面／在……场合（正式场合）",
+    "conjunction_rule": "名词 + において/における",
+    "usage_note": "书面语，表示某事发生或存在的场所/领域/时间，比「で」更正式。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "現代社会においてITは欠かせません。", "chinese": "在现代社会中，IT是不可缺少的。", "linked_word_ids": []},
+      {"japanese": "スポーツにおいて精神力は重要です。", "chinese": "在体育运动方面，精神力是重要的。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "この分野___彼は世界一です。（在这个领域他是世界第一）", "options": null, "answer": "において", "explanation": "「〜において」正式书面表达，表示领域/场合"},
+      {"id": 2, "type": "multi_choice", "prompt": "「〜において」最常用于：", "options": ["口语会话", "正式书面语、演讲", "请求表达", "否定表达"], "answer": "正式书面语、演讲", "explanation": "「において」是正式书面语体"}
+    ]
+  },
+  {
+    "name": "〜に関して",
+    "meaning": "关于……（涉及）",
+    "conjunction_rule": "名词 + に関して/に関する",
+    "usage_note": "表示所涉及的话题范围，比「について」更正式，多用于书面语和正式场合。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "この契約に関してご質問があればご連絡ください。", "chinese": "关于这份合同如有疑问请联系我们。", "linked_word_ids": []},
+      {"japanese": "環境問題に関するレポートを提出しました。", "chinese": "提交了关于环境问题的报告。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "新しい制度___説明会を開催します。", "options": null, "answer": "に関して", "explanation": "「に関して」正式语体，表示涉及某话题"},
+      {"id": 2, "type": "multi_choice", "prompt": "「について」和「に関して」的区别：", "options": ["完全相同", "に関して更正式，用于正式场合", "について更正式", "两者不能替换"], "answer": "に関して更正式，用于正式场合", "explanation": "「に関して」比「について」更正式"}
+    ]
+  },
+  {
+    "name": "〜だけでなく〜も",
+    "meaning": "不只……而且……（除……之外还……）",
+    "conjunction_rule": "名词/动词普通体 + だけでなく + 名词/句子 + も",
+    "usage_note": "表示不仅有前项，还有后项，含有追加的意思。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "日本語だけでなく、英語も話せます。", "chinese": "不只会说日语，还会说英语。", "linked_word_ids": []},
+      {"japanese": "彼女は料理だけでなく、掃除も上手です。", "chinese": "她不只擅长做饭，打扫也很好。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "勉強___でなく、スポーツも大切です。", "options": null, "answer": "だけ", "explanation": "「〜だけでなく〜も」表示追加"},
+      {"id": 2, "type": "multi_choice", "prompt": "「彼はピアノ___ギターも弾ける」（他不只会钢琴还会吉他）空白处填：", "options": ["だけでなく", "ばかりでなく", "しか", "だけ"], "answer": "だけでなく", "explanation": "「だけでなく〜も」是追加表达"}
+    ]
+  },
+  {
+    "name": "〜さえ〜ば",
+    "meaning": "只要……就……（最低条件）",
+    "conjunction_rule": "名词 + さえ + 动词条件形 + ば",
+    "usage_note": "表示只要满足某个最低限度的条件，其余条件就无所谓，后项就能成立。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "健康でさえあれば、何でもできます。", "chinese": "只要健康，什么都能做。", "linked_word_ids": []},
+      {"japanese": "お金さえあれば問題ありません。", "chinese": "只要有钱就没问题。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "時間___あれば、旅行したいです。（只要有时间就想旅行）", "options": null, "answer": "さえ", "explanation": "「さえ〜ば」表示最低限度条件"},
+      {"id": 2, "type": "multi_choice", "prompt": "「努力___すれば、夢は叶う」（只要努力梦想就能实现）空白处填：", "options": ["さえ", "も", "しか", "だけ"], "answer": "さえ", "explanation": "「さえ〜ば」强调最低限度条件"}
+    ]
+  },
+  {
+    "name": "〜ながらも",
+    "meaning": "尽管……却……（带有某状态却做了另一件事）",
+    "conjunction_rule": "动词ます形/形容词/名词 + ながらも",
+    "usage_note": "表示虽然有某种状态或条件，但后项行为仍然发生，带有矛盾或意外的语气。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "忙しいながらも、毎日運動しています。", "chinese": "尽管很忙，每天仍然运动。", "linked_word_ids": []},
+      {"japanese": "初心者ながらも、優勝しました。", "chinese": "尽管是新手，却得了冠军。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "貧しい___も、幸せに暮らしています。（尽管贫穷却幸福地生活着）", "options": null, "answer": "ながら", "explanation": "「〜ながらも」表示虽然有某状态却仍然……"},
+      {"id": 2, "type": "multi_choice", "prompt": "「知りながら___黙っていた」（明明知道却沉默着）空白处填：", "options": ["ながらも", "なのに", "でも", "けれども"], "answer": "ながらも", "explanation": "「ながらも」强调前后的矛盾性"}
+    ]
+  },
+  {
+    "name": "〜わけだ",
+    "meaning": "难怪……（当然的结论）",
+    "conjunction_rule": "动词/形容词（普通体）/名词+な + わけだ",
+    "usage_note": "表示根据前述情况推导出当然的结论，有「这就说得通了」的语感。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "10年も日本にいたんですか。日本語が上手なわけですね。", "chinese": "在日本住了10年啊，难怪日语这么好。", "linked_word_ids": []},
+      {"japanese": "彼女は医者なわけだから、薬のことは詳しい。", "chinese": "她是医生，当然对药很了解。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "毎日練習しているんですか。上手な___ですね。", "options": null, "answer": "わけ", "explanation": "「わけだ」表示从前项推导出当然的结论"},
+      {"id": 2, "type": "multi_choice", "prompt": "「〜わけだ」表示：", "options": ["不确定推测", "根据情况得出理所当然的结论", "表示目的", "表示条件"], "answer": "根据情况得出理所当然的结论", "explanation": "「わけだ」表示合乎逻辑的必然结论"}
+    ]
+  },
+  {
+    "name": "〜わけではない",
+    "meaning": "并不是……（否定不当推论）",
+    "conjunction_rule": "动词/形容词（普通体）/名词+な + わけではない",
+    "usage_note": "表示否定对方可能产生的错误理解，纠正「过度概括」。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "日本語が話せないわけではないが、得意ではありません。", "chinese": "并不是不会说日语，只是不擅长。", "linked_word_ids": []},
+      {"japanese": "嫌いなわけではないけど、毎日食べたくはないです。", "chinese": "并不是不喜欢，只是不想每天吃。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼が悪い___ではないが、態度に問題があります。", "options": null, "answer": "わけ", "explanation": "「わけではない」否定过于绝对的结论"},
+      {"id": 2, "type": "multi_choice", "prompt": "「行けない___ではない」意思是：", "options": ["不能去", "并不是不能去", "一定能去", "想去"], "answer": "并不是不能去", "explanation": "「わけではない」表示否定绝对判断"}
+    ]
+  },
+  {
+    "name": "〜をきっかけに",
+    "meaning": "以……为契机（触发点）",
+    "conjunction_rule": "名词 + をきっかけに/をきっかけとして",
+    "usage_note": "表示某事件成为一个变化或行动的起点/契机。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "この映画をきっかけに日本語を勉強し始めました。", "chinese": "以这部电影为契机开始学习日语。", "linked_word_ids": []},
+      {"japanese": "事故をきっかけに安全について考えるようになりました。", "chinese": "以那次事故为契机开始思考安全问题。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "日本への留学___に、日本文化が好きになりました。", "options": null, "answer": "をきっかけ", "explanation": "「をきっかけに」表示触发变化的契机"},
+      {"id": 2, "type": "multi_choice", "prompt": "「〜をきっかけに」的意思是：", "options": ["以……为最终目标", "以……为起点/契机", "因为……所以", "虽然……但是"], "answer": "以……为起点/契机", "explanation": "「をきっかけに」表示某事件成为改变的起点"}
+    ]
+  },
+  {
+    "name": "〜に違いない",
+    "meaning": "一定是……（强烈推测）",
+    "conjunction_rule": "动词/形容词（普通体）/名词 + に違いない",
+    "usage_note": "表示说话人的强烈确信，几乎可以断定某事是真实的。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "あの光はUFOに違いない。", "chinese": "那道光一定是UFO。", "linked_word_ids": []},
+      {"japanese": "こんなに急いでいるから、何か急用があるに違いない。", "chinese": "这么着急，一定有什么急事。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼女は合格した___ない。（她一定合格了）", "options": null, "answer": "に違い", "explanation": "「に違いない」表示强烈确信"},
+      {"id": 2, "type": "multi_choice", "prompt": "「に違いない」与「かもしれない」的区别：", "options": ["意思完全相同", "に違いない更确信，かもしれない表示不确定", "かもしれない更确信", "两者都表示怀疑"], "answer": "に違いない更确信，かもしれない表示不确定", "explanation": "「に違いない」是强烈断定，「かもしれない」是50%可能性"}
+    ]
+  },
+  {
+    "name": "〜にしたがって",
+    "meaning": "随着……（按照/伴随变化）",
+    "conjunction_rule": "动词辞书形/名词 + にしたがって",
+    "usage_note": "表示随着某事物的变化，后项也相应变化，或按照规则/指示行事。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "年をとるにしたがって、記憶力が落ちてきました。", "chinese": "随着年龄增长，记忆力下降了。", "linked_word_ids": []},
+      {"japanese": "規則にしたがって行動してください。", "chinese": "请按照规则行动。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "練習する___、上手になっていきます。（随着练习增多逐渐变好）", "options": null, "answer": "にしたがって", "explanation": "「にしたがって」表示随着某变化而变化"},
+      {"id": 2, "type": "multi_choice", "prompt": "「気温が上がる___、花が咲き始めます」空白处填：", "options": ["にしたがって", "にもかかわらず", "によって", "について"], "answer": "にしたがって", "explanation": "「にしたがって」表示伴随某变化的变化"}
+    ]
+  },
+  {
+    "name": "〜どころか",
+    "meaning": "不但不……反而……（远超预期）",
+    "conjunction_rule": "动词/形容词/名词 + どころか",
+    "usage_note": "表示实际情况与预期完全相反，且差距很大，有时表达「远不止如此」的意思。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "この薬を飲んだら、良くなるどころか、もっと悪くなりました。", "chinese": "吃了这个药，不但没好，反而更糟了。", "linked_word_ids": []},
+      {"japanese": "褒めるどころか、叱られてしまいました。", "chinese": "不但没被表扬，反而被骂了。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼は謝る___か、言い訳ばかりしています。", "options": null, "answer": "どころ", "explanation": "「どころか」表示实际情况与预期相反且差距大"},
+      {"id": 2, "type": "multi_choice", "prompt": "「上手になる___、ますます下手になった」空白处填：", "options": ["どころか", "どころ", "のに", "にもかかわらず"], "answer": "どころか", "explanation": "「どころか」表示与预期完全相反"}
+    ]
+  },
+  {
+    "name": "〜べきだ",
+    "meaning": "应该……（道义上的应当）",
+    "conjunction_rule": "动词辞书形（する→すべき）+ べきだ",
+    "usage_note": "表示从道义或规范角度看应当做某事，比「〜なければならない」更主观，有说教语气。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "もっと運動すべきです。", "chinese": "应该多运动。", "linked_word_ids": []},
+      {"japanese": "約束は守るべきです。", "chinese": "约定应该遵守。", "linked_word_ids": []},
+      {"japanese": "間違えたら謝るべきです。", "chinese": "犯了错应该道歉。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "危険なことはする___ではありません。（危险的事不应该做）", "options": null, "answer": "べき", "explanation": "「べきだ」表示道义上的应当"},
+      {"id": 2, "type": "multi_choice", "prompt": "「規則は守る___だ」（规则应当遵守）空白处填：", "options": ["べき", "はず", "かもしれない", "でしょう"], "answer": "べき", "explanation": "「べきだ」强调道义规范上的应当"}
+    ]
+  },
+  {
+    "name": "〜ものだ",
+    "meaning": "……的（表示常识/自然规律/感慨）",
+    "conjunction_rule": "动词/形容词（普通体） + ものだ",
+    "usage_note": "有多个用法：①表示常识或一般规律（人就是……），②表示感慨（真是……啊），③表示过去的习惯。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "人は失敗から学ぶものです。", "chinese": "人本来就是从失败中学习的。", "linked_word_ids": []},
+      {"japanese": "子供の頃はよく川で遊んだものです。", "chinese": "小时候经常在河里玩（回忆）。", "linked_word_ids": []},
+      {"japanese": "月日の経つのは早いものですね。", "chinese": "时光流逝真是快啊（感慨）。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "multi_choice", "prompt": "「昔はよく星を見た___です」（以前经常看星星）「ものです」的用法是：", "options": ["表示常识", "回忆过去的习惯", "表示感慨", "表示义务"], "answer": "回忆过去的习惯", "explanation": "「〜たものだ」表示对过去习惯的回忆"},
+      {"id": 2, "type": "fill_blank", "prompt": "人は誰でも間違える___です。（人人都会犯错，这是常识）", "options": null, "answer": "もの", "explanation": "「ものだ」表示常识或一般规律"}
+    ]
+  },
+  {
+    "name": "〜ことから",
+    "meaning": "从……（这一事实）可以看出……",
+    "conjunction_rule": "动词/形容词（普通体）/名词+な + ことから",
+    "usage_note": "表示从某一事实或特征中推导出某种结论或来由，有时用于解释名称的由来。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "発音がきれいなことから、長年日本に住んでいると思われます。", "chinese": "从发音优美这一点可以看出，他应该在日本住了很多年。", "linked_word_ids": []},
+      {"japanese": "この花が春に咲くことから、春の花と呼ばれています。", "chinese": "因为这种花在春天开放，所以被称为春天的花。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼女が毎日練習している___から、才能があるとわかります。", "options": null, "answer": "こと", "explanation": "「ことから」从某事实推导出结论"},
+      {"id": 2, "type": "multi_choice", "prompt": "「〜ことから」主要用于：", "options": ["表示目的", "从某一事实推导出结论/由来", "表示条件", "表示假设"], "answer": "从某一事实推导出结论/由来", "explanation": "「ことから」用于基于事实的推论"}
+    ]
+  },
+  {
+    "name": "〜からこそ",
+    "meaning": "正因为……才……（强调原因）",
+    "conjunction_rule": "动词/形容词（普通体）/名词+だ + からこそ",
+    "usage_note": "强调某原因的重要性，「こそ」加强语气，表示「就是因为这个理由，而不是其他」。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "好きだからこそ、厳しいことも言います。", "chinese": "正因为喜欢，才会说严厉的话。", "linked_word_ids": []},
+      {"japanese": "失敗したからこそ、成長できました。", "chinese": "正因为失败了，才能够成长。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "努力した___こそ、今の成功があります。（正因为努力了，才有今天的成功）", "options": null, "answer": "から", "explanation": "「からこそ」强调某特定原因"},
+      {"id": 2, "type": "multi_choice", "prompt": "「信頼している___厳しく言う」（正因为信任才严格地说）空白处填：", "options": ["からこそ", "だから", "ので", "から"], "answer": "からこそ", "explanation": "「からこそ」强调特定原因的决定性"}
+    ]
+  },
+  {
+    "name": "〜さえも",
+    "meaning": "就连……也……（极端例子）",
+    "conjunction_rule": "名词 + さえも / 动词て形 + さえも",
+    "usage_note": "提出极端的例子来强调，表示「连……这样的情况都……」。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "子供さえも知っている常識です。", "chinese": "连孩子都知道的常识。", "linked_word_ids": []},
+      {"japanese": "疲れすぎて、立つことさえもできませんでした。", "chinese": "累得连站起来都做不到。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "彼は自分の名前___書けない。（他连自己的名字都写不了）", "options": null, "answer": "さえも", "explanation": "「さえも」提出极端例子表示强调"},
+      {"id": 2, "type": "multi_choice", "prompt": "「先生___この問題は解けない」（连老师也解不开这道题）空白处填：", "options": ["さえも", "だけでなく", "しか", "ばかり"], "answer": "さえも", "explanation": "「さえも」表示极端例子的强调"}
+    ]
+  },
+  {
+    "name": "〜に伴って",
+    "meaning": "随着……（同步变化）",
+    "conjunction_rule": "名词/动词辞书形 + に伴って/に伴い",
+    "usage_note": "表示两件事同步发生变化，与「につれて」「にしたがって」相近，但更正式。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "経済の発展に伴って、生活水準が上がりました。", "chinese": "随着经济发展，生活水平提高了。", "linked_word_ids": []},
+      {"japanese": "人口増加に伴い、食料問題が深刻になっています。", "chinese": "随着人口增加，粮食问题变得严峻。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "技術の進歩___、生活が便利になりました。（随着技术进步，生活变方便了）", "options": null, "answer": "に伴って", "explanation": "「に伴って」表示两件事同步发展"},
+      {"id": 2, "type": "multi_choice", "prompt": "「〜に伴って」最常用于：", "options": ["口语", "书面语和正式场合", "表示原因", "表示目的"], "answer": "书面语和正式场合", "explanation": "「に伴って」是较正式的表达"}
+    ]
+  },
+  {
+    "name": "〜に反して",
+    "meaning": "违反……／与……相反",
+    "conjunction_rule": "名词 + に反して/に反する",
+    "usage_note": "表示行为或结果与某种期望、规定、预测相反或相违背。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "予想に反して、彼は試験に落ちました。", "chinese": "与预料相反，他考试落榜了。", "linked_word_ids": []},
+      {"japanese": "規則に反する行為は認められません。", "chinese": "违反规则的行为不被允许。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "期待___して、結果は悪かったです。（与期待相反，结果很糟）", "options": null, "answer": "に反", "explanation": "「に反して」表示与某预期或规定相违"},
+      {"id": 2, "type": "multi_choice", "prompt": "「みんなの意見___して決定した」（违背大家意见做了决定）空白处填：", "options": ["に反", "に対", "にとって", "について"], "answer": "に反", "explanation": "「に反して」表示违背某意见或规则"}
+    ]
+  },
+  {
+    "name": "〜ほど〜ない",
+    "meaning": "没有……那么……（程度比较否定）",
+    "conjunction_rule": "A + は + B + ほど + 形容词否定",
+    "usage_note": "表示A的程度不如B，常用于否定比较句。与「より」的区别在于强调「没那么」。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "この映画は噂ほどおもしろくなかったです。", "chinese": "这部电影没有传说中的那么有趣。", "linked_word_ids": []},
+      {"japanese": "試験は思ったほど難しくありませんでした。", "chinese": "考试没有想象的那么难。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "東京は想像した___物価が高くなかったです。（东京没有想象的那么贵）", "options": null, "answer": "ほど", "explanation": "「〜ほど〜ない」表示程度比较的否定"},
+      {"id": 2, "type": "multi_choice", "prompt": "「彼女は写真___きれいではない」（她没有照片那么漂亮）空白处填：", "options": ["ほど", "より", "くらい", "ほどの"], "answer": "ほど", "explanation": "「〜ほど〜ない」表示达不到某程度"}
+    ]
+  },
+  {
+    "name": "〜次第だ",
+    "meaning": "取决于……（决定因素）",
+    "conjunction_rule": "名词 + 次第だ/次第で",
+    "usage_note": "表示结果由某件事或某条件来决定，强调决定性因素。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "成功するかどうかは努力次第です。", "chinese": "能否成功取决于努力。", "linked_word_ids": []},
+      {"japanese": "天気次第でピクニックに行きます。", "chinese": "视天气情况决定是否去野餐。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "合否はあなたの実力___です。（合格与否取决于你的实力）", "options": null, "answer": "次第", "explanation": "「次第だ」表示结果由某因素决定"},
+      {"id": 2, "type": "multi_choice", "prompt": "「結果は練習量___だ」（结果取决于练习量）空白处填：", "options": ["次第", "によって", "に対して", "ために"], "answer": "次第", "explanation": "「次第だ」强调决定性因素"}
+    ]
+  },
+  {
+    "name": "〜に応じて",
+    "meaning": "根据……／按照……（对应变化）",
+    "conjunction_rule": "名词 + に応じて/に応じた",
+    "usage_note": "表示按照某种标准、状况或要求做出相应的响应或变化。",
+    "jlpt_level": "N3",
+    "examples": [
+      {"japanese": "状況に応じて対応を変えます。", "chinese": "根据情况改变应对方式。", "linked_word_ids": []},
+      {"japanese": "能力に応じた仕事を与えます。", "chinese": "给予与能力相应的工作。", "linked_word_ids": []}
+    ],
+    "quiz_questions": [
+      {"id": 1, "type": "fill_blank", "prompt": "ニーズ___柔軟に対応します。（根据需求灵活应对）", "options": null, "answer": "に応じて", "explanation": "「に応じて」表示根据某情况做出相应响应"},
+      {"id": 2, "type": "multi_choice", "prompt": "「収入___生活レベルが変わる」（生活水平随收入变化）空白处填：", "options": ["に応じて", "によって", "に対して", "にしたがって"], "answer": "に応じて", "explanation": "「に応じて」表示与某条件对应的变化"}
+    ]
+  }
+]

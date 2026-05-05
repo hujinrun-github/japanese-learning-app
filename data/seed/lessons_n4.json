@@ -1,0 +1,545 @@
+[
+  {
+    "title": "週末の計画",
+    "jlpt_level": "N4",
+    "tags": ["休闲", "计划"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "今度", "reading": "こんど"},
+          {"surface": "の", "reading": ""},
+          {"surface": "週末", "reading": "しゅうまつ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "何", "reading": "なに"},
+          {"surface": "か", "reading": ""},
+          {"surface": "予定", "reading": "よてい"},
+          {"surface": "が", "reading": ""},
+          {"surface": "ありますか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "这个周末有什么计划吗？",
+        "start_ms": 0,
+        "end_ms": 4000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "友達", "reading": "ともだち"},
+          {"surface": "と", "reading": ""},
+          {"surface": "映画", "reading": "えいが"},
+          {"surface": "を", "reading": ""},
+          {"surface": "見に", "reading": "みに"},
+          {"surface": "行く", "reading": "いく"},
+          {"surface": "つもり", "reading": ""},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "我打算和朋友去看电影。",
+        "start_ms": 4000,
+        "end_ms": 8000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "どんな", "reading": ""},
+          {"surface": "映画", "reading": "えいが"},
+          {"surface": "を", "reading": ""},
+          {"surface": "見る", "reading": "みる"},
+          {"surface": "予定", "reading": "よてい"},
+          {"surface": "ですか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "打算看什么电影？",
+        "start_ms": 8000,
+        "end_ms": 11000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "アクション", "reading": ""},
+          {"surface": "映画", "reading": "えいが"},
+          {"surface": "が", "reading": ""},
+          {"surface": "好き", "reading": "すき"},
+          {"surface": "なので", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "新しい", "reading": "あたらしい"},
+          {"surface": "ハリウッド", "reading": ""},
+          {"surface": "映画", "reading": "えいが"},
+          {"surface": "を", "reading": ""},
+          {"surface": "見ようと", "reading": "みようと"},
+          {"surface": "思っています", "reading": "おもっています"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "因为喜欢动作片，所以打算去看新的好莱坞电影。",
+        "start_ms": 11000,
+        "end_ms": 16000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "映画", "reading": "えいが"},
+          {"surface": "の", "reading": ""},
+          {"surface": "後", "reading": "あと"},
+          {"surface": "で", "reading": ""},
+          {"surface": "一緒", "reading": "いっしょ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "食事", "reading": "しょくじ"},
+          {"surface": "しませんか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "看完电影后要不要一起吃饭？",
+        "start_ms": 16000,
+        "end_ms": 20000
+      },
+      {
+        "index": 5,
+        "tokens": [
+          {"surface": "ぜひ", "reading": ""},
+          {"surface": "そう", "reading": ""},
+          {"surface": "しましょう", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "那当然好啊。",
+        "start_ms": 20000,
+        "end_ms": 22000
+      }
+    ]
+  },
+  {
+    "title": "病院で",
+    "jlpt_level": "N4",
+    "tags": ["医疗", "身体"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "どう", "reading": ""},
+          {"surface": "されましたか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "您怎么了？",
+        "start_ms": 0,
+        "end_ms": 2000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "昨日", "reading": "きのう"},
+          {"surface": "から", "reading": ""},
+          {"surface": "頭", "reading": "あたま"},
+          {"surface": "が", "reading": ""},
+          {"surface": "痛くて", "reading": "いたくて"},
+          {"surface": "、", "reading": ""},
+          {"surface": "熱", "reading": "ねつ"},
+          {"surface": "も", "reading": ""},
+          {"surface": "あります", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "从昨天开始头痛，还发烧了。",
+        "start_ms": 2000,
+        "end_ms": 6000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "熱", "reading": "ねつ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "何度", "reading": "なんど"},
+          {"surface": "ありますか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "烧到几度了？",
+        "start_ms": 6000,
+        "end_ms": 9000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "三十八度", "reading": "さんじゅうはちど"},
+          {"surface": "ぐらい", "reading": ""},
+          {"surface": "あります", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "大约38度。",
+        "start_ms": 9000,
+        "end_ms": 12000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "他", "reading": "ほか"},
+          {"surface": "に", "reading": ""},
+          {"surface": "症状", "reading": "しょうじょう"},
+          {"surface": "は", "reading": ""},
+          {"surface": "ありますか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "还有其他症状吗？",
+        "start_ms": 12000,
+        "end_ms": 15000
+      },
+      {
+        "index": 5,
+        "tokens": [
+          {"surface": "のど", "reading": ""},
+          {"surface": "も", "reading": ""},
+          {"surface": "少し", "reading": "すこし"},
+          {"surface": "痛い", "reading": "いたい"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "喉咙也有点痛。",
+        "start_ms": 15000,
+        "end_ms": 18000
+      },
+      {
+        "index": 6,
+        "tokens": [
+          {"surface": "では", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "薬", "reading": "くすり"},
+          {"surface": "を", "reading": ""},
+          {"surface": "出しますので", "reading": "だしますので"},
+          {"surface": "、", "reading": ""},
+          {"surface": "ゆっくり", "reading": ""},
+          {"surface": "休んで", "reading": "やすんで"},
+          {"surface": "ください", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "那我开药给您，请好好休息。",
+        "start_ms": 18000,
+        "end_ms": 23000
+      }
+    ]
+  },
+  {
+    "title": "レストランの予約",
+    "jlpt_level": "N4",
+    "tags": ["餐饮", "预约"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "もしもし", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "予約", "reading": "よやく"},
+          {"surface": "を", "reading": ""},
+          {"surface": "したいのですが", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "喂，我想预约一下。",
+        "start_ms": 0,
+        "end_ms": 3000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "何名様", "reading": "なんめいさま"},
+          {"surface": "でしょうか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "请问几位？",
+        "start_ms": 3000,
+        "end_ms": 5000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "四人", "reading": "よにん"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "四位。",
+        "start_ms": 5000,
+        "end_ms": 7000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "ご希望", "reading": "ごきぼう"},
+          {"surface": "の", "reading": ""},
+          {"surface": "日時", "reading": "にちじ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "いつ", "reading": ""},
+          {"surface": "でしょうか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "您希望的日期和时间是什么时候？",
+        "start_ms": 7000,
+        "end_ms": 11000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "今週", "reading": "こんしゅう"},
+          {"surface": "の", "reading": ""},
+          {"surface": "土曜日", "reading": "どようび"},
+          {"surface": "の", "reading": ""},
+          {"surface": "夜", "reading": "よる"},
+          {"surface": "七時", "reading": "しちじ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "お願いしたいです", "reading": "おねがいしたいです"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "想预约本周六晚上七点。",
+        "start_ms": 11000,
+        "end_ms": 16000
+      },
+      {
+        "index": 5,
+        "tokens": [
+          {"surface": "少々", "reading": "しょうしょう"},
+          {"surface": "お待ちください", "reading": "おまちください"},
+          {"surface": "。", "reading": ""},
+          {"surface": "確認", "reading": "かくにん"},
+          {"surface": "いたします", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "请稍候，我来确认一下。",
+        "start_ms": 16000,
+        "end_ms": 20000
+      },
+      {
+        "index": 6,
+        "tokens": [
+          {"surface": "土曜日", "reading": "どようび"},
+          {"surface": "の", "reading": ""},
+          {"surface": "七時", "reading": "しちじ"},
+          {"surface": "、", "reading": ""},
+          {"surface": "四名様", "reading": "よんめいさま"},
+          {"surface": "で", "reading": ""},
+          {"surface": "承りました", "reading": "うけたまわりました"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "周六七点，四位，已为您预约好了。",
+        "start_ms": 20000,
+        "end_ms": 25000
+      }
+    ]
+  },
+  {
+    "title": "アルバイトの面接",
+    "jlpt_level": "N4",
+    "tags": ["工作", "面试"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "本日", "reading": "ほんじつ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "面接", "reading": "めんせつ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "来て", "reading": "きて"},
+          {"surface": "いただき", "reading": ""},
+          {"surface": "ありがとうございます", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "感谢您今天来参加面试。",
+        "start_ms": 0,
+        "end_ms": 4000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "志望", "reading": "しぼう"},
+          {"surface": "動機", "reading": "どうき"},
+          {"surface": "を", "reading": ""},
+          {"surface": "教えて", "reading": "おしえて"},
+          {"surface": "いただけますか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "能请您告诉我应聘动机吗？",
+        "start_ms": 4000,
+        "end_ms": 7000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "はい", "reading": ""},
+          {"surface": "。", "reading": ""},
+          {"surface": "料理", "reading": "りょうり"},
+          {"surface": "が", "reading": ""},
+          {"surface": "好き", "reading": "すき"},
+          {"surface": "なので", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "飲食店", "reading": "いんしょくてん"},
+          {"surface": "で", "reading": ""},
+          {"surface": "働いて", "reading": "はたらいて"},
+          {"surface": "みたいと", "reading": ""},
+          {"surface": "思いました", "reading": "おもいました"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "是的。因为喜欢烹饪，所以想在餐饮店工作试试。",
+        "start_ms": 7000,
+        "end_ms": 13000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "アルバイト", "reading": ""},
+          {"surface": "の", "reading": ""},
+          {"surface": "経験", "reading": "けいけん"},
+          {"surface": "は", "reading": ""},
+          {"surface": "ありますか", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "有打工经验吗？",
+        "start_ms": 13000,
+        "end_ms": 16000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "去年", "reading": "きょねん"},
+          {"surface": "まで", "reading": ""},
+          {"surface": "コンビニ", "reading": ""},
+          {"surface": "で", "reading": ""},
+          {"surface": "一年間", "reading": "いちねんかん"},
+          {"surface": "働いた", "reading": "はたらいた"},
+          {"surface": "ことが", "reading": ""},
+          {"surface": "あります", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "直到去年我在便利店工作了一年。",
+        "start_ms": 16000,
+        "end_ms": 20000
+      },
+      {
+        "index": 5,
+        "tokens": [
+          {"surface": "では", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "来週", "reading": "らいしゅう"},
+          {"surface": "から", "reading": ""},
+          {"surface": "来られますか", "reading": "こられますか"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "那么，从下周开始能来上班吗？",
+        "start_ms": 20000,
+        "end_ms": 23000
+      }
+    ]
+  },
+  {
+    "title": "日本の四季",
+    "jlpt_level": "N4",
+    "tags": ["自然", "季节"],
+    "audio_url": "",
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "日本", "reading": "にほん"},
+          {"surface": "には", "reading": ""},
+          {"surface": "春", "reading": "はる"},
+          {"surface": "・", "reading": ""},
+          {"surface": "夏", "reading": "なつ"},
+          {"surface": "・", "reading": ""},
+          {"surface": "秋", "reading": "あき"},
+          {"surface": "・", "reading": ""},
+          {"surface": "冬", "reading": "ふゆ"},
+          {"surface": "の", "reading": ""},
+          {"surface": "四季", "reading": "しき"},
+          {"surface": "が", "reading": ""},
+          {"surface": "あります", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "日本有春、夏、秋、冬四个季节。",
+        "start_ms": 0,
+        "end_ms": 5000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "春", "reading": "はる"},
+          {"surface": "は", "reading": ""},
+          {"surface": "桜", "reading": "さくら"},
+          {"surface": "が", "reading": ""},
+          {"surface": "咲いて", "reading": "さいて"},
+          {"surface": "、", "reading": ""},
+          {"surface": "とても", "reading": ""},
+          {"surface": "美しい", "reading": "うつくしい"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "春天樱花盛开，非常美丽。",
+        "start_ms": 5000,
+        "end_ms": 9000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "夏", "reading": "なつ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "暑くて", "reading": "あつくて"},
+          {"surface": "湿気", "reading": "しっき"},
+          {"surface": "が", "reading": ""},
+          {"surface": "多い", "reading": "おおい"},
+          {"surface": "ですが", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "花火", "reading": "はなび"},
+          {"surface": "大会", "reading": "たいかい"},
+          {"surface": "が", "reading": ""},
+          {"surface": "楽しい", "reading": "たのしい"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "夏天虽然炎热潮湿，但烟火大会很有趣。",
+        "start_ms": 9000,
+        "end_ms": 15000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "秋", "reading": "あき"},
+          {"surface": "は", "reading": ""},
+          {"surface": "紅葉", "reading": "こうよう"},
+          {"surface": "が", "reading": ""},
+          {"surface": "きれいで", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "食べ物", "reading": "たべもの"},
+          {"surface": "が", "reading": ""},
+          {"surface": "おいしい", "reading": ""},
+          {"surface": "季節", "reading": "きせつ"},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "秋天红叶美丽，是食物美味的季节。",
+        "start_ms": 15000,
+        "end_ms": 20000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "冬", "reading": "ふゆ"},
+          {"surface": "は", "reading": ""},
+          {"surface": "寒い", "reading": "さむい"},
+          {"surface": "ですが", "reading": ""},
+          {"surface": "、", "reading": ""},
+          {"surface": "雪", "reading": "ゆき"},
+          {"surface": "が", "reading": ""},
+          {"surface": "降る", "reading": "ふる"},
+          {"surface": "地方", "reading": "ちほう"},
+          {"surface": "では", "reading": ""},
+          {"surface": "スキー", "reading": ""},
+          {"surface": "を", "reading": ""},
+          {"surface": "楽しめます", "reading": "たのしめます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "冬天虽然寒冷，但在下雪的地方可以享受滑雪的乐趣。",
+        "start_ms": 20000,
+        "end_ms": 26000
+      }
+    ]
+  }
+]

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/user"
 )
 
 // WritingHandler handles HTTP requests for the writing module.
@@ -34,7 +35,7 @@ func (h *WritingHandler) RegisterRoutes(mux *http.ServeMux) {
 
 // handleGetDailyQueue handles GET /api/v1/writing/queue
 func (h *WritingHandler) handleGetDailyQueue(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -43,7 +44,7 @@ func (h *WritingHandler) handleGetDailyQueue(w http.ResponseWriter, r *http.Requ
 	questions, err := h.svc.GetDailyQueue(userID)
 	if err != nil {
 		slog.Error("handleGetDailyQueue failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing queue", "")
 		return
 	}
 
@@ -59,7 +60,7 @@ type submitInputRequest struct {
 
 // handleSubmitInput handles POST /api/v1/writing/input
 func (h *WritingHandler) handleSubmitInput(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -78,7 +79,7 @@ func (h *WritingHandler) handleSubmitInput(w http.ResponseWriter, r *http.Reques
 	rec, err := h.svc.SubmitInput(userID, req.Question, req.UserAnswer, req.Expected)
 	if err != nil {
 		slog.Error("handleSubmitInput failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to submit input answer", "")
 		return
 	}
 
@@ -93,7 +94,7 @@ type submitSentenceRequest struct {
 
 // handleSubmitSentence handles POST /api/v1/writing/sentence
 func (h *WritingHandler) handleSubmitSentence(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -112,7 +113,7 @@ func (h *WritingHandler) handleSubmitSentence(w http.ResponseWriter, r *http.Req
 	rec, err := h.svc.SubmitSentence(userID, req.Question, req.UserAnswer)
 	if err != nil {
 		slog.Error("handleSubmitSentence failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to submit sentence answer", "")
 		return
 	}
 
@@ -121,7 +122,7 @@ func (h *WritingHandler) handleSubmitSentence(w http.ResponseWriter, r *http.Req
 
 // handleListRecords handles GET /api/v1/writing/records
 func (h *WritingHandler) handleListRecords(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -130,19 +131,9 @@ func (h *WritingHandler) handleListRecords(w http.ResponseWriter, r *http.Reques
 	records, err := h.svc.ListRecords(userID)
 	if err != nil {
 		slog.Error("handleListRecords failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing records", "")
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: records})
-}
-
-// contextKeyUserID is the key type for storing userID in context.
-type contextKeyUserID struct{}
-
-// userIDFromContext extracts the userID injected by AuthMiddleware.
-func userIDFromContext(ctx interface{ Value(any) any }) (int64, bool) {
-	v := ctx.Value(contextKeyUserID{})
-	id, ok := v.(int64)
-	return id, ok
 }

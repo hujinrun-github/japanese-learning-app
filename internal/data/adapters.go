@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/summary"
@@ -144,6 +145,36 @@ func (a *UserStoreAdapter) GetUserByEmail(email string) (*user.User, string, err
 // GetUserByID returns the user by ID.
 func (a *UserStoreAdapter) GetUserByID(id int64) (*user.User, error) {
 	return a.s.GetByID(id)
+}
+
+// GetUserIDByEmail returns only the user ID for the given email.
+func (a *UserStoreAdapter) GetUserIDByEmail(email string) (int64, error) {
+	slog.Debug("UserStoreAdapter.GetUserIDByEmail called", "email", email)
+	u, err := a.s.GetByEmail(email)
+	if err != nil {
+		return 0, fmt.Errorf("UserStoreAdapter.GetUserIDByEmail: %w", err)
+	}
+	return u.ID, nil
+}
+
+// CreateResetToken delegates to UserStore.CreateResetToken.
+func (a *UserStoreAdapter) CreateResetToken(token string, userID int64, expiresAt time.Time) error {
+	return a.s.CreateResetToken(token, userID, expiresAt)
+}
+
+// GetResetToken delegates to UserStore.GetResetToken.
+func (a *UserStoreAdapter) GetResetToken(token string) (*user.ResetToken, error) {
+	return a.s.GetResetToken(token)
+}
+
+// MarkTokenUsed delegates to UserStore.MarkTokenUsed.
+func (a *UserStoreAdapter) MarkTokenUsed(token string) error {
+	return a.s.MarkTokenUsed(token)
+}
+
+// UpdatePassword delegates to UserStore.UpdatePassword.
+func (a *UserStoreAdapter) UpdatePassword(userID int64, newPasswordHash string) error {
+	return a.s.UpdatePassword(userID, newPasswordHash)
 }
 
 // ── SessionStoreAdapter ──────────────────────────────────────────────────────

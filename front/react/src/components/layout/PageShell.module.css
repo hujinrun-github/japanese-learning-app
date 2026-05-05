@@ -1,0 +1,20 @@
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  max-width: var(--max-width-content);
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+/* Mobile: leave room for bottom tab bar */
+@media (max-width: 767px) {
+  .main {
+    padding-bottom: calc(var(--height-bottomtab) + var(--space-4));
+  }
+}

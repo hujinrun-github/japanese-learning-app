@@ -10,6 +10,7 @@ import (
 type GrammarStoreInterface interface {
 	GetByID(id int64) (*GrammarPoint, error)
 	ListByLevel(level JLPTLevel) ([]GrammarPoint, error)
+	ListByLevelWithStatus(userID int64, level JLPTLevel) ([]GrammarPointWithStatus, error)
 	GetRecord(userID, grammarPointID int64) (*GrammarRecord, error)
 	UpsertRecord(r GrammarRecord) error
 	ListDueRecords(userID int64) ([]GrammarRecord, error)
@@ -60,6 +61,20 @@ func (s *GrammarService) ListByLevel(level JLPTLevel) ([]GrammarPoint, error) {
 
 	slog.Debug("GrammarService.ListByLevel done", "level", level, "count", len(points))
 	return points, nil
+}
+
+// ListByLevelWithStatus returns all grammar points at the given JLPT level with the user's learning status.
+func (s *GrammarService) ListByLevelWithStatus(userID int64, level JLPTLevel) ([]GrammarPointWithStatus, error) {
+	slog.Debug("GrammarService.ListByLevelWithStatus called", "user_id", userID, "level", level)
+
+	items, err := s.store.ListByLevelWithStatus(userID, level)
+	if err != nil {
+		slog.Error("GrammarService.ListByLevelWithStatus: failed", "err", err, "user_id", userID, "level", level)
+		return nil, fmt.Errorf("grammar.GrammarService.ListByLevelWithStatus: %w", err)
+	}
+
+	slog.Debug("GrammarService.ListByLevelWithStatus done", "user_id", userID, "level", level, "count", len(items))
+	return items, nil
 }
 
 // ScoreQuiz grades the user's quiz submissions for a grammar point,

@@ -279,7 +279,7 @@ Phase 4:
 
 ---
 
-## 统计
+## 统计（后端）
 
 | 阶段 | 任务数 | 可并行任务数 |
 |---|---|---|
@@ -288,4 +288,209 @@ Phase 4:
 | Phase 2 | 16 | 7（T016/T018/T020/T022/T024/T026/T028 与 T015 互相独立）|
 | Phase 3 | 30 | 7（T030/T035/T038/T041/T046/T053 + T050 可与3.1~3.5同期推进）|
 | Phase 4 | 21 | 12（模板×10 + CSS + TS基础层 可并行）|
-| **合计** | **80** | — |
+| **后端合计** | **80** | — |
+
+---
+
+---
+
+# React 前端原子化任务列表
+
+> **规则说明（前端补充）**
+> - **粒度**：每个任务产出且仅产出 **一个文件**
+> - **`[P]`**：该任务无阻塞前置依赖，可与同阶段其他 `[P]` 任务并行执行
+> - **`依赖`**：列出必须在本任务开始前完成的任务编号
+> - **目录根**：`front/react/` （等同于 `frontend-design.md` 中的 `front/react/`）
+> - **执行约束**：不引入 Redux/MobX/Ant Design/Tailwind/Axios/React Query；所有数据获取通过 `useApi<T>` hook；CSS 使用 CSS Modules + 全局变量
+
+---
+
+## Phase F0：项目初始化
+
+> 建立可编译的 React+Vite 骨架，**无任何页面或业务逻辑**。
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF001 | `front/react/package.json` | 声明依赖：`react@18`、`react-dom@18`、`react-router-dom@6`、`typescript@5`、`vite@5`、`@vitejs/plugin-react`；定义脚本 `dev / build / preview / test`；**不引入任何 UI 库或状态管理库** | — |
+| TF002 | `front/react/vite.config.ts` | 配置 `@vitejs/plugin-react`；配置 dev server proxy：`/api` → `http://localhost:8080`；配置 `build.outDir = "../../front/dist"` 输出至后端 embed 目录 | TF001 |
+| TF003 | `front/react/tsconfig.json` | 严格模式 TypeScript 配置：`strict: true`，`target: ES2020`，`module: ESNext`，`moduleResolution: bundler`，`jsx: react-jsx`，`baseUrl: ./src`，路径别名 `@/*: ./src/*` | TF001 |
+| TF004 | `front/react/src/styles/variables.css` | 全局 CSS 变量：JLPT 等级色（N5 #74C0FC → N1 #F03E3E）、语义色（primary/success/warning/error/text/bg/border）、排版（字体族含日文回退 `"Noto Sans JP", "Hiragino Sans", sans-serif`、字号 scale）、间距（8px 网格）、圆角、阴影；`@media (prefers-color-scheme: dark)` 覆写变量 | — |
+| TF005 | `front/react/src/styles/global.css` | 全局重置样式：`box-sizing: border-box`，body 默认字体/颜色/背景；引入 `variables.css`；`.visually-hidden` 无障碍工具类 | TF004 |
+| TF006 | `front/react/index.html` | Vite 入口 HTML：声明 `lang="ja"`；挂载点 `<div id="root">`；引入 `src/main.tsx` | TF001 |
+| TF007 | `front/react/src/main.tsx` | React DOM 挂载：`createRoot(document.getElementById('root')).render(<App />)`；引入 `global.css` | TF005, TF006 |
+
+---
+
+## Phase F1：基础设施层
+
+> API 客户端、类型定义、全局 Hooks、认证上下文。无 UI 渲染，**全部可并行**。
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF008 [P] | `front/react/src/types/api.ts` | 所有后端响应类型：`APIResponse<T>`、`APIError`、`Word`、`WordRecord`、`GrammarPoint`、`GrammarRecord`、`Lesson`、`SpeakingRecord`、`WritingRecord`、`SessionSummary`、`UserStats` 等；与 Go model 字段保持一致（camelCase JSON tag） | TF003 |
+| TF009 [P] | `front/react/src/api/client.ts` | `apiFetch<T>(method, path, body?, signal?) → Promise<T>`：自动注入 `Authorization: Bearer` header（从 `localStorage.getItem('token')` 读取）；统一解析 `APIResponse<T>` 并 unwrap data；4xx/5xx 抛出含 `code/message` 的 `APIError`；支持 `AbortController` signal | TF008 |
+| TF010 [P] | `front/react/src/hooks/useApi.ts` | 泛型 hook `useApi<T>(fetcher: (signal) => Promise<T>)`：管理 `{ data, loading, error }` 三状态；内置 `AbortController` 在 unmount 时取消请求；提供 `refetch()` 方法；类型安全 | TF009 |
+| TF011 [P] | `front/react/src/hooks/useAudioRecorder.ts` | `useAudioRecorder()`：封装 `MediaRecorder` API；返回 `{ isRecording, start(), stop() → Promise<Blob>, audioURL, error }`；自动请求麦克风权限；录音格式优先 `audio/webm` | TF003 |
+| TF012 [P] | `front/react/src/contexts/AuthContext.tsx` | `AuthContext`：用 `useReducer` 管理 `{ user, token, isAuthenticated }` 状态；`login(token, user)` 持久化到 `localStorage`；`logout()` 清空 storage 并重定向到 `/login`；`AuthProvider` 组件包裹全局状态；导出 `useAuth()` hook | TF009 |
+
+---
+
+## Phase F2：布局 & UI 基础组件
+
+> 所有页面共用的布局骨架与原子组件。**模块内可并行**。
+
+### F2.1 布局组件
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF013 | `front/react/src/components/layout/TopNavBar.tsx` | 顶部导航栏：左侧应用标题/Logo、右侧用户头像+退出按钮；桌面端显示，移动端隐藏（`<768px`）；CSS Modules | TF004, TF012 |
+| TF014 | `front/react/src/components/layout/BottomTabBar.tsx` | 底部 Tab 导航（移动端）：5 个 Tab（首页/单词/语法/口语/写作）对应路由；当前 Tab 高亮；`<768px` 显示，桌面端隐藏 | TF004 |
+| TF015 | `front/react/src/components/layout/PageShell.tsx` | 页面容器：`<TopNavBar>` + `<main>` 内容区 + `<BottomTabBar>`；`main` 最大宽度 `960px` 居中；`padding-bottom` 为 BottomTabBar 预留空间；接收 `title` prop 更新 `document.title` | TF013, TF014 |
+| TF016 | `front/react/src/router/ProtectedLayout.tsx` | 路由守卫：从 `useAuth()` 检查 `isAuthenticated`；未认证重定向 `<Navigate to="/login">`；已认证渲染 `<Outlet>` 套 `<PageShell>` | TF015, TF012 |
+| TF017 | `front/react/src/App.tsx` | 路由配置：`<BrowserRouter>` + `<Routes>`；公开路由 `/login`、`/register`；受保护路由通过 `<ProtectedLayout>` 包裹：`/`、`/words/review`、`/grammar`、`/grammar/:id`、`/lessons`、`/lessons/:id`、`/speaking`、`/writing`、`/summary`；`<AuthProvider>` 包裹全局 | TF016, TF012 |
+
+### F2.2 原子 UI 组件（全部 [P]，依赖 TF004）
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF018 [P] | `front/react/src/components/ui/Badge.tsx` | JLPT 等级徽章：`level: 'N5'|'N4'|'N3'|'N2'|'N1'` prop；自动映射 CSS 变量颜色；支持 `size: 'sm'|'md'` | TF004 |
+| TF019 [P] | `front/react/src/components/ui/Button.tsx` | 通用按钮：`variant: 'primary'|'secondary'|'ghost'`；`size: 'sm'|'md'|'lg'`；`loading` 状态显示 Spinner；`disabled` 防重复提交；CSS Modules | TF004 |
+| TF020 [P] | `front/react/src/components/ui/Card.tsx` | 卡片容器：`padding`/`hoverable`/`onClick` props；`hoverable` 时 hover 提升阴影；CSS Modules | TF004 |
+| TF021 [P] | `front/react/src/components/ui/Spinner.tsx` | 加载指示器：纯 CSS 动画旋转圆环；`size: 'sm'|'md'|'lg'`；可作为全屏遮罩或内联使用 | TF004 |
+| TF022 [P] | `front/react/src/components/ui/EmptyState.tsx` | 空状态占位：`icon`（emoji 或 SVG）+ `title` + `description` + 可选 `action` 按钮；居中布局 | TF004 |
+| TF023 [P] | `front/react/src/components/ui/ProgressBar.tsx` | 进度条：`value`（0-100）+ `label` props；平滑过渡动画；颜色随进度变化（绿→黄→红）| TF004 |
+| TF024 [P] | `front/react/src/components/ui/Toast.tsx` | Toast 通知：`type: 'success'|'error'|'info'`；自动 3 秒消失；渲染到 `document.body` portal；`useToast()` hook 触发显示 | TF004 |
+
+---
+
+## Phase F3：认证页 & 核心页面
+
+> 登录/注册 + 首页仪表盘 + 单词复习页。
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF025 | `front/react/src/pages/auth/LoginPage.tsx` | 登录页：邮箱+密码表单；调用 `POST /api/v1/auth/login`；成功后 `login(token, user)` 并 `navigate('/')`；错误显示 Toast；已登录自动跳转首页 | TF009, TF012, TF019, TF024 |
+| TF026 | `front/react/src/pages/auth/RegisterPage.tsx` | 注册页：用户名+邮箱+密码+确认密码表单；客户端校验密码一致性；调用 `POST /api/v1/auth/register`；成功后自动登录并跳转首页 | TF009, TF012, TF019, TF024 |
+| TF027 | `front/react/src/pages/home/HomePage.tsx` | 首页仪表盘：调用 `GET /api/v1/users/me/stats` 展示各模块学习统计卡片（今日待复习数、连续天数、完成率）；今日任务入口按钮；JLPT 等级 Badge 显示；`useApi` 管理加载状态 | TF010, TF015, TF018, TF020 |
+| TF028 | `front/react/src/pages/word/WordReviewPage.tsx` | 单词复习页：调用 `GET /api/v1/words/review/queue` 获取队列；翻转卡片展示假名/汉字/含义；三档评分按钮（easy/normal/hard）调用 `POST /api/v1/words/review/:id`；进度条显示当日进度；全部完成显示 EmptyState + 跳转总结 | TF010, TF015, TF018, TF019, TF023 |
+
+---
+
+## Phase F4：各学习模块页面
+
+### F4.1 语法模块
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF029 | `front/react/src/pages/grammar/GrammarListPage.tsx` | 语法点列表：JLPT 等级 Tab 筛选（N5~N1）；调用 `GET /api/v1/grammar?level=N5`；语法点卡片列表，含掌握程度进度条；点击跳转详情页 | TF010, TF015, TF018, TF020, TF023 |
+| TF030 | `front/react/src/pages/grammar/GrammarDetailPage.tsx` | 语法点详情：调用 `GET /api/v1/grammar/:id`；展示名称、解释、接续方式、例句（含翻译切换）；「开始练习」按钮跳转 Quiz 页；「加入复习」按钮调用 `POST /api/v1/grammar/:id/enqueue` | TF010, TF015, TF018, TF019 |
+| TF031 | `front/react/src/pages/grammar/GrammarQuizPage.tsx` | 语法检验页：调用 `POST /api/v1/grammar/:id/quiz` 获取题目；逐题展示填空/选择；提交后调用评分接口展示结果（✓/✗ + 解析）；整体得分动画展示 | TF010, TF015, TF019, TF024 |
+
+### F4.2 课文模块
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF032 | `front/react/src/pages/lesson/LessonListPage.tsx` | 课文列表：等级筛选 + 标签筛选；调用 `GET /api/v1/lessons`；课文卡片（标题、等级、标签）；点击跳转详情 | TF010, TF015, TF018, TF020 |
+| TF033 | `front/react/src/pages/lesson/LessonDetailPage.tsx` | 课文详情：调用 `GET /api/v1/lessons/:id`；振り仮名渲染（`<ruby><rb></rb><rt></rt></ruby>`）；翻译显示/隐藏切换；单词点击弹出释义卡（调用 `GET /api/v1/words/:id`）；「加入单词本」按钮 | TF010, TF015, TF018, TF019 |
+
+### F4.3 口语模块
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF034 | `front/react/src/pages/speaking/SpeakingPage.tsx` | 口语练习页：调用 `GET /api/v1/speaking/materials` 获取素材列表；选择素材后展示文本；录音控制（`useAudioRecorder`）：开始/停止录音按钮；录音完成后构建 `multipart/form-data` 调用 `POST /api/v1/speaking/records`；评分结果展示（总分 + 句子级标注） | TF010, TF011, TF015, TF019, TF021 |
+
+### F4.4 写作模块
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF035 | `front/react/src/pages/writing/WritingQueuePage.tsx` | 写作练习页：调用 `GET /api/v1/writing/queue` 获取每日任务；分两区显示「输入练习」（假名/汉字填写，即时判题高亮）和「造句练习」（给出提示，用户输入日文句子）；造句提交后调用 `POST /api/v1/writing/sentence`，展示 AI 批改反馈；完成后显示今日总结入口 | TF010, TF015, TF019, TF021, TF024 |
+| TF036 | `front/react/src/pages/writing/WritingRecordsPage.tsx` | 写作历史记录页：调用 `GET /api/v1/writing/records`；时间倒序列表；每条记录展示题目、用户答案、AI 反馈摘要；点击展开完整反馈 | TF010, TF015, TF020 |
+
+---
+
+## Phase F5：总结页 & 工程质量
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF037 | `front/react/src/pages/summary/SummaryPage.tsx` | 练习总结页：从 URL query param 读取 `session_id`；调用 `GET /api/v1/summary`（或按 session 查询）；展示得分动画、亮点列表、待改进列表、AI 建议文本；「继续学习」按钮返回首页 | TF010, TF015, TF019, TF023 |
+| TF038 [P] | `front/react/src/components/ui/Skeleton.tsx` | 骨架屏占位：`width`/`height`/`borderRadius` props；纯 CSS shimmer 动画；替代 Spinner 用于内容区加载占位 | TF004 |
+| TF039 [P] | `front/react/src/components/ErrorBoundary.tsx` | React 错误边界：捕获子树渲染错误，展示友好错误 UI + 「重新加载」按钮；`slog`-style 错误打印到 console；包裹 `<App>` 根层 | TF003 |
+| TF040 [P] | `front/react/src/styles/modules/typography.module.css` | 排版工具 CSS Module：`.heading1~3`、`.body`、`.caption`、`.japanese`（日文专用行高 1.8 + letter-spacing）；供各页面按需引入 | TF004 |
+
+---
+
+## Phase F-Go：后端 SPA 路由支持
+
+> 修改 Go 后端入口，使其能够正确 serve React 前端（embed.FS + SPA fallback）。
+
+| 编号 | 文件 | 职责说明 | 依赖 |
+|---|---|---|---|
+| TF041 | `front/embed.go` | `//go:embed dist` 声明；导出 `DistFS embed.FS` 变量供 `main.go` 使用 | TF002（`vite build` 产出 `front/dist/`）|
+| TF042 | `backend/cmd/server/main.go` | 在 T080 基础上补充：注册 SPA fallback handler：所有非 `/api/` 路径均从 `embed.FS` 读取对应文件，找不到则返回 `dist/index.html`（支持 React Router 客户端路由）；静态资源带 `Cache-Control: max-age=31536000` | TF041, T080 |
+
+---
+
+## 前端任务依赖关系总览
+
+```
+Phase F0（全串行，顺序建立骨架）:
+  TF001 → TF002, TF003
+  TF004 → TF005 → TF007
+  TF001, TF005 → TF006 → TF007
+
+Phase F1（全部 [P]，可并行）:
+  TF003 → TF008[P]
+  TF008 → TF009[P]
+  TF009 → TF010[P], TF012[P]
+  TF003 → TF011[P]
+
+Phase F2（布局串行，UI组件并行）:
+  TF004 → TF013 → TF014 → TF015 → TF016 → TF017
+  TF012 → TF013（AuthContext 注入 TopNavBar）
+  TF004 → TF018[P]~TF024[P]（所有原子组件并行）
+
+Phase F3（串行）:
+  TF009, TF012, TF019, TF024 → TF025 → TF026
+  TF010, TF015, TF018, TF020 → TF027
+  TF010, TF015, TF018, TF019, TF023 → TF028
+
+Phase F4（三子模块可并行推进）:
+  语法: TF028 → TF029 → TF030 → TF031
+  课文: TF028 → TF032 → TF033
+  口语: TF011, TF015, TF019, TF021 → TF034
+  写作: TF015, TF019, TF021, TF024 → TF035 → TF036
+
+Phase F5（TF038/TF039/TF040 [P]，TF037依赖F4）:
+  TF031,TF033,TF034,TF035 → TF037
+  TF004 → TF038[P], TF040[P]
+  TF003 → TF039[P]
+
+Phase F-Go:
+  TF002 → TF041 → TF042
+  T080 → TF042
+```
+
+---
+
+## 统计（前端）
+
+| 阶段 | 任务数 | 可并行任务数 |
+|---|---|---|
+| Phase F0 | 7 | 2（TF004 与 TF001~TF003 可同步启动）|
+| Phase F1 | 5 | 4（TF008~TF012 除顺序依赖外全部并行）|
+| Phase F2 | 12 | 7（TF018~TF024 全部并行）|
+| Phase F3 | 4 | 1（TF027 与 TF025/TF026 无依赖关系）|
+| Phase F4 | 8 | 4（4条子模块线并行）|
+| Phase F5 | 4 | 3（TF038/TF039/TF040 并行）|
+| Phase F-Go | 2 | 0 |
+| **前端合计** | **42** | — |
+
+---
+
+## 全局统计
+
+| 分类 | 任务总数 |
+|---|---|
+| 后端（T001~T080） | 80 |
+| 前端（TF001~TF042） | 42 |
+| **总计** | **122** |
