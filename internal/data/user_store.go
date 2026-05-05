@@ -2,10 +2,14 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"japanese-learning-app/internal/module/user"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 // UserStore 实现用户数据访问，对应 users 表。
@@ -28,6 +32,9 @@ func (s *UserStore) Create(email, passwordHash string, goalLevel user.JLPTLevel)
 	)
 	if err != nil {
 		slog.Error("failed to insert user", "err", err, "email", email)
+		if isUniqueConstraintError(err) {
+			return nil, fmt.Errorf("data.UserStore.Create: %w", user.ErrEmailTaken)
+		}
 		return nil, fmt.Errorf("data.UserStore.Create: %w", err)
 	}
 
@@ -137,4 +144,87 @@ func (s *UserStore) UpdateStreak(userID int64, streakDays int) error {
 
 	slog.Debug("UserStore.UpdateStreak done", "user_id", userID, "streak_days", streakDays)
 	return nil
+}
+
+// CreateResetToken stores a password-reset token for the given user.
+func (s *UserStore) CreateResetToken(token string, userID int64, expiresAt time.Time) error {
+	slog.Debug("UserStore.CreateResetToken called", "user_id", userID)
+
+	_, err := s.db.Exec(
+		`INSERT INTO password_reset_tokens (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)`,
+		token, userID, expiresAt.UTC().Format("2006-01-02 15:04:05"),
+	)
+	if err != nil {
+		slog.Error("failed to insert reset token", "err", err, "user_id", userID)
+		return fmt.Errorf("data.UserStore.CreateResetToken: %w", err)
+	}
+
+	slog.Debug("UserStore.CreateResetToken done", "user_id", userID)
+	return nil
+}
+
+// GetResetToken returns the reset token row, or sql.ErrNoRows if not found.
+func (s *UserStore) GetResetToken(token string) (*user.ResetToken, error) {
+	slog.Debug("UserStore.GetResetToken called", "token", token)
+
+	row := s.db.QueryRow(
+		`SELECT token, user_id, expires_at, used FROM password_reset_tokens WHERE token = ?`, token,
+	)
+	var rt user.ResetToken
+	var expiresAtStr string
+	var usedInt int
+	err := row.Scan(&rt.Token, &rt.UserID, &expiresAtStr, &usedInt)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("data.UserStore.GetResetToken %q: %w", token, sql.ErrNoRows)
+	}
+	if err != nil {
+		slog.Error("failed to scan reset token", "err", err)
+		return nil, fmt.Errorf("data.UserStore.GetResetToken: %w", err)
+	}
+
+	rt.ExpiresAt, err = parseSQLiteTime(expiresAtStr)
+	if err != nil {
+		return nil, fmt.Errorf("data.UserStore.GetResetToken parse expires_at: %w", err)
+	}
+	rt.Used = usedInt != 0
+
+	slog.Debug("UserStore.GetResetToken done", "user_id", rt.UserID)
+	return &rt, nil
+}
+
+// MarkTokenUsed marks a reset token as consumed.
+func (s *UserStore) MarkTokenUsed(token string) error {
+	slog.Debug("UserStore.MarkTokenUsed called", "token", token)
+
+	_, err := s.db.Exec(`UPDATE password_reset_tokens SET used = 1 WHERE token = ?`, token)
+	if err != nil {
+		slog.Error("failed to mark token used", "err", err)
+		return fmt.Errorf("data.UserStore.MarkTokenUsed: %w", err)
+	}
+
+	slog.Debug("UserStore.MarkTokenUsed done")
+	return nil
+}
+
+// UpdatePassword sets a new password hash for the given user.
+func (s *UserStore) UpdatePassword(userID int64, newPasswordHash string) error {
+	slog.Debug("UserStore.UpdatePassword called", "user_id", userID)
+
+	_, err := s.db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, newPasswordHash, userID)
+	if err != nil {
+		slog.Error("failed to update password", "err", err, "user_id", userID)
+		return fmt.Errorf("data.UserStore.UpdatePassword: %w", err)
+	}
+
+	slog.Debug("UserStore.UpdatePassword done", "user_id", userID)
+	return nil
+}
+
+// isUniqueConstraintError reports whether err is a SQLite UNIQUE constraint violation.
+func isUniqueConstraintError(err error) bool {
+	var sqliteErr *sqlite.Error
+	if !errors.As(err, &sqliteErr) {
+		return false
+	}
+	return sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE
 }

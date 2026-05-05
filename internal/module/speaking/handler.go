@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/user"
 )
 
 // SpeakingHandler handles HTTP requests for the speaking module.
@@ -31,7 +32,7 @@ func (h *SpeakingHandler) RegisterRoutes(mux *http.ServeMux) {
 // handlePractice handles POST /api/v1/speaking/practice
 // Expects multipart/form-data with fields: type, material_id, reference_audio, user_audio
 func (h *SpeakingHandler) handlePractice(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -69,7 +70,7 @@ func (h *SpeakingHandler) handlePractice(w http.ResponseWriter, r *http.Request)
 	result, err := h.svc.Practice(userID, practiceType, materialID, refAudio, userAudio)
 	if err != nil {
 		slog.Error("handlePractice failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to process speaking practice", "")
 		return
 	}
 
@@ -78,7 +79,7 @@ func (h *SpeakingHandler) handlePractice(w http.ResponseWriter, r *http.Request)
 
 // handleListRecords handles GET /api/v1/speaking/records
 func (h *SpeakingHandler) handleListRecords(w http.ResponseWriter, r *http.Request) {
-	userID, ok := userIDFromContext(r.Context())
+	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
@@ -87,7 +88,7 @@ func (h *SpeakingHandler) handleListRecords(w http.ResponseWriter, r *http.Reque
 	records, err := h.svc.ListRecords(userID)
 	if err != nil {
 		slog.Error("handleListRecords failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load speaking records", "")
 		return
 	}
 
@@ -102,14 +103,4 @@ func readFormFile(r *http.Request, field string) ([]byte, error) {
 	}
 	defer f.Close()
 	return io.ReadAll(f)
-}
-
-// contextKeyUserID is the key type for storing userID in context.
-type contextKeyUserID struct{}
-
-// userIDFromContext extracts the userID injected by AuthMiddleware.
-func userIDFromContext(ctx interface{ Value(any) any }) (int64, bool) {
-	v := ctx.Value(contextKeyUserID{})
-	id, ok := v.(int64)
-	return id, ok
 }

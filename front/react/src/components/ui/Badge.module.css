@@ -1,0 +1,26 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.sm {
+  font-size: var(--font-size-xs);
+  padding: 1px var(--space-1);
+}
+
+.md {
+  font-size: var(--font-size-sm);
+  padding: 2px var(--space-2);
+}
+
+/* JLPT Level Colors */
+.N5 { background-color: color-mix(in srgb, var(--color-n5) 20%, transparent); color: color-mix(in srgb, var(--color-n5) 80%, #000); border: 1px solid color-mix(in srgb, var(--color-n5) 40%, transparent); }
+.N4 { background-color: color-mix(in srgb, var(--color-n4) 20%, transparent); color: color-mix(in srgb, var(--color-n4) 80%, #000); border: 1px solid color-mix(in srgb, var(--color-n4) 40%, transparent); }
+.N3 { background-color: color-mix(in srgb, var(--color-n3) 20%, transparent); color: color-mix(in srgb, var(--color-n3) 80%, #000); border: 1px solid color-mix(in srgb, var(--color-n3) 40%, transparent); }
+.N2 { background-color: color-mix(in srgb, var(--color-n2) 20%, transparent); color: color-mix(in srgb, var(--color-n2) 80%, #000); border: 1px solid color-mix(in srgb, var(--color-n2) 40%, transparent); }
+.N1 { background-color: color-mix(in srgb, var(--color-n1) 20%, transparent); color: color-mix(in srgb, var(--color-n1) 80%, #000); border: 1px solid color-mix(in srgb, var(--color-n1) 40%, transparent); }

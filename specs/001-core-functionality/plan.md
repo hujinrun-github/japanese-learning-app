@@ -884,3 +884,198 @@ clean:
 | **V3** | 课文学习（振り仮名）+ 影子跟读 | FR-015~020, FR-021~023, FR-027 | 中高（音频处理）|
 | **V4** | 写作练习（AI 批改）+ 自由朗读 + 总结 | FR-024~026, FR-028~032, FR-038~046 | 高（外部 API）|
 | **V5** | iOS App（复用后端 API）| — | 后续单独规划 |
+
+---
+
+## React 前端实施方案
+
+> 基于 `specs/001-core-functionality/frontend-design.md` v2.0 | 日期：2026-04-04
+
+---
+
+### 技术背景
+
+| 项目 | 选型 | 说明 |
+|---|---|---|
+| **框架** | React 18 | 并发特性、Suspense |
+| **语言** | TypeScript 5（`strict: true`）| 编译期类型安全 |
+| **构建** | Vite 5 | 开发 HMR < 100ms；生产输出 `dist/` |
+| **路由** | React Router v6 | 声明式 SPA 路由，`ProtectedLayout` 守卫 |
+| **样式** | CSS Modules + CSS Variables | 零运行时，原生主题系统，`prefers-color-scheme` 暗色支持 |
+| **状态** | React Context + `useReducer` | 仅 AuthContext 为全局状态；页面级状态局部管理 |
+| **测试** | Vitest + React Testing Library | 组件行为测试，不测实现细节 |
+| **代码质量** | ESLint (`eslint-plugin-react-hooks`) + Prettier | CI 强制通过 |
+| **目标平台** | 桌面浏览器 + 移动浏览器（响应式）| iOS App 为后续 V5 |
+
+**刻意不引入**（合宪性审查）：
+
+| 排除项 | 理由 |
+|---|---|
+| Redux / MobX | 全局状态仅有 Auth，`useReducer` + Context 已足够 |
+| Ant Design / Material UI | 引入第三方组件库违反「标准库优先」原则；自研原子组件更轻量 |
+| styled-components / Tailwind | CSS Modules 已满足需求，无需运行时 CSS-in-JS 或扫描工具 |
+| React Query / SWR | `useApi` hook（20 行）已覆盖 loading/error/data 三态，无需引入依赖 |
+| Axios | 原生 `fetch` + `AbortController` 已满足所有需求 |
+
+---
+
+### 项目结构
+
+```
+front/react/
+├── index.html
+├── vite.config.ts              # 配置 Vite 开发代理 /api → :8080
+├── tsconfig.json               # strict: true
+├── package.json
+└── src/
+    ├── main.tsx                # 应用入口：挂载 <App /> 到 #root
+    ├── App.tsx                 # 路由根：<AuthProvider> + <Routes>
+    ├── api/
+    │   ├── client.ts           # fetch 封装（token 注入 + 错误处理）
+    │   ├── word.ts             # getReviewQueue / submitRating / bookmark
+    │   ├── grammar.ts          # listByLevel / getPoint / scoreQuiz
+    │   ├── speaking.ts         # practice / listRecords
+    │   ├── writing.ts          # getQueue / submitInput / submitSentence / listRecords
+    │   ├── summary.ts          # listSummaries / recordSession / generate
+    │   └── user.ts             # login / register
+    ├── types/                  # 与后端 Go model 对应的 TS 接口
+    │   ├── word.ts
+    │   ├── grammar.ts
+    │   ├── speaking.ts
+    │   ├── writing.ts
+    │   ├── summary.ts
+    │   └── user.ts
+    ├── context/
+    │   └── AuthContext.tsx     # AuthUser + login/logout + isAuthenticated
+    ├── hooks/
+    │   ├── useApi.ts           # useApi<T>(fetcher, deps) → {data, loading, error, refetch}
+    │   ├── useAudioRecorder.ts # start/stop/reset + isRecording/audioBlob/duration/error
+    │   └── useLocalStorage.ts  # useState 持久化到 localStorage
+    ├── components/
+    │   ├── ui/
+    │   │   ├── Badge/          # Badge.tsx + Badge.module.css（JLPT 等级色）
+    │   │   ├── Button/         # variant: primary/secondary/ghost/danger; size: sm/md/lg
+    │   │   ├── Card/           # hoverable + padding prop
+    │   │   ├── Spinner/        # sm/md/lg 三尺寸
+    │   │   ├── EmptyState/     # icon + title + description + action slot
+    │   │   ├── ProgressBar/    # value/max + label
+    │   │   └── Toast/          # 全局通知（useContext + portal）
+    │   └── layout/
+    │       ├── TopNavBar/      # 桌面端导航；移动端简化标题栏
+    │       ├── BottomTabBar/   # 移动端底部标签（5 tab）
+    │       └── PageShell/      # 统一页面容器（title/backTo/actions/noPadding）
+    └── pages/
+        ├── auth/               # LoginPage / RegisterPage
+        ├── home/               # HomePage（今日目标 + 快速入口 + 最近记录）
+        ├── word/               # WordReviewPage（卡片翻转 + 手势 + useReducer）
+        ├── grammar/            # GrammarListPage / GrammarDetailPage / GrammarQuizPage
+        ├── lesson/             # LessonListPage / LessonDetailPage（ruby + 音频同步）
+        ├── speaking/           # SpeakingPage（跟读 / 自由朗读 Tab）
+        ├── writing/            # WritingQueuePage（输入/造句 Tab）/ WritingRecordsPage
+        └── summary/            # SummaryPage（周概览 + 连续打卡 + 最近记录）
+```
+
+---
+
+### 构建 & 后端集成策略
+
+**开发环境**：
+
+```
+npm run dev → Vite dev server :5173
+Vite proxy: /api/* → http://localhost:8080
+```
+
+前端和后端独立启动，Vite 代理所有 `/api/` 请求，无需 CORS 配置。
+
+**生产环境**：
+
+```
+npm run build → front/react/dist/
+Go embed.FS → //go:embed front/react/dist
+Go SPA 回退路由：非 /api/ 请求均返回 dist/index.html
+```
+
+Go 后端 `main.go` 需新增 SPA 回退逻辑（任务 TF045），使得 React Router 的客户端路由在刷新页面时也能正确工作。
+
+---
+
+### 路由设计
+
+```
+/login                  → LoginPage         （公开）
+/register               → RegisterPage      （公开）
+/                       → HomePage          （需登录）
+/words/review           → WordReviewPage    （需登录）
+/grammar                → GrammarListPage   （需登录）
+/grammar/:id            → GrammarDetailPage （需登录）
+/grammar/:id/quiz       → GrammarQuizPage   （需登录）
+/lessons                → LessonListPage    （需登录）
+/lessons/:id            → LessonDetailPage  （需登录）
+/speaking               → SpeakingPage      （需登录）
+/writing                → WritingQueuePage  （需登录）
+/writing/records        → WritingRecordsPage（需登录）
+/summary                → SummaryPage       （需登录）
+```
+
+`ProtectedLayout`：读取 `AuthContext.isAuthenticated`，`false` 则 `<Navigate to="/login" replace />`；否则渲染 `<TopNavBar>` + `<BottomTabBar>` + `<Outlet>`。
+
+---
+
+### 状态管理设计
+
+| 状态类型 | 范围 | 方案 |
+|---|---|---|
+| 登录状态（user + token）| 全局 | `AuthContext` + `useReducer` + `localStorage` |
+| 单词复习进度 | 页面级 | `useReducer`（cards / currentIndex / isFlipped / completed）|
+| 语法测验进度 | 页面级 | `useState` |
+| 录音状态机 | 页面级 | `useReducer`（idle→playing_ref→recording→processing→result）|
+| 写作题目列表 | 页面级 | `useApi` hook |
+| 异步数据（列表/详情）| 组件级 | `useApi<T>` hook |
+
+---
+
+### 测试策略
+
+遵循项目宪法第二条（测试先行），React 前端采用以下策略：
+
+| 层次 | 工具 | 覆盖目标 |
+|---|---|---|
+| Hook 单元测试 | Vitest + `renderHook` | `useApi`、`useAudioRecorder`（mock MediaRecorder）、`useLocalStorage` |
+| 组件行为测试 | React Testing Library | Button 状态、Badge 渲染、Card 交互 |
+| 页面集成测试 | RTL + `msw`（Mock Service Worker）| WordReviewPage 翻转/评分流程；GrammarQuizPage 答题流程 |
+| 手动 E2E | 浏览器 + 后端真实服务 | 登录→单词复习→语法学习→口语练习→写作练习→总结 全流程 |
+
+> **注**：不引入 Cypress / Playwright（YAGNI），MVP 阶段手动 E2E 已足够。
+
+---
+
+### Makefile 新增目标
+
+```makefile
+react-dev:      ## 启动 React 开发服务器（需同时运行 make run）
+	cd front/react && npm run dev
+
+react-build:    ## 构建 React 生产包到 front/react/dist/
+	cd front/react && npm run build
+
+react-test:     ## 运行 React 单元测试
+	cd front/react && npm run test
+
+react-install:  ## 安装前端依赖
+	cd front/react && npm install
+```
+
+---
+
+### React 前端 MVP 阶段对应工作量
+
+| 阶段 | 核心工作 | 预估天数 | 对应后端 MVP |
+|---|---|---|---|
+| **F0** | 项目初始化、设计系统、布局组件 | 1-2 天 | V1 已完成 |
+| **F1** | 基础设施（api/client、hooks、AuthContext、types）| 1 天 | V1 |
+| **F2** | 登录/注册、首页、单词复习页 | 1-2 天 | V1 |
+| **F3** | 语法模块 3 个页面 | 1 天 | V2 |
+| **F4** | 课文 + 口语 + 写作 页面 | 2-3 天 | V3/V4 |
+| **F5** | 总结页 + 完善（Toast/骨架屏/暗色主题）| 1 天 | V4 |
+| **合计** | — | **7-10 天** | — |

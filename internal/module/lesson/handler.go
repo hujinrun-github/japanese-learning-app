@@ -1,6 +1,8 @@
 package lesson
 
 import (
+	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -38,7 +40,7 @@ func (h *LessonHandler) handleListSummaries(w http.ResponseWriter, r *http.Reque
 	summaries, err := h.svc.ListSummaries(level)
 	if err != nil {
 		slog.Error("handleListSummaries failed", "err", err)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to list lessons", "")
 		return
 	}
 
@@ -55,7 +57,11 @@ func (h *LessonHandler) handleGetDetail(w http.ResponseWriter, r *http.Request) 
 	l, err := h.svc.GetDetail(id)
 	if err != nil {
 		slog.Error("handleGetDetail failed", "err", err, "lesson_id", id)
-		httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "lesson not found", "")
+		if errors.Is(err, sql.ErrNoRows) {
+			httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "lesson not found", "")
+		} else {
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load lesson", "")
+		}
 		return
 	}
 
@@ -72,7 +78,7 @@ func (h *LessonHandler) handleGetSentences(w http.ResponseWriter, r *http.Reques
 	sentences, err := h.svc.GetSentences(id)
 	if err != nil {
 		slog.Error("handleGetSentences failed", "err", err, "lesson_id", id)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load lesson sentences", "")
 		return
 	}
 

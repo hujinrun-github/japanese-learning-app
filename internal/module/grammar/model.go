@@ -75,6 +75,12 @@ type QuizAttempt struct {
 	AttemptedAt time.Time `json:"attempted_at"`
 }
 
+// GrammarPointWithStatus 语法点 + 当前用户学习状态（用于列表 API）
+type GrammarPointWithStatus struct {
+	GrammarPoint
+	UserStatus GrammarStatus `json:"user_status"` // "unlearned"|"learning"|"mastered"
+}
+
 // QuizSubmission 用户提交的检验答案
 type QuizSubmission struct {
 	QuestionID int64  `json:"question_id"`

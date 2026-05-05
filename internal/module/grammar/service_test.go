@@ -217,6 +217,63 @@ func TestGrammarService_ScoreQuiz_UpdatesRecord(t *testing.T) {
 	}
 }
 
+func (f *fakeGrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLevel) ([]grammar.GrammarPointWithStatus, error) {
+	var result []grammar.GrammarPointWithStatus
+	for _, p := range f.points {
+		if p.JLPTLevel == level {
+			status := grammar.StatusUnlearned
+			key := recordKey(userID, p.ID)
+			if r, ok := f.records[key]; ok {
+				status = r.Status
+			}
+			result = append(result, grammar.GrammarPointWithStatus{
+				GrammarPoint: *p,
+				UserStatus:   status,
+			})
+		}
+	}
+	return result, nil
+}
+
+// --- new tests ---
+
+func TestGrammarService_ListByLevelWithStatus_NoRecord(t *testing.T) {
+	store := newFakeGrammarStore()
+	store.seedPoint(grammar.GrammarPoint{ID: 1, Name: "〜てもいい", JLPTLevel: grammar.LevelN5})
+
+	svc := grammar.NewGrammarService(store)
+	items, err := svc.ListByLevelWithStatus(99, grammar.LevelN5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+	if items[0].UserStatus != grammar.StatusUnlearned {
+		t.Errorf("expected unlearned, got %s", items[0].UserStatus)
+	}
+}
+
+func TestGrammarService_ListByLevelWithStatus_WithRecord(t *testing.T) {
+	store := newFakeGrammarStore()
+	store.seedPoint(grammar.GrammarPoint{ID: 1, Name: "〜てもいい", JLPTLevel: grammar.LevelN5})
+	store.records[recordKey(1, 1)] = &grammar.GrammarRecord{
+		UserID: 1, GrammarPointID: 1, Status: grammar.StatusMastered,
+	}
+
+	svc := grammar.NewGrammarService(store)
+	items, err := svc.ListByLevelWithStatus(1, grammar.LevelN5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+	if items[0].UserStatus != grammar.StatusMastered {
+		t.Errorf("expected mastered, got %s", items[0].UserStatus)
+	}
+}
+
 func TestGrammarService_ListByLevel(t *testing.T) {
 	store := newFakeGrammarStore()
 	store.seedPoint(grammar.GrammarPoint{ID: 1, Name: "〜てもいい", JLPTLevel: grammar.LevelN5})

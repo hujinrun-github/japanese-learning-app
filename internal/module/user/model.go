@@ -2,6 +2,25 @@ package user
 
 import "time"
 
+// ResetToken 密码重置令牌
+type ResetToken struct {
+	Token     string    `json:"token"`
+	UserID    int64     `json:"user_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Used      bool      `json:"used"`
+}
+
+// ForgotPasswordReq 忘记密码请求
+type ForgotPasswordReq struct {
+	Email string `json:"email"`
+}
+
+// ResetPasswordReq 重置密码请求
+type ResetPasswordReq struct {
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
+}
+
 // JLPTLevel 表示 JLPT 等级（独立定义，避免循环依赖）
 type JLPTLevel string
 
