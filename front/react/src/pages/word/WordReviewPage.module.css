@@ -130,6 +130,12 @@
   line-height: 1;
 }
 
+.speakBtnSm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
+}
+
 .speakBtn:hover {
   border-color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-surface));
@@ -185,6 +191,18 @@
   background: var(--color-bg-base);
   border-radius: var(--radius-md);
   width: 100%;
+}
+
+.exampleJaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.exampleJa rt {
+  font-size: 0.65em;
+  color: var(--color-text-secondary);
+  margin-bottom: 1px;
 }
 
 .exampleJa {

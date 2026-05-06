@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
@@ -19,6 +19,35 @@ export function WordReviewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
+
+  // Cache preferred Japanese voice once on mount
+  useEffect(() => {
+    const loadVoice = () => {
+      const voices = speechSynthesis.getVoices()
+      const jaVoices = voices.filter((v) => v.lang.startsWith('ja'))
+      if (jaVoices.length > 0) {
+        voiceRef.current = jaVoices.find((v) => v.name.includes('Google'))
+          ?? jaVoices.find((v) => v.name.includes('Kyoko'))
+          ?? jaVoices[0]
+      }
+    }
+    loadVoice()
+    speechSynthesis.onvoiceschanged = loadVoice
+  }, [])
+
+  // Pre-warm Google voice: speak a phrase at volume 0 to trigger voice download
+  useEffect(() => {
+    if (queue.length === 0) return
+    const timer = setTimeout(() => {
+      const u = new SpeechSynthesisUtterance('こんにちは')
+      u.lang = 'ja-JP'
+      u.volume = 0
+      if (voiceRef.current) u.voice = voiceRef.current
+      speechSynthesis.speak(u)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [queue])
 
   useEffect(() => {
     loadQueue(level)
@@ -40,10 +69,16 @@ export function WordReviewPage() {
   }
 
   function handleSpeak(text: string) {
-    speechSynthesis.cancel()
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel()
+    }
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'ja-JP'
-    u.rate = 0.9
+    u.rate = 0.95
+    u.pitch = 1.1
+    if (voiceRef.current) {
+      u.voice = voiceRef.current
+    }
     speechSynthesis.speak(u)
   }
 
@@ -131,7 +166,7 @@ export function WordReviewPage() {
                   <button
                     className={styles.speakBtn}
                     aria-label={t('word.queue.speak')}
-                    onClick={(e) => { e.stopPropagation(); handleSpeak(card!.word.kanji_form) }}
+                    onClick={(e) => { e.stopPropagation(); handleSpeak(card!.word.reading) }}
                   >
                     🔊
                   </button>
@@ -157,7 +192,23 @@ export function WordReviewPage() {
                     <div className={styles.examplesTitle}>例文</div>
                     {card!.word.examples.slice(0, 2).map((ex, i) => (
                       <div key={i} className={styles.example}>
-                        <div className={styles.exampleJa}>{ex.japanese}</div>
+                        <div className={styles.exampleJaRow}>
+                          {ex.furigana_html ? (
+                            <span
+                              className={styles.exampleJa}
+                              dangerouslySetInnerHTML={{ __html: ex.furigana_html }}
+                            />
+                          ) : (
+                            <span className={styles.exampleJa}>{ex.japanese}</span>
+                          )}
+                          <button
+                            className={`${styles.speakBtn} ${styles.speakBtnSm}`}
+                            aria-label={t('word.queue.speak')}
+                            onClick={(e) => { e.stopPropagation(); handleSpeak(ex.japanese) }}
+                          >
+                            🔊
+                          </button>
+                        </div>
                         <div className={styles.exampleZh}>{ex.chinese}</div>
                       </div>
                     ))}

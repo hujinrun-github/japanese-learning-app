@@ -36,6 +36,7 @@ export interface UserStats {
 export interface WordExample {
   japanese: string
   chinese: string
+  furigana_html?: string
 }
 
 export interface Word {
