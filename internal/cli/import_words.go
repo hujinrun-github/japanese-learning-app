@@ -46,7 +46,7 @@ func ImportWords(db *sql.DB, filePath string) (int, error) {
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR IGNORE INTO words
+		INSERT OR REPLACE INTO words
 			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level)
 		VALUES (?, ?, ?, ?, ?, ?)
 	`)

@@ -24,8 +24,9 @@ const (
 
 // WordExample 单词例句
 type WordExample struct {
-	Japanese string `json:"japanese"`
-	Chinese  string `json:"chinese"`
+	Japanese     string `json:"japanese"`
+	Chinese      string `json:"chinese"`
+	FuriganaHTML string `json:"furigana_html,omitempty"`
 }
 
 // Word 表示词库中的一个日语单词（内容库，只读）
