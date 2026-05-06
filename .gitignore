@@ -1,3 +1,4 @@
 .claude/settings.local.json
 .idean
 *.DS_Store
+.node_modules
