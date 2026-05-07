@@ -54,8 +54,8 @@ func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel) ([]WordCard,
 	for _, r := range dueRecords {
 		w, err := s.store.GetByID(r.WordID)
 		if err != nil {
-			slog.Error("WordService.GetReviewQueue: GetByID failed", "err", err, "word_id", r.WordID)
-			return nil, fmt.Errorf("word.WordService.GetReviewQueue GetByID: %w", err)
+			slog.Warn("WordService.GetReviewQueue: GetByID failed, skipping", "err", err, "word_id", r.WordID)
+			continue
 		}
 		cards = append(cards, WordCard{Word: *w, Record: r, IsNew: false})
 	}

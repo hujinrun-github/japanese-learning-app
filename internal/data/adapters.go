@@ -172,6 +172,11 @@ func (a *UserStoreAdapter) MarkTokenUsed(token string) error {
 	return a.s.MarkTokenUsed(token)
 }
 
+// GetStats delegates to UserStore.GetStats.
+func (a *UserStoreAdapter) GetStats(userID int64) (*user.UserStats, error) {
+	return a.s.GetStats(userID)
+}
+
 // UpdatePassword delegates to UserStore.UpdatePassword.
 func (a *UserStoreAdapter) UpdatePassword(userID int64, newPasswordHash string) error {
 	return a.s.UpdatePassword(userID, newPasswordHash)

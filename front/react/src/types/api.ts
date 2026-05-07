@@ -36,6 +36,7 @@ export interface UserStats {
 export interface WordExample {
   japanese: string
   chinese: string
+  furigana_html?: string
 }
 
 export interface Word {
@@ -46,6 +47,7 @@ export interface Word {
   meaning: string
   jlpt_level: JLPTLevel
   examples: WordExample[]
+  reading_type: string
 }
 
 export interface WordRecord {

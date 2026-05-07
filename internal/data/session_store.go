@@ -194,7 +194,7 @@ func (s *SessionStore) GetSummary(sessionID string) (*summary.SessionSummary, er
 		&scoreSummaryJSON, &strengthsJSON, &weaknessesJSON, &suggestionsJSON, &generatedAt)
 
 	if err == sql.ErrNoRows {
-		slog.Error("session_summary not found", "session_id", sessionID)
+		slog.Debug("session_summary not found", "session_id", sessionID)
 		return nil, fmt.Errorf("data.SessionStore.GetSummary %q: %w", sessionID, sql.ErrNoRows)
 	}
 	if err != nil {

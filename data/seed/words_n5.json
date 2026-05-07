@@ -1,62 +1,902 @@
 [
-  {"kanji_form": "水", "reading": "みず", "part_of_speech": "名詞", "meaning": "水，水分", "jlpt_level": "N5", "examples": [{"japanese": "水を飲みます。", "chinese": "喝水。"}]},
-  {"kanji_form": "山", "reading": "やま", "part_of_speech": "名詞", "meaning": "山", "jlpt_level": "N5", "examples": [{"japanese": "山に登ります。", "chinese": "爬山。"}]},
-  {"kanji_form": "川", "reading": "かわ", "part_of_speech": "名詞", "meaning": "河，河流", "jlpt_level": "N5", "examples": [{"japanese": "川で泳ぎます。", "chinese": "在河里游泳。"}]},
-  {"kanji_form": "日本語", "reading": "にほんご", "part_of_speech": "名詞", "meaning": "日语", "jlpt_level": "N5", "examples": [{"japanese": "日本語を勉強しています。", "chinese": "正在学习日语。"}]},
-  {"kanji_form": "食べ物", "reading": "たべもの", "part_of_speech": "名詞", "meaning": "食物，食品", "jlpt_level": "N5", "examples": [{"japanese": "好きな食べ物は寿司です。", "chinese": "最喜欢的食物是寿司。"}]},
-  {"kanji_form": "飲み物", "reading": "のみもの", "part_of_speech": "名詞", "meaning": "饮料", "jlpt_level": "N5", "examples": [{"japanese": "飲み物は何がいいですか。", "chinese": "饮料要什么？"}]},
-  {"kanji_form": "学校", "reading": "がっこう", "part_of_speech": "名詞", "meaning": "学校", "jlpt_level": "N5", "examples": [{"japanese": "学校へ行きます。", "chinese": "去学校。"}]},
-  {"kanji_form": "電車", "reading": "でんしゃ", "part_of_speech": "名詞", "meaning": "电车", "jlpt_level": "N5", "examples": [{"japanese": "電車で通勤します。", "chinese": "乘电车上班。"}]},
-  {"kanji_form": "図書館", "reading": "としょかん", "part_of_speech": "名詞", "meaning": "图书馆", "jlpt_level": "N5", "examples": [{"japanese": "図書館で本を借ります。", "chinese": "在图书馆借书。"}]},
-  {"kanji_form": "勉強", "reading": "べんきょう", "part_of_speech": "名詞・サ変", "meaning": "学习，用功", "jlpt_level": "N5", "examples": [{"japanese": "毎日勉強します。", "chinese": "每天学习。"}]},
-  {"kanji_form": "先生", "reading": "せんせい", "part_of_speech": "名詞", "meaning": "老师", "jlpt_level": "N5", "examples": [{"japanese": "先生はやさしいです。", "chinese": "老师很温柔。"}]},
-  {"kanji_form": "友達", "reading": "ともだち", "part_of_speech": "名詞", "meaning": "朋友", "jlpt_level": "N5", "examples": [{"japanese": "友達と遊びます。", "chinese": "和朋友玩。"}]},
-  {"kanji_form": "家族", "reading": "かぞく", "part_of_speech": "名詞", "meaning": "家人，家族", "jlpt_level": "N5", "examples": [{"japanese": "家族と一緒に食べます。", "chinese": "和家人一起吃饭。"}]},
-  {"kanji_form": "時間", "reading": "じかん", "part_of_speech": "名詞", "meaning": "时间", "jlpt_level": "N5", "examples": [{"japanese": "時間がありません。", "chinese": "没有时间。"}]},
-  {"kanji_form": "今日", "reading": "きょう", "part_of_speech": "名詞", "meaning": "今天", "jlpt_level": "N5", "examples": [{"japanese": "今日は暑いですね。", "chinese": "今天很热啊。"}]},
-  {"kanji_form": "明日", "reading": "あした", "part_of_speech": "名詞", "meaning": "明天", "jlpt_level": "N5", "examples": [{"japanese": "明日また来てください。", "chinese": "请明天再来。"}]},
-  {"kanji_form": "昨日", "reading": "きのう", "part_of_speech": "名詞", "meaning": "昨天", "jlpt_level": "N5", "examples": [{"japanese": "昨日何をしましたか。", "chinese": "昨天做了什么？"}]},
-  {"kanji_form": "食べる", "reading": "たべる", "part_of_speech": "動詞", "meaning": "吃", "jlpt_level": "N5", "examples": [{"japanese": "ご飯を食べます。", "chinese": "吃饭。"}]},
-  {"kanji_form": "飲む", "reading": "のむ", "part_of_speech": "動詞", "meaning": "喝，饮", "jlpt_level": "N5", "examples": [{"japanese": "お茶を飲みます。", "chinese": "喝茶。"}]},
-  {"kanji_form": "見る", "reading": "みる", "part_of_speech": "動詞", "meaning": "看，看见", "jlpt_level": "N5", "examples": [{"japanese": "テレビを見ます。", "chinese": "看电视。"}]},
-  {"kanji_form": "聞く", "reading": "きく", "part_of_speech": "動詞", "meaning": "听，问", "jlpt_level": "N5", "examples": [{"japanese": "音楽を聞きます。", "chinese": "听音乐。"}]},
-  {"kanji_form": "書く", "reading": "かく", "part_of_speech": "動詞", "meaning": "写，画", "jlpt_level": "N5", "examples": [{"japanese": "手紙を書きます。", "chinese": "写信。"}]},
-  {"kanji_form": "読む", "reading": "よむ", "part_of_speech": "動詞", "meaning": "读，朗读", "jlpt_level": "N5", "examples": [{"japanese": "本を読みます。", "chinese": "读书。"}]},
-  {"kanji_form": "話す", "reading": "はなす", "part_of_speech": "動詞", "meaning": "说话，讲", "jlpt_level": "N5", "examples": [{"japanese": "日本語で話します。", "chinese": "用日语说话。"}]},
-  {"kanji_form": "行く", "reading": "いく", "part_of_speech": "動詞", "meaning": "去，前往", "jlpt_level": "N5", "examples": [{"japanese": "学校に行きます。", "chinese": "去学校。"}]},
-  {"kanji_form": "来る", "reading": "くる", "part_of_speech": "動詞", "meaning": "来，到来", "jlpt_level": "N5", "examples": [{"japanese": "友達が来ます。", "chinese": "朋友来了。"}]},
-  {"kanji_form": "帰る", "reading": "かえる", "part_of_speech": "動詞", "meaning": "回去，归还", "jlpt_level": "N5", "examples": [{"japanese": "家に帰ります。", "chinese": "回家。"}]},
-  {"kanji_form": "起きる", "reading": "おきる", "part_of_speech": "動詞", "meaning": "起床，起来", "jlpt_level": "N5", "examples": [{"japanese": "七時に起きます。", "chinese": "七点起床。"}]},
-  {"kanji_form": "寝る", "reading": "ねる", "part_of_speech": "動詞", "meaning": "睡觉，躺下", "jlpt_level": "N5", "examples": [{"japanese": "十一時に寝ます。", "chinese": "十一点睡觉。"}]},
-  {"kanji_form": "買う", "reading": "かう", "part_of_speech": "動詞", "meaning": "买，购买", "jlpt_level": "N5", "examples": [{"japanese": "スーパーで食べ物を買います。", "chinese": "在超市买食物。"}]},
-  {"kanji_form": "大きい", "reading": "おおきい", "part_of_speech": "形容詞", "meaning": "大的", "jlpt_level": "N5", "examples": [{"japanese": "大きい犬がいます。", "chinese": "有一只大狗。"}]},
-  {"kanji_form": "小さい", "reading": "ちいさい", "part_of_speech": "形容詞", "meaning": "小的", "jlpt_level": "N5", "examples": [{"japanese": "小さい子供がいます。", "chinese": "有一个小孩子。"}]},
-  {"kanji_form": "新しい", "reading": "あたらしい", "part_of_speech": "形容詞", "meaning": "新的", "jlpt_level": "N5", "examples": [{"japanese": "新しい本を買いました。", "chinese": "买了一本新书。"}]},
-  {"kanji_form": "古い", "reading": "ふるい", "part_of_speech": "形容詞", "meaning": "旧的，老的", "jlpt_level": "N5", "examples": [{"japanese": "古い車を持っています。", "chinese": "有一辆旧车。"}]},
-  {"kanji_form": "高い", "reading": "たかい", "part_of_speech": "形容詞", "meaning": "高的，贵的", "jlpt_level": "N5", "examples": [{"japanese": "この店は値段が高いです。", "chinese": "这家店价格很贵。"}]},
-  {"kanji_form": "安い", "reading": "やすい", "part_of_speech": "形容詞", "meaning": "便宜的", "jlpt_level": "N5", "examples": [{"japanese": "安いスーパーへ行きます。", "chinese": "去便宜的超市。"}]},
-  {"kanji_form": "好き", "reading": "すき", "part_of_speech": "形容動詞", "meaning": "喜欢", "jlpt_level": "N5", "examples": [{"japanese": "音楽が好きです。", "chinese": "喜欢音乐。"}]},
-  {"kanji_form": "嫌い", "reading": "きらい", "part_of_speech": "形容動詞", "meaning": "讨厌，不喜欢", "jlpt_level": "N5", "examples": [{"japanese": "野菜が嫌いです。", "chinese": "不喜欢蔬菜。"}]},
-  {"kanji_form": "上手", "reading": "じょうず", "part_of_speech": "形容動詞", "meaning": "擅长，高明", "jlpt_level": "N5", "examples": [{"japanese": "料理が上手です。", "chinese": "烹饪很厉害。"}]},
-  {"kanji_form": "下手", "reading": "へた", "part_of_speech": "形容動詞", "meaning": "不擅长，笨拙", "jlpt_level": "N5", "examples": [{"japanese": "歌が下手です。", "chinese": "不擅长唱歌。"}]},
-  {"kanji_form": "本", "reading": "ほん", "part_of_speech": "名詞", "meaning": "书，本子", "jlpt_level": "N5", "examples": [{"japanese": "本を読みます。", "chinese": "读书。"}]},
-  {"kanji_form": "車", "reading": "くるま", "part_of_speech": "名詞", "meaning": "车，汽车", "jlpt_level": "N5", "examples": [{"japanese": "車で来ました。", "chinese": "开车来的。"}]},
-  {"kanji_form": "駅", "reading": "えき", "part_of_speech": "名詞", "meaning": "车站", "jlpt_level": "N5", "examples": [{"japanese": "駅まで歩きます。", "chinese": "走到车站。"}]},
-  {"kanji_form": "店", "reading": "みせ", "part_of_speech": "名詞", "meaning": "商店，店铺", "jlpt_level": "N5", "examples": [{"japanese": "あの店は安いです。", "chinese": "那家店很便宜。"}]},
-  {"kanji_form": "病院", "reading": "びょういん", "part_of_speech": "名詞", "meaning": "医院", "jlpt_level": "N5", "examples": [{"japanese": "病院へ行きます。", "chinese": "去医院。"}]},
-  {"kanji_form": "会社", "reading": "かいしゃ", "part_of_speech": "名詞", "meaning": "公司", "jlpt_level": "N5", "examples": [{"japanese": "会社で働いています。", "chinese": "在公司工作。"}]},
-  {"kanji_form": "仕事", "reading": "しごと", "part_of_speech": "名詞", "meaning": "工作", "jlpt_level": "N5", "examples": [{"japanese": "仕事が忙しいです。", "chinese": "工作很忙。"}]},
-  {"kanji_form": "料理", "reading": "りょうり", "part_of_speech": "名詞・サ変", "meaning": "料理，烹饪", "jlpt_level": "N5", "examples": [{"japanese": "料理を作ります。", "chinese": "做料理。"}]},
-  {"kanji_form": "天気", "reading": "てんき", "part_of_speech": "名詞", "meaning": "天气", "jlpt_level": "N5", "examples": [{"japanese": "今日はいい天気ですね。", "chinese": "今天天气真好啊。"}]},
-  {"kanji_form": "音楽", "reading": "おんがく", "part_of_speech": "名詞", "meaning": "音乐", "jlpt_level": "N5", "examples": [{"japanese": "音楽が好きです。", "chinese": "喜欢音乐。"}]},
-  {"kanji_form": "映画", "reading": "えいが", "part_of_speech": "名詞", "meaning": "电影", "jlpt_level": "N5", "examples": [{"japanese": "映画を見ます。", "chinese": "看电影。"}]},
-  {"kanji_form": "旅行", "reading": "りょこう", "part_of_speech": "名詞・サ変", "meaning": "旅行", "jlpt_level": "N5", "examples": [{"japanese": "旅行が好きです。", "chinese": "喜欢旅行。"}]},
-  {"kanji_form": "写真", "reading": "しゃしん", "part_of_speech": "名詞", "meaning": "照片", "jlpt_level": "N5", "examples": [{"japanese": "写真を撮ります。", "chinese": "拍照。"}]},
-  {"kanji_form": "電話", "reading": "でんわ", "part_of_speech": "名詞・サ変", "meaning": "电话", "jlpt_level": "N5", "examples": [{"japanese": "電話をかけます。", "chinese": "打电话。"}]},
-  {"kanji_form": "手紙", "reading": "てがみ", "part_of_speech": "名詞", "meaning": "信，信件", "jlpt_level": "N5", "examples": [{"japanese": "手紙を書きます。", "chinese": "写信。"}]},
-  {"kanji_form": "名前", "reading": "なまえ", "part_of_speech": "名詞", "meaning": "名字，名称", "jlpt_level": "N5", "examples": [{"japanese": "お名前は何ですか。", "chinese": "您叫什么名字？"}]},
-  {"kanji_form": "私", "reading": "わたし", "part_of_speech": "代名詞", "meaning": "我", "jlpt_level": "N5", "examples": [{"japanese": "私は学生です。", "chinese": "我是学生。"}]},
-  {"kanji_form": "朝", "reading": "あさ", "part_of_speech": "名詞", "meaning": "早上，早晨", "jlpt_level": "N5", "examples": [{"japanese": "朝ご飯を食べます。", "chinese": "吃早饭。"}]},
-  {"kanji_form": "夜", "reading": "よる", "part_of_speech": "名詞", "meaning": "晚上，夜晚", "jlpt_level": "N5", "examples": [{"japanese": "夜遅く帰ります。", "chinese": "很晚才回家。"}]},
-  {"kanji_form": "毎日", "reading": "まいにち", "part_of_speech": "名詞", "meaning": "每天", "jlpt_level": "N5", "examples": [{"japanese": "毎日勉強します。", "chinese": "每天学习。"}]}
+  {
+    "kanji_form": "水",
+    "reading": "みず",
+    "part_of_speech": "名詞",
+    "meaning": "水，水分",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "水を飲みます。",
+        "chinese": "喝水。",
+        "furigana_html": "<ruby>水<rt>みず</rt></ruby>を<ruby>飲み<rt>のみ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "山",
+    "reading": "やま",
+    "part_of_speech": "名詞",
+    "meaning": "山",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "山に登ります。",
+        "chinese": "爬山。",
+        "furigana_html": "<ruby>山<rt>やま</rt></ruby>に<ruby>登り<rt>のぼり</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "川",
+    "reading": "かわ",
+    "part_of_speech": "名詞",
+    "meaning": "河，河流",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "川で泳ぎます。",
+        "chinese": "在河里游泳。",
+        "furigana_html": "<ruby>川<rt>かわ</rt></ruby>で<ruby>泳ぎ<rt>およぎ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "日本語",
+    "reading": "にほんご",
+    "part_of_speech": "名詞",
+    "meaning": "日语",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "日本語を勉強しています。",
+        "chinese": "正在学习日语。",
+        "furigana_html": "<ruby>日本語<rt>にほんご</rt></ruby>を<ruby>勉強<rt>べんきょう</rt></ruby>しています。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "食べ物",
+    "reading": "たべもの",
+    "part_of_speech": "名詞",
+    "meaning": "食物，食品",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "好きな食べ物は寿司です。",
+        "chinese": "最喜欢的食物是寿司。",
+        "furigana_html": "<ruby>好き<rt>すき</rt></ruby>な<ruby>食べ物<rt>たべもの</rt></ruby>は<ruby>寿司<rt>すし</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "飲み物",
+    "reading": "のみもの",
+    "part_of_speech": "名詞",
+    "meaning": "饮料",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "飲み物は何がいいですか。",
+        "chinese": "饮料要什么？",
+        "furigana_html": "<ruby>飲み物<rt>のみもの</rt></ruby>は<ruby>何<rt>なに</rt></ruby>がいいですか。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "学校",
+    "reading": "がっこう",
+    "part_of_speech": "名詞",
+    "meaning": "学校",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "学校へ行きます。",
+        "chinese": "去学校。",
+        "furigana_html": "<ruby>学校<rt>がっこう</rt></ruby>へ<ruby>行き<rt>いき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "電車",
+    "reading": "でんしゃ",
+    "part_of_speech": "名詞",
+    "meaning": "电车",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "電車で通勤します。",
+        "chinese": "乘电车上班。",
+        "furigana_html": "<ruby>電車<rt>でんしゃ</rt></ruby>で<ruby>通勤<rt>つうきん</rt></ruby>します。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "図書館",
+    "reading": "としょかん",
+    "part_of_speech": "名詞",
+    "meaning": "图书馆",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "図書館で本を借ります。",
+        "chinese": "在图书馆借书。",
+        "furigana_html": "<ruby>図書館<rt>としょかん</rt></ruby>で<ruby>本<rt>ほん</rt></ruby>を<ruby>借り<rt>かり</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "勉強",
+    "reading": "べんきょう",
+    "part_of_speech": "名詞・サ変",
+    "meaning": "学习，用功",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "毎日勉強します。",
+        "chinese": "每天学习。",
+        "furigana_html": "<ruby>毎日<rt>まいにち</rt></ruby><ruby>勉強<rt>べんきょう</rt></ruby>します。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "先生",
+    "reading": "せんせい",
+    "part_of_speech": "名詞",
+    "meaning": "老师",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "先生はやさしいです。",
+        "chinese": "老师很温柔。",
+        "furigana_html": "<ruby>先生<rt>せんせい</rt></ruby>はやさしいです。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "友達",
+    "reading": "ともだち",
+    "part_of_speech": "名詞",
+    "meaning": "朋友",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "友達と遊びます。",
+        "chinese": "和朋友玩。",
+        "furigana_html": "<ruby>友達<rt>ともだち</rt></ruby>と<ruby>遊び<rt>あそび</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "家族",
+    "reading": "かぞく",
+    "part_of_speech": "名詞",
+    "meaning": "家人，家族",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "家族と一緒に食べます。",
+        "chinese": "和家人一起吃饭。",
+        "furigana_html": "<ruby>家族<rt>かぞく</rt></ruby>と<ruby>一緒<rt>いっしょ</rt></ruby>に<ruby>食べ<rt>たべ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "時間",
+    "reading": "じかん",
+    "part_of_speech": "名詞",
+    "meaning": "时间",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "時間がありません。",
+        "chinese": "没有时间。",
+        "furigana_html": "<ruby>時間<rt>じかん</rt></ruby>がありません。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "今日",
+    "reading": "きょう",
+    "part_of_speech": "名詞",
+    "meaning": "今天",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "今日は暑いですね。",
+        "chinese": "今天很热啊。",
+        "furigana_html": "<ruby>今日<rt>きょう</rt></ruby>は<ruby>暑い<rt>あつい</rt></ruby>ですね。"
+      }
+    ],
+    "reading_type": "3"
+  },
+  {
+    "kanji_form": "明日",
+    "reading": "あした",
+    "part_of_speech": "名詞",
+    "meaning": "明天",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "明日また来てください。",
+        "chinese": "请明天再来。",
+        "furigana_html": "<ruby>明日<rt>あした</rt></ruby>また<ruby>来<rt>き</rt></ruby>てください。"
+      }
+    ],
+    "reading_type": "3"
+  },
+  {
+    "kanji_form": "昨日",
+    "reading": "きのう",
+    "part_of_speech": "名詞",
+    "meaning": "昨天",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "昨日何をしましたか。",
+        "chinese": "昨天做了什么？",
+        "furigana_html": "<ruby>昨日<rt>きのう</rt></ruby><ruby>何<rt>なに</rt></ruby>をしましたか。"
+      }
+    ],
+    "reading_type": "3"
+  },
+  {
+    "kanji_form": "食べる",
+    "reading": "たべる",
+    "part_of_speech": "動詞",
+    "meaning": "吃",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "ご飯を食べます。",
+        "chinese": "吃饭。",
+        "furigana_html": "<ruby>ご飯<rt>ごはん</rt></ruby>を<ruby>食べ<rt>たべ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "飲む",
+    "reading": "のむ",
+    "part_of_speech": "動詞",
+    "meaning": "喝，饮",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "お茶を飲みます。",
+        "chinese": "喝茶。",
+        "furigana_html": "<ruby>お茶<rt>おちゃ</rt></ruby>を<ruby>飲み<rt>のみ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "見る",
+    "reading": "みる",
+    "part_of_speech": "動詞",
+    "meaning": "看，看见",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "テレビを見ます。",
+        "chinese": "看电视。",
+        "furigana_html": "テレビを<ruby>見<rt>み</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "聞く",
+    "reading": "きく",
+    "part_of_speech": "動詞",
+    "meaning": "听，问",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "音楽を聞きます。",
+        "chinese": "听音乐。",
+        "furigana_html": "<ruby>音楽<rt>おんがく</rt></ruby>を<ruby>聞き<rt>きき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "書く",
+    "reading": "かく",
+    "part_of_speech": "動詞",
+    "meaning": "写，画",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "手紙を書きます。",
+        "chinese": "写信。",
+        "furigana_html": "<ruby>手紙<rt>てがみ</rt></ruby>を<ruby>書き<rt>かき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "読む",
+    "reading": "よむ",
+    "part_of_speech": "動詞",
+    "meaning": "读，朗读",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "本を読みます。",
+        "chinese": "读书。",
+        "furigana_html": "<ruby>本<rt>ほん</rt></ruby>を<ruby>読み<rt>よみ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "話す",
+    "reading": "はなす",
+    "part_of_speech": "動詞",
+    "meaning": "说话，讲",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "日本語で話します。",
+        "chinese": "用日语说话。",
+        "furigana_html": "<ruby>日本語<rt>にほんご</rt></ruby>で<ruby>話し<rt>はなし</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "行く",
+    "reading": "いく",
+    "part_of_speech": "動詞",
+    "meaning": "去，前往",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "学校に行きます。",
+        "chinese": "去学校。",
+        "furigana_html": "<ruby>学校<rt>がっこう</rt></ruby>に<ruby>行き<rt>いき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "来る",
+    "reading": "くる",
+    "part_of_speech": "動詞",
+    "meaning": "来，到来",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "友達が来ます。",
+        "chinese": "朋友来了。",
+        "furigana_html": "<ruby>友達<rt>ともだち</rt></ruby>が<ruby>来<rt>き</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "帰る",
+    "reading": "かえる",
+    "part_of_speech": "動詞",
+    "meaning": "回去，归还",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "家に帰ります。",
+        "chinese": "回家。",
+        "furigana_html": "<ruby>家<rt>いえ</rt></ruby>に<ruby>帰り<rt>かえり</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "起きる",
+    "reading": "おきる",
+    "part_of_speech": "動詞",
+    "meaning": "起床，起来",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "七時に起きます。",
+        "chinese": "七点起床。",
+        "furigana_html": "<ruby>七<rt>なな</rt></ruby><ruby>時<rt>じ</rt></ruby>に<ruby>起き<rt>おき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "寝る",
+    "reading": "ねる",
+    "part_of_speech": "動詞",
+    "meaning": "睡觉，躺下",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "十一時に寝ます。",
+        "chinese": "十一点睡觉。",
+        "furigana_html": "<ruby>十<rt>じゅう</rt></ruby><ruby>一<rt>いち</rt></ruby><ruby>時<rt>じ</rt></ruby>に<ruby>寝<rt>ね</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "買う",
+    "reading": "かう",
+    "part_of_speech": "動詞",
+    "meaning": "买，购买",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "スーパーで食べ物を買います。",
+        "chinese": "在超市买食物。",
+        "furigana_html": "スーパーで<ruby>食べ物<rt>たべもの</rt></ruby>を<ruby>買い<rt>かい</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "大きい",
+    "reading": "おおきい",
+    "part_of_speech": "形容詞",
+    "meaning": "大的",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "大きい犬がいます。",
+        "chinese": "有一只大狗。",
+        "furigana_html": "<ruby>大きい<rt>おおきい</rt></ruby><ruby>犬<rt>いぬ</rt></ruby>がいます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "小さい",
+    "reading": "ちいさい",
+    "part_of_speech": "形容詞",
+    "meaning": "小的",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "小さい子供がいます。",
+        "chinese": "有一个小孩子。",
+        "furigana_html": "<ruby>小さい<rt>ちいさい</rt></ruby><ruby>子供<rt>こども</rt></ruby>がいます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "新しい",
+    "reading": "あたらしい",
+    "part_of_speech": "形容詞",
+    "meaning": "新的",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "新しい本を買いました。",
+        "chinese": "买了一本新书。",
+        "furigana_html": "<ruby>新しい<rt>あたらしい</rt></ruby><ruby>本<rt>ほん</rt></ruby>を<ruby>買い<rt>かい</rt></ruby>ました。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "古い",
+    "reading": "ふるい",
+    "part_of_speech": "形容詞",
+    "meaning": "旧的，老的",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "古い車を持っています。",
+        "chinese": "有一辆旧车。",
+        "furigana_html": "<ruby>古い<rt>ふるい</rt></ruby><ruby>車<rt>くるま</rt></ruby>を<ruby>持っ<rt>もっ</rt></ruby>ています。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "高い",
+    "reading": "たかい",
+    "part_of_speech": "形容詞",
+    "meaning": "高的，贵的",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "この店は値段が高いです。",
+        "chinese": "这家店价格很贵。",
+        "furigana_html": "この<ruby>店<rt>みせ</rt></ruby>は<ruby>値段<rt>ねだん</rt></ruby>が<ruby>高い<rt>たかい</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "安い",
+    "reading": "やすい",
+    "part_of_speech": "形容詞",
+    "meaning": "便宜的",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "安いスーパーへ行きます。",
+        "chinese": "去便宜的超市。",
+        "furigana_html": "<ruby>安い<rt>やすい</rt></ruby>スーパーへ<ruby>行き<rt>いき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "好き",
+    "reading": "すき",
+    "part_of_speech": "形容動詞",
+    "meaning": "喜欢",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "音楽が好きです。",
+        "chinese": "喜欢音乐。",
+        "furigana_html": "<ruby>音楽<rt>おんがく</rt></ruby>が<ruby>好き<rt>すき</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "嫌い",
+    "reading": "きらい",
+    "part_of_speech": "形容動詞",
+    "meaning": "讨厌，不喜欢",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "野菜が嫌いです。",
+        "chinese": "不喜欢蔬菜。",
+        "furigana_html": "<ruby>野菜<rt>やさい</rt></ruby>が<ruby>嫌い<rt>きらい</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "上手",
+    "reading": "じょうず",
+    "part_of_speech": "形容動詞",
+    "meaning": "擅长，高明",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "料理が上手です。",
+        "chinese": "烹饪很厉害。",
+        "furigana_html": "<ruby>料理<rt>りょうり</rt></ruby>が<ruby>上手<rt>じょうず</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "下手",
+    "reading": "へた",
+    "part_of_speech": "形容動詞",
+    "meaning": "不擅长，笨拙",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "歌が下手です。",
+        "chinese": "不擅长唱歌。",
+        "furigana_html": "<ruby>歌<rt>うた</rt></ruby>が<ruby>下手<rt>へた</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "3"
+  },
+  {
+    "kanji_form": "本",
+    "reading": "ほん",
+    "part_of_speech": "名詞",
+    "meaning": "书，本子",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "本を読みます。",
+        "chinese": "读书。",
+        "furigana_html": "<ruby>本<rt>ほん</rt></ruby>を<ruby>読み<rt>よみ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "車",
+    "reading": "くるま",
+    "part_of_speech": "名詞",
+    "meaning": "车，汽车",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "車で来ました。",
+        "chinese": "开车来的。",
+        "furigana_html": "<ruby>車<rt>くるま</rt></ruby>で<ruby>来<rt>き</rt></ruby>ました。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "駅",
+    "reading": "えき",
+    "part_of_speech": "名詞",
+    "meaning": "车站",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "駅まで歩きます。",
+        "chinese": "走到车站。",
+        "furigana_html": "<ruby>駅<rt>えき</rt></ruby>まで<ruby>歩き<rt>あるき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "店",
+    "reading": "みせ",
+    "part_of_speech": "名詞",
+    "meaning": "商店，店铺",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "あの店は安いです。",
+        "chinese": "那家店很便宜。",
+        "furigana_html": "あの<ruby>店<rt>みせ</rt></ruby>は<ruby>安い<rt>やすい</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "病院",
+    "reading": "びょういん",
+    "part_of_speech": "名詞",
+    "meaning": "医院",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "病院へ行きます。",
+        "chinese": "去医院。",
+        "furigana_html": "<ruby>病院<rt>びょういん</rt></ruby>へ<ruby>行き<rt>いき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "会社",
+    "reading": "かいしゃ",
+    "part_of_speech": "名詞",
+    "meaning": "公司",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "会社で働いています。",
+        "chinese": "在公司工作。",
+        "furigana_html": "<ruby>会社<rt>かいしゃ</rt></ruby>で<ruby>働い<rt>はたらい</rt></ruby>ています。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "仕事",
+    "reading": "しごと",
+    "part_of_speech": "名詞",
+    "meaning": "工作",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "仕事が忙しいです。",
+        "chinese": "工作很忙。",
+        "furigana_html": "<ruby>仕事<rt>しごと</rt></ruby>が<ruby>忙しい<rt>いそがしい</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "4"
+  },
+  {
+    "kanji_form": "料理",
+    "reading": "りょうり",
+    "part_of_speech": "名詞・サ変",
+    "meaning": "料理，烹饪",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "料理を作ります。",
+        "chinese": "做料理。",
+        "furigana_html": "<ruby>料理<rt>りょうり</rt></ruby>を<ruby>作り<rt>つくり</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "天気",
+    "reading": "てんき",
+    "part_of_speech": "名詞",
+    "meaning": "天气",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "今日はいい天気ですね。",
+        "chinese": "今天天气真好啊。",
+        "furigana_html": "<ruby>今日<rt>きょう</rt></ruby>はいい<ruby>天気<rt>てんき</rt></ruby>ですね。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "音楽",
+    "reading": "おんがく",
+    "part_of_speech": "名詞",
+    "meaning": "音乐",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "音楽が好きです。",
+        "chinese": "喜欢音乐。",
+        "furigana_html": "<ruby>音楽<rt>おんがく</rt></ruby>が<ruby>好き<rt>すき</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "映画",
+    "reading": "えいが",
+    "part_of_speech": "名詞",
+    "meaning": "电影",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "映画を見ます。",
+        "chinese": "看电影。",
+        "furigana_html": "<ruby>映画<rt>えいが</rt></ruby>を<ruby>見<rt>み</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "旅行",
+    "reading": "りょこう",
+    "part_of_speech": "名詞・サ変",
+    "meaning": "旅行",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "旅行が好きです。",
+        "chinese": "喜欢旅行。",
+        "furigana_html": "<ruby>旅行<rt>りょこう</rt></ruby>が<ruby>好き<rt>すき</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "写真",
+    "reading": "しゃしん",
+    "part_of_speech": "名詞",
+    "meaning": "照片",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "写真を撮ります。",
+        "chinese": "拍照。",
+        "furigana_html": "<ruby>写真<rt>しゃしん</rt></ruby>を<ruby>撮り<rt>とり</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "電話",
+    "reading": "でんわ",
+    "part_of_speech": "名詞・サ変",
+    "meaning": "电话",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "電話をかけます。",
+        "chinese": "打电话。",
+        "furigana_html": "<ruby>電話<rt>でんわ</rt></ruby>をかけます。"
+      }
+    ],
+    "reading_type": "1"
+  },
+  {
+    "kanji_form": "手紙",
+    "reading": "てがみ",
+    "part_of_speech": "名詞",
+    "meaning": "信，信件",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "手紙を書きます。",
+        "chinese": "写信。",
+        "furigana_html": "<ruby>手紙<rt>てがみ</rt></ruby>を<ruby>書き<rt>かき</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "名前",
+    "reading": "なまえ",
+    "part_of_speech": "名詞",
+    "meaning": "名字，名称",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "お名前は何ですか。",
+        "chinese": "您叫什么名字？",
+        "furigana_html": "お<ruby>名前<rt>なまえ</rt></ruby>は<ruby>何<rt>なに</rt></ruby>ですか。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "私",
+    "reading": "わたし",
+    "part_of_speech": "代名詞",
+    "meaning": "我",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "私は学生です。",
+        "chinese": "我是学生。",
+        "furigana_html": "<ruby>私<rt>わたし</rt></ruby>は<ruby>学生<rt>がくせい</rt></ruby>です。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "朝",
+    "reading": "あさ",
+    "part_of_speech": "名詞",
+    "meaning": "早上，早晨",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "朝ご飯を食べます。",
+        "chinese": "吃早饭。",
+        "furigana_html": "<ruby>朝<rt>あさ</rt></ruby><ruby>ご飯<rt>ごはん</rt></ruby>を<ruby>食べ<rt>たべ</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "夜",
+    "reading": "よる",
+    "part_of_speech": "名詞",
+    "meaning": "晚上，夜晚",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "夜遅く帰ります。",
+        "chinese": "很晚才回家。",
+        "furigana_html": "<ruby>夜<rt>よる</rt></ruby><ruby>遅く<rt>おそく</rt></ruby><ruby>帰り<rt>かえり</rt></ruby>ます。"
+      }
+    ],
+    "reading_type": "2"
+  },
+  {
+    "kanji_form": "毎日",
+    "reading": "まいにち",
+    "part_of_speech": "名詞",
+    "meaning": "每天",
+    "jlpt_level": "N5",
+    "examples": [
+      {
+        "japanese": "毎日勉強します。",
+        "chinese": "每天学习。",
+        "furigana_html": "<ruby>毎日<rt>まいにち</rt></ruby><ruby>勉強<rt>べんきょう</rt></ruby>します。"
+      }
+    ],
+    "reading_type": "1"
+  }
 ]

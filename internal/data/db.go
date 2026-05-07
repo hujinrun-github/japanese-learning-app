@@ -79,6 +79,12 @@ func RunMigrations(db *sql.DB) error {
 
 		slog.Debug("applying migration", "file", name)
 		if _, err := db.Exec(string(content)); err != nil {
+			// ALTER TABLE ADD COLUMN is not idempotent in SQLite;
+			// treat "duplicate column name" as a no-op success.
+			if strings.Contains(err.Error(), "duplicate column name") {
+				slog.Info("migration skipped (already applied)", "file", name)
+				continue
+			}
 			slog.Error("failed to apply migration", "err", err, "file", name)
 			return fmt.Errorf("data.RunMigrations exec %s: %w", name, err)
 		}
