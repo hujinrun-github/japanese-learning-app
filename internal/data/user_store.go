@@ -220,6 +220,85 @@ func (s *UserStore) UpdatePassword(userID int64, newPasswordHash string) error {
 	return nil
 }
 
+// GetStats returns the user's learning stats across all modules.
+func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
+	slog.Debug("UserStore.GetStats called", "user_id", userID)
+
+	stats := &user.UserStats{
+		ModuleStats: make(map[string]user.ModuleStat),
+	}
+
+	// streak_days
+	var streakDays int
+	if err := s.db.QueryRow(`SELECT streak_days FROM users WHERE id = ?`, userID).Scan(&streakDays); err != nil {
+		return nil, fmt.Errorf("data.UserStore.GetStats streak_days: %w", err)
+	}
+	stats.StreakDays = streakDays
+
+	// word
+	wordTotal, wordDue, wordMastered := s.countWords(userID)
+	stats.ModuleStats["word"] = user.ModuleStat{DueCount: wordDue, MasteredCount: wordMastered, TotalCount: wordTotal}
+
+	// grammar
+	grammarTotal, grammarDue, grammarMastered := s.countGrammar(userID)
+	stats.ModuleStats["grammar"] = user.ModuleStat{DueCount: grammarDue, MasteredCount: grammarMastered, TotalCount: grammarTotal}
+
+	// speaking
+	speakingTotal, speakingMastered := s.countSpeaking(userID)
+	stats.ModuleStats["speaking"] = user.ModuleStat{DueCount: 0, MasteredCount: speakingMastered, TotalCount: speakingTotal}
+
+	// writing
+	writingTotal, writingMastered := s.countWriting(userID)
+	stats.ModuleStats["writing"] = user.ModuleStat{DueCount: 0, MasteredCount: writingMastered, TotalCount: writingTotal}
+
+	slog.Debug("UserStore.GetStats done", "user_id", userID)
+	return stats, nil
+}
+
+func (s *UserStore) countWords(userID int64) (total, due, mastered int) {
+	s.db.QueryRow(`SELECT COUNT(*) FROM words`).Scan(&total)
+	s.db.QueryRow(
+		`SELECT COUNT(*) FROM word_records WHERE user_id = ? AND next_review_at <= datetime('now')`,
+		userID,
+	).Scan(&due)
+	s.db.QueryRow(
+		`SELECT COUNT(*) FROM word_records WHERE user_id = ? AND mastery_level >= 5`,
+		userID,
+	).Scan(&mastered)
+	return
+}
+
+func (s *UserStore) countGrammar(userID int64) (total, due, mastered int) {
+	s.db.QueryRow(`SELECT COUNT(*) FROM grammar_points`).Scan(&total)
+	s.db.QueryRow(
+		`SELECT COUNT(*) FROM grammar_records WHERE user_id = ? AND next_review_at <= datetime('now')`,
+		userID,
+	).Scan(&due)
+	s.db.QueryRow(
+		`SELECT COUNT(*) FROM grammar_records WHERE user_id = ? AND status = 'mastered'`,
+		userID,
+	).Scan(&mastered)
+	return
+}
+
+func (s *UserStore) countSpeaking(userID int64) (total, mastered int) {
+	s.db.QueryRow(`SELECT COUNT(*) FROM speaking_materials`).Scan(&total)
+	s.db.QueryRow(
+		`SELECT COUNT(*) FROM speaking_records WHERE user_id = ?`,
+		userID,
+	).Scan(&mastered)
+	return
+}
+
+func (s *UserStore) countWriting(userID int64) (total, mastered int) {
+	s.db.QueryRow(`SELECT COUNT(*) FROM writing_questions`).Scan(&total)
+	s.db.QueryRow(
+		`SELECT COUNT(*) FROM writing_records WHERE user_id = ? AND score >= 70`,
+		userID,
+	).Scan(&mastered)
+	return
+}
+
 // isUniqueConstraintError reports whether err is a SQLite UNIQUE constraint violation.
 func isUniqueConstraintError(err error) bool {
 	var sqliteErr *sqlite.Error

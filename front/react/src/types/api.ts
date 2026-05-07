@@ -47,6 +47,7 @@ export interface Word {
   meaning: string
   jlpt_level: JLPTLevel
   examples: WordExample[]
+  reading_type: string
 }
 
 export interface WordRecord {

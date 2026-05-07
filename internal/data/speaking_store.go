@@ -88,7 +88,7 @@ func (s *SpeakingStore) GetRecord(id int64) (*speaking.SpeakingRecord, error) {
 	var practicedAt string
 	err := row.Scan(&r.ID, &r.UserID, &r.Type, &r.MaterialID, &r.Score, &r.AudioRef, &practicedAt)
 	if err == sql.ErrNoRows {
-		slog.Error("speaking_record not found", "record_id", id)
+		slog.Debug("speaking_record not found", "record_id", id)
 		return nil, fmt.Errorf("data.SpeakingStore.GetRecord %d: %w", id, sql.ErrNoRows)
 	}
 	if err != nil {

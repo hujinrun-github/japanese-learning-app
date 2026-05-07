@@ -22,6 +22,7 @@ type UserStoreInterface interface {
 	CreateUser(u User, passwordHash string) (*User, error)
 	GetUserByEmail(email string) (*User, string, error) // returns (user, passwordHash, error)
 	GetUserByID(id int64) (*User, error)
+	GetStats(userID int64) (*UserStats, error)
 	// Password reset methods
 	GetUserIDByEmail(email string) (int64, error)
 	CreateResetToken(token string, userID int64, expiresAt time.Time) error
@@ -187,6 +188,19 @@ func (s *UserService) ResetPassword(token, newPassword string) error {
 
 	slog.Info("UserService.ResetPassword done", "user_id", rt.UserID)
 	return nil
+}
+
+// GetStats returns the user's learning stats across all modules.
+func (s *UserService) GetStats(userID int64) (*UserStats, error) {
+	slog.Debug("UserService.GetStats called", "user_id", userID)
+
+	stats, err := s.store.GetStats(userID)
+	if err != nil {
+		slog.Error("UserService.GetStats failed", "err", err, "user_id", userID)
+		return nil, fmt.Errorf("user.UserService.GetStats: %w", err)
+	}
+
+	return stats, nil
 }
 
 // generateToken creates a 32-byte cryptographically random hex token.

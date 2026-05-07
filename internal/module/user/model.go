@@ -63,14 +63,13 @@ type TokenResp struct {
 
 // UserStats 学习统计看板数据
 type UserStats struct {
-	StreakDays   int                   `json:"streak_days"`
-	TotalMinutes int                   `json:"total_minutes"`
-	ModuleStats  map[string]ModuleStat `json:"module_stats"`
+	StreakDays  int                   `json:"streak_days"`
+	ModuleStats map[string]ModuleStat `json:"modules"`
 }
 
-// ModuleStat 单个模块的使用统计
+// ModuleStat 单个模块的进度统计
 type ModuleStat struct {
-	SessionCount    int    `json:"session_count"`
-	TotalMinutes    int    `json:"total_minutes"`
-	LastPracticedAt string `json:"last_practiced_at,omitempty"`
+	DueCount      int `json:"due_count"`
+	MasteredCount int `json:"mastered_count"`
+	TotalCount    int `json:"total_count"`
 }

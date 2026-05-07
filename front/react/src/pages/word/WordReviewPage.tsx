@@ -10,6 +10,15 @@ import styles from './WordReviewPage.module.css'
 
 const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
 
+const READING_TYPE_LABELS: Record<string, string> = {
+  '1': '音読み',
+  '2': '訓読み',
+  '3': '熟字訓',
+  '4': '重箱読み',
+  '5': '湯桶読み',
+  '6': 'その他',
+}
+
 export function WordReviewPage() {
   const { t } = useTranslation()
   const [level, setLevel] = useState<JLPTLevel>('N5')
@@ -162,6 +171,14 @@ export function WordReviewPage() {
                   )}
                 </div>
                 <div className={styles.kanjiRow}>
+                  {card!.word.reading_type && (
+                    <span
+                      className={styles.readingTypeBadge}
+                      title={READING_TYPE_LABELS[card!.word.reading_type] ?? ''}
+                    >
+                      {card!.word.reading_type}
+                    </span>
+                  )}
                   <div className={styles.kanji}>{card!.word.kanji_form}</div>
                   <button
                     className={styles.speakBtn}

@@ -31,13 +31,14 @@ type WordExample struct {
 
 // Word 表示词库中的一个日语单词（内容库，只读）
 type Word struct {
-	ID           int64        `json:"id"`
-	KanjiForm    string       `json:"kanji_form"`     // 汉字写法，如「勉強」
-	Reading      string       `json:"reading"`        // 假名读音，如「べんきょう」
-	PartOfSpeech string       `json:"part_of_speech"` // 词性，如「名詞」
-	Meaning      string       `json:"meaning"`        // 中文释义
+	ID           int64         `json:"id"`
+	KanjiForm    string        `json:"kanji_form"`     // 汉字写法，如「勉強」
+	Reading      string        `json:"reading"`        // 假名读音，如「べんきょう」
+	PartOfSpeech string        `json:"part_of_speech"` // 词性，如「名詞」
+	Meaning      string        `json:"meaning"`        // 中文释义
 	Examples     []WordExample `json:"examples"`
-	JLPTLevel    JLPTLevel    `json:"jlpt_level"`
+	JLPTLevel    JLPTLevel     `json:"jlpt_level"`
+	ReadingType  string        `json:"reading_type"` // 读音类型: "1"音读 "2"训读 "3"熟字训 "4"重箱读 "5"汤桶读 "6"其他
 }
 
 // WordRecord 用户与某个单词的学习关系（用户数据，读写）
