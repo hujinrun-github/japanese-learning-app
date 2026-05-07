@@ -162,7 +162,7 @@ func (s *GrammarStore) GetRecord(userID, grammarPointID int64) (*grammar.Grammar
 	var historyJSON, nextReviewAt string
 	err := row.Scan(&r.ID, &r.UserID, &r.GrammarPointID, &r.Status, &nextReviewAt, &historyJSON)
 	if err == sql.ErrNoRows {
-		slog.Error("grammar_record not found", "user_id", userID, "grammar_point_id", grammarPointID)
+		slog.Debug("grammar_record not found", "user_id", userID, "grammar_point_id", grammarPointID)
 		return nil, fmt.Errorf("data.GrammarStore.GetRecord user=%d grammar_point=%d: %w", userID, grammarPointID, sql.ErrNoRows)
 	}
 	if err != nil {

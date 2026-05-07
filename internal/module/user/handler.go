@@ -19,23 +19,18 @@ func NewUserHandler(svc *UserService) *UserHandler {
 	return &UserHandler{svc: svc}
 }
 
-// RegisterRoutes registers user routes (public and protected).
-// Public routes:
-//
-//	POST /api/v1/auth/register          → Register
-//	POST /api/v1/auth/login             → Login
-//	POST /api/v1/auth/forgot-password   → ForgotPassword
-//	POST /api/v1/auth/reset-password    → ResetPassword
-//
-// Protected routes (require AuthMiddleware upstream):
-//
-//	GET  /api/v1/users/me               → GetProfile
-func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
+// RegisterPublicRoutes registers authentication routes (no auth required).
+func (h *UserHandler) RegisterPublicRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/register", h.handleRegister)
 	mux.HandleFunc("POST /api/v1/auth/login", h.handleLogin)
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", h.handleForgotPassword)
 	mux.HandleFunc("POST /api/v1/auth/reset-password", h.handleResetPassword)
+}
+
+// RegisterProtectedRoutes registers routes that require authentication.
+func (h *UserHandler) RegisterProtectedRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/users/me", h.handleGetProfile)
+	mux.HandleFunc("GET /api/v1/users/stats", h.handleGetStats)
 }
 
 // handleRegister handles POST /api/v1/auth/register
@@ -127,6 +122,24 @@ func (h *UserHandler) handleForgotPassword(w http.ResponseWriter, r *http.Reques
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
 		"message": "If that email is registered, a reset link has been sent.",
 	}})
+}
+
+// handleGetStats handles GET /api/v1/users/stats
+func (h *UserHandler) handleGetStats(w http.ResponseWriter, r *http.Request) {
+	userID, ok := UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+
+	stats, err := h.svc.GetStats(userID)
+	if err != nil {
+		slog.Error("handleGetStats failed", "err", err, "user_id", userID)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: stats})
 }
 
 // handleResetPassword handles POST /api/v1/auth/reset-password

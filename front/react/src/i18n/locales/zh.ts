@@ -85,6 +85,7 @@ const zh = {
       progress: '第 {{current}} / 共 {{total}} 张',
       isNew: '新词',
       flip: '点击翻转',
+	      speak: '朗读',
       masteryLevel: '掌握度 {{level}}',
       rating: {
         hard: '😓 困难',

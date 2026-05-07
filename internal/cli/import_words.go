@@ -16,6 +16,7 @@ type wordImport struct {
 	Meaning      string `json:"meaning"`
 	Examples     any    `json:"examples"`
 	JLPTLevel    string `json:"jlpt_level"`
+	ReadingType  string `json:"reading_type"`
 }
 
 // ImportWords reads a JSON array of words from filePath and inserts them into the
@@ -46,9 +47,9 @@ func ImportWords(db *sql.DB, filePath string) (int, error) {
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR IGNORE INTO words
-			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT OR REPLACE INTO words
+			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return 0, fmt.Errorf("cli.ImportWords Prepare: %w", err)
@@ -70,6 +71,7 @@ func ImportWords(db *sql.DB, filePath string) (int, error) {
 			w.Meaning,
 			string(examplesJSON),
 			w.JLPTLevel,
+			w.ReadingType,
 		)
 		if execErr != nil {
 			err = fmt.Errorf("cli.ImportWords Exec: %w", execErr)

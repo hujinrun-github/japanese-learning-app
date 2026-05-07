@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"japanese-learning-app/internal/cli"
 	"japanese-learning-app/internal/data"
@@ -27,13 +28,13 @@ func main() {
 
 	// ── Configuration ─────────────────────────────────────────────────────────
 	dbPath := envOrDefault("DB_PATH", "./data/app.db")
-	listenAddr := envOrDefault("LISTEN_ADDR", ":8080")
+	listenAddr := envOrDefault("LISTEN_ADDR", ":8081")
 	jwtSecret := envOrDefault("JWT_SECRET", "change-me-in-production")
 	logLevel := envOrDefault("LOG_LEVEL", "INFO")
 	aiAPIKey := envOrDefault("AI_API_KEY", "")
 	aiEndpoint := envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages")
-	staticDir := envOrDefault("STATIC_DIR", "./front/web/static")
-	templateDir := envOrDefault("TEMPLATE_DIR", "./front/web/templates")
+	staticDir := envOrDefault("STATIC_DIR", "./front/dist/assets")
+	templateDir := envOrDefault("TEMPLATE_DIR", "./front/dist")
 	// SMTP settings for password reset emails
 	smtpHost := envOrDefault("SMTP_HOST", "")
 	smtpPort := envOrDefault("SMTP_PORT", "587")
@@ -114,10 +115,11 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Public auth routes (no middleware)
-	userH.RegisterRoutes(mux)
+	userH.RegisterPublicRoutes(mux)
 
 	// Protected API routes wrapped in AuthMiddleware
 	protectedMux := http.NewServeMux()
+	userH.RegisterProtectedRoutes(protectedMux)
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
 	lessonH.RegisterRoutes(protectedMux)
@@ -139,9 +141,20 @@ func main() {
 	// Static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 
-	// HTML pages (serve template files directly; in a production app a template
-	// handler would render these with data, but for Phase 4 we serve them as-is)
-	mux.Handle("/", http.FileServer(http.Dir(templateDir)))
+	// SPA fallback: serve static files if they exist, otherwise serve index.html
+	// so React Router can handle client-side routes.
+	spaFS := http.Dir(templateDir)
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		f, err := spaFS.Open(path)
+		if err != nil {
+			// File not found — serve index.html for client-side routing
+			http.ServeFile(w, r, filepath.Join(string(spaFS), "index.html"))
+			return
+		}
+		f.Close()
+		http.FileServer(spaFS).ServeHTTP(w, r)
+	}))
 
 	// ── Server ────────────────────────────────────────────────────────────────
 	slog.Info("server starting", "addr", listenAddr)

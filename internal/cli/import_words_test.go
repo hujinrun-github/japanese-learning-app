@@ -131,9 +131,9 @@ func TestImportWords_IdempotentOnDuplicate(t *testing.T) {
 		t.Fatalf("second import error: %v", err)
 	}
 
-	// Inserted on second pass should be 0 (INSERT OR IGNORE).
-	if n2 != 0 {
-		t.Errorf("expected 0 new rows on second import, got %d", n2)
+	// INSERT OR REPLACE replaces existing rows, so count matches the file size.
+	if n2 != len(words) {
+		t.Errorf("expected %d rows on second import, got %d", len(words), n2)
 	}
 
 	var count int
