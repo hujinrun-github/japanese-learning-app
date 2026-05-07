@@ -89,6 +89,13 @@ func (f *fakeUserStore) UpdatePassword(userID int64, newPasswordHash string) err
 	return nil
 }
 
+func (f *fakeUserStore) GetStats(userID int64) (*user.UserStats, error) {
+	return &user.UserStats{
+		StreakDays:  7,
+		ModuleStats: make(map[string]user.ModuleStat),
+	}, nil
+}
+
 // --- tests ---
 
 func TestUserService_Register(t *testing.T) {

@@ -24,13 +24,13 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 	slog.Debug("WordStore.GetByID called", "word_id", id)
 
 	row := s.db.QueryRow(
-		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level
+		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type
 		 FROM words WHERE id = ?`, id,
 	)
 
 	var w word.Word
 	var examplesJSON string
-	err := row.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel)
+	err := row.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType)
 	if err == sql.ErrNoRows {
 		slog.Error("word not found", "word_id", id)
 		return nil, fmt.Errorf("data.WordStore.GetByID %d: %w", id, sql.ErrNoRows)
@@ -62,7 +62,7 @@ func (s *WordStore) ListByLevel(level word.JLPTLevel, page, size int) ([]word.Wo
 
 	offset := (page - 1) * size
 	rows, err := s.db.Query(
-		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level
+		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type
 		 FROM words WHERE jlpt_level = ? ORDER BY id LIMIT ? OFFSET ?`,
 		level, size, offset,
 	)
@@ -76,7 +76,7 @@ func (s *WordStore) ListByLevel(level word.JLPTLevel, page, size int) ([]word.Wo
 	for rows.Next() {
 		var w word.Word
 		var examplesJSON string
-		if err := rows.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel); err != nil {
+		if err := rows.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType); err != nil {
 			slog.Error("failed to scan word row", "err", err)
 			return nil, 0, fmt.Errorf("data.WordStore.ListByLevel scan: %w", err)
 		}
@@ -110,7 +110,7 @@ func (s *WordStore) GetRecord(userID, wordID int64) (*word.WordRecord, error) {
 	var nextReviewAt, updatedAt string
 	err := row.Scan(&r.ID, &r.UserID, &r.WordID, &r.MasteryLevel, &nextReviewAt, &r.EaseFactor, &r.Interval, &historyJSON, &updatedAt)
 	if err == sql.ErrNoRows {
-		slog.Error("word_record not found", "user_id", userID, "word_id", wordID)
+		slog.Debug("word_record not found", "user_id", userID, "word_id", wordID)
 		return nil, fmt.Errorf("data.WordStore.GetRecord user=%d word=%d: %w", userID, wordID, sql.ErrNoRows)
 	}
 	if err != nil {
