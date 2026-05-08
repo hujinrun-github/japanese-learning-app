@@ -56,3 +56,77 @@ func TestNoteStore_CreateAndGetByID(t *testing.T) {
 		t.Error("CreatedAt should not be zero")
 	}
 }
+
+func TestNoteStore_List(t *testing.T) {
+	insertTestUser(t, 2, "note_list@example.com")
+	insertTestUser(t, 3, "other_user@example.com")
+
+	db := testDB
+	store := NewNoteStore(db)
+
+	// Create test notes
+	n1 := &note.Note{UserID: 2, Type: note.TypeWord, Title: "雨", Content: "ame", Tags: []string{"N5", "天气"}}
+	n2 := &note.Note{UserID: 2, Type: note.TypeGrammar, Title: "～ている", Content: "持续体", Tags: []string{"N5"}}
+	n3 := &note.Note{UserID: 3, Type: note.TypeWord, Title: "other user", Content: "should not appear"}
+	for _, n := range []*note.Note{n1, n2, n3} {
+		if err := store.Create(n); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+	}
+
+	// List all for user 2
+	t.Run("list all", func(t *testing.T) {
+		notes, total, err := store.List(2, note.NoteListParams{Offset: 0, Limit: 10, Sort: "created_at", Order: "asc"})
+		if err != nil {
+			t.Fatalf("List failed: %v", err)
+		}
+		if total != 2 {
+			t.Errorf("total = %d, want 2", total)
+		}
+		if len(notes) != 2 {
+			t.Fatalf("len = %d, want 2", len(notes))
+		}
+	})
+
+	// Filter by type
+	t.Run("filter by type", func(t *testing.T) {
+		notes, total, err := store.List(2, note.NoteListParams{Type: note.TypeWord, Offset: 0, Limit: 10, Sort: "created_at", Order: "asc"})
+		if err != nil {
+			t.Fatalf("List failed: %v", err)
+		}
+		if total != 1 {
+			t.Errorf("total = %d, want 1", total)
+		}
+		if notes[0].Type != note.TypeWord {
+			t.Errorf("type = %q, want word", notes[0].Type)
+		}
+	})
+
+	// Filter by tag
+	t.Run("filter by tag", func(t *testing.T) {
+		notes, total, err := store.List(2, note.NoteListParams{Tag: "天气", Offset: 0, Limit: 10, Sort: "created_at", Order: "asc"})
+		if err != nil {
+			t.Fatalf("List failed: %v", err)
+		}
+		if total != 1 {
+			t.Errorf("total = %d, want 1", total)
+		}
+		if notes[0].Title != "雨" {
+			t.Errorf("title = %q, want 雨", notes[0].Title)
+		}
+	})
+
+	// Pagination
+	t.Run("pagination", func(t *testing.T) {
+		notes, total, err := store.List(2, note.NoteListParams{Offset: 0, Limit: 1, Sort: "created_at", Order: "asc"})
+		if err != nil {
+			t.Fatalf("List failed: %v", err)
+		}
+		if total != 2 {
+			t.Errorf("total = %d, want 2 (total ignores pagination)", total)
+		}
+		if len(notes) != 1 {
+			t.Errorf("len = %d, want 1", len(notes))
+		}
+	})
+}
