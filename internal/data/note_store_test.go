@@ -326,6 +326,68 @@ func TestNoteStore_Links(t *testing.T) {
 	})
 }
 
+func TestNoteStore_ListByReference(t *testing.T) {
+	insertTestUser(t, 5, "note_listbyref@example.com")
+
+	db := testDB
+	store := NewNoteStore(db)
+
+	wordID := int64(42)
+	refType := "word"
+
+	n1 := &note.Note{UserID: 5, Type: note.TypeWord, Title: "雨 note", Content: "x",
+		ReferenceID: &wordID, ReferenceType: &refType}
+	n2 := &note.Note{UserID: 5, Type: note.TypeSentence, Title: "sentence about 雨", Content: "y",
+		ReferenceID: &wordID, ReferenceType: &refType}
+	n3 := &note.Note{UserID: 5, Type: note.TypeWord, Title: "other", Content: "z"}
+	for _, n := range []*note.Note{n1, n2, n3} {
+		if err := store.Create(n); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+	}
+
+	digests, err := store.ListByReference(5, "word", wordID, 10)
+	if err != nil {
+		t.Fatalf("ListByReference failed: %v", err)
+	}
+	if len(digests) != 2 {
+		t.Fatalf("len = %d, want 2", len(digests))
+	}
+}
+
+func TestNoteStore_ListTags(t *testing.T) {
+	insertTestUser(t, 6, "note_listtags@example.com")
+
+	db := testDB
+	store := NewNoteStore(db)
+
+	n1 := &note.Note{UserID: 6, Type: note.TypeWord, Title: "a", Content: "x", Tags: []string{"N5", "动词"}}
+	n2 := &note.Note{UserID: 6, Type: note.TypeGrammar, Title: "b", Content: "y", Tags: []string{"N5", "易错"}}
+	if err := store.Create(n1); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	if err := store.Create(n2); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	tags, err := store.ListTags(6)
+	if err != nil {
+		t.Fatalf("ListTags failed: %v", err)
+	}
+	if len(tags) != 3 {
+		t.Fatalf("len = %d, want 3", len(tags))
+	}
+	tagSet := make(map[string]bool)
+	for _, tag := range tags {
+		tagSet[tag] = true
+	}
+	for _, want := range []string{"N5", "动词", "易错"} {
+		if !tagSet[want] {
+			t.Errorf("missing tag %q", want)
+		}
+	}
+}
+
 func TestNoteStore_SRS(t *testing.T) {
 	insertTestUser(t, 100, "note_srs@example.com")
 

@@ -502,6 +502,67 @@ func (s *NoteStore) ListDueNotes(userID int64) ([]note.Note, error) {
 	return notes, nil
 }
 
+// ListByReference returns note digests that reference a specific system entity.
+func (s *NoteStore) ListByReference(userID int64, refType string, refID int64, limit int) ([]note.NoteDigest, error) {
+	slog.Debug("NoteStore.ListByReference called", "user_id", userID, "ref_type", refType, "ref_id", refID)
+
+	rows, err := s.db.Query(
+		`SELECT id, title, type FROM notes
+		 WHERE user_id = ? AND reference_type = ? AND reference_id = ? AND deleted_at IS NULL
+		 ORDER BY updated_at DESC LIMIT ?`,
+		userID, refType, refID, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NoteStore.ListByReference: %w", err)
+	}
+	defer rows.Close()
+
+	var digests []note.NoteDigest
+	for rows.Next() {
+		var d note.NoteDigest
+		if err := rows.Scan(&d.ID, &d.Title, &d.Type); err != nil {
+			return nil, fmt.Errorf("NoteStore.ListByReference scan: %w", err)
+		}
+		digests = append(digests, d)
+	}
+	return digests, rows.Err()
+}
+
+// ListTags returns all distinct tags used by a user across their notes.
+func (s *NoteStore) ListTags(userID int64) ([]string, error) {
+	slog.Debug("NoteStore.ListTags called", "user_id", userID)
+
+	rows, err := s.db.Query(
+		`SELECT DISTINCT tags_json FROM notes WHERE user_id = ? AND deleted_at IS NULL`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NoteStore.ListTags: %w", err)
+	}
+	defer rows.Close()
+
+	tagSet := make(map[string]bool)
+	for rows.Next() {
+		var tagsJSON string
+		if err := rows.Scan(&tagsJSON); err != nil {
+			return nil, fmt.Errorf("NoteStore.ListTags scan: %w", err)
+		}
+		var tags []string
+		if err := json.Unmarshal([]byte(tagsJSON), &tags); err != nil {
+			continue
+		}
+		for _, t := range tags {
+			tagSet[t] = true
+		}
+	}
+
+	result := make([]string, 0, len(tagSet))
+	for t := range tagSet {
+		result = append(result, t)
+	}
+	return result, rows.Err()
+}
+
 // ListArchived returns graduated notes (mastery >= 5, next_review_at IS NULL, not deleted).
 func (s *NoteStore) ListArchived(userID int64, params note.NoteListParams) ([]note.Note, int, error) {
 	slog.Debug("NoteStore.ListArchived called", "user_id", userID)
