@@ -131,6 +131,65 @@ func TestNoteStore_List(t *testing.T) {
 	})
 }
 
+func TestNoteStore_Search(t *testing.T) {
+	insertTestUser(t, 4, "note_search@example.com")
+
+	db := testDB
+	store := NewNoteStore(db)
+
+	n1 := &note.Note{UserID: 4, Type: note.TypeWord, Title: "雨", Content: "あめ、ame", SourceText: "雨が降っている"}
+	n2 := &note.Note{UserID: 4, Type: note.TypeGrammar, Title: "～ている", Content: "持续体", SourceText: "降っている"}
+	n3 := &note.Note{UserID: 4, Type: note.TypeSentence, Title: "hello", Content: "not japanese"}
+	for _, n := range []*note.Note{n1, n2, n3} {
+		if err := store.Create(n); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+	}
+
+	t.Run("search by title", func(t *testing.T) {
+		results, err := store.Search(4, "雨", 10)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("len = %d, want 1", len(results))
+		}
+		if results[0].Title != "雨" {
+			t.Errorf("Title = %q", results[0].Title)
+		}
+	})
+
+	t.Run("search by content", func(t *testing.T) {
+		results, err := store.Search(4, "持续体", 10)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("len = %d, want 1", len(results))
+		}
+	})
+
+	t.Run("search by source_text", func(t *testing.T) {
+		results, err := store.Search(4, "降っている", 10)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 2 {
+			t.Fatalf("len = %d, want 2 (matches both 雨 and ～ている source_text)", len(results))
+		}
+	})
+
+	t.Run("no results", func(t *testing.T) {
+		results, err := store.Search(4, "nonexistent", 10)
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 0 {
+			t.Errorf("len = %d, want 0", len(results))
+		}
+	})
+}
+
 func TestNoteStore_Update(t *testing.T) {
 	insertTestUser(t, 10, "note_update@example.com")
 
