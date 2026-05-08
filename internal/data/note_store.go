@@ -75,6 +75,77 @@ func (s *NoteStore) GetByID(userID, noteID int64) (*note.Note, error) {
 	return n, nil
 }
 
+// List returns paginated notes for a user, with optional type/tag filtering and sorting.
+func (s *NoteStore) List(userID int64, params note.NoteListParams) ([]note.Note, int, error) {
+	slog.Debug("NoteStore.List called", "user_id", userID)
+
+	sortCol := "updated_at"
+	switch params.Sort {
+	case "created_at":
+		sortCol = "created_at"
+	case "next_review_at":
+		sortCol = "next_review_at"
+	case "updated_at":
+		sortCol = "updated_at"
+	}
+	order := "DESC"
+	if params.Order == "asc" {
+		order = "ASC"
+	}
+
+	where := "WHERE user_id = ? AND deleted_at IS NULL"
+	args := []interface{}{userID}
+
+	if params.Type != "" {
+		where += " AND type = ?"
+		args = append(args, string(params.Type))
+	}
+	if params.Tag != "" {
+		where += " AND tags_json LIKE ?"
+		args = append(args, fmt.Sprintf(`%%"%s"%%`, params.Tag))
+	}
+
+	// Count total
+	var total int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM notes %s", where)
+	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		slog.Error("NoteStore.List count failed", "err", err)
+		return nil, 0, fmt.Errorf("NoteStore.List count: %w", err)
+	}
+
+	// Query with sorting and pagination
+	query := fmt.Sprintf(
+		`SELECT id, user_id, type, title, content, source_text, reference_id, reference_type,
+		        tags_json, mastery_level, next_review_at, ease_factor, interval,
+		        review_history_json, created_at, updated_at
+		 FROM notes %s ORDER BY %s %s LIMIT ? OFFSET ?`,
+		where, sortCol, order,
+	)
+	args = append(args, params.Limit, params.Offset)
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("NoteStore.List query failed", "err", err)
+		return nil, 0, fmt.Errorf("NoteStore.List query: %w", err)
+	}
+	defer rows.Close()
+
+	var notes []note.Note
+	for rows.Next() {
+		n, err := scanNote(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("NoteStore.List scan: %w", err)
+		}
+		notes = append(notes, *n)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("NoteStore.List rows: %w", err)
+	}
+
+	slog.Debug("NoteStore.List done", "user_id", userID, "count", len(notes), "total", total)
+	return notes, total, nil
+}
+
 // scanNote scans a single note from a row scanner.
 func scanNote(scanner interface{ Scan(...interface{}) error }) (*note.Note, error) {
 	var n note.Note
