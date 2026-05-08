@@ -8,6 +8,7 @@ import (
 
 	"japanese-learning-app/internal/httputil"
 	"japanese-learning-app/internal/module/user"
+	"japanese-learning-app/internal/sm2"
 )
 
 // WordHandler handles HTTP requests for the word module.
@@ -69,7 +70,7 @@ func (h *WordHandler) handleSubmitRating(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
-		Rating ReviewRating `json:"rating"`
+		Rating sm2.Rating `json:"rating"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
