@@ -11,6 +11,7 @@ import (
 	"japanese-learning-app/internal/data"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/note"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/user"
@@ -66,6 +67,7 @@ func main() {
 	writingStore  := data.NewWritingStore(db)
 	userStore     := data.NewUserStore(db)
 	sessionStore  := data.NewSessionStore(db)
+	noteStore     := data.NewNoteStore(db)
 
 	// ── AI reviewer (writing) ─────────────────────────────────────────────────
 	var aiReviewer writing.AIReviewer
@@ -92,6 +94,7 @@ func main() {
 	lessonAdapter  := data.NewLessonStoreAdapter(lessonStore)
 	userAdapter    := data.NewUserStoreAdapter(userStore)
 	sessionAdapter := data.NewSessionStoreAdapter(sessionStore)
+	noteAdapter    := data.NewNoteStoreAdapter(noteStore)
 
 	// ── Services ──────────────────────────────────────────────────────────────
 	wordSvc     := word.NewWordService(wordAdapter)
@@ -101,6 +104,7 @@ func main() {
 	writingSvc  := writing.NewWritingService(writingStore, aiReviewer)
 	userSvc     := user.NewUserService(userAdapter, jwtSecret, mailer, appBaseURL)
 	summarySvc  := summary.NewSummaryService(sessionAdapter)
+	noteSvc     := note.NewNoteService(noteAdapter)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	wordH     := word.NewWordHandler(wordSvc)
@@ -110,6 +114,7 @@ func main() {
 	writingH  := writing.NewWritingHandler(writingSvc)
 	userH     := user.NewUserHandler(userSvc)
 	summaryH  := summary.NewSummaryHandler(summarySvc)
+	noteH     := note.NewNoteHandler(noteSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
@@ -126,6 +131,7 @@ func main() {
 	speakingH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)
 	summaryH.RegisterRoutes(protectedMux)
+	noteH.RegisterRoutes(protectedMux)
 
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
@@ -137,6 +143,8 @@ func main() {
 	mux.Handle("/api/v1/summary", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/summary/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/users/", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/notes", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/notes/", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
