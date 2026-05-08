@@ -1,6 +1,10 @@
 package word
 
-import "time"
+import (
+	"time"
+
+	"japanese-learning-app/internal/sm2"
+)
 
 // JLPTLevel 表示 JLPT 等级
 type JLPTLevel string
@@ -13,13 +17,16 @@ const (
 	LevelN1 JLPTLevel = "N1"
 )
 
-// ReviewRating 用户对单词的三级评分
-type ReviewRating string
+// Aliases for backward compatibility within the word package.
+// Prefer using sm2.Rating and sm2.ReviewEvent directly.
+type ReviewRating = sm2.Rating
+type ReviewEvent = sm2.ReviewEvent
 
+// Rating constants re-exported for convenience.
 const (
-	RatingEasy   ReviewRating = "easy"
-	RatingNormal ReviewRating = "normal"
-	RatingHard   ReviewRating = "hard"
+	RatingEasy   = sm2.RatingEasy
+	RatingNormal = sm2.RatingNormal
+	RatingHard   = sm2.RatingHard
 )
 
 // WordExample 单词例句
@@ -43,21 +50,15 @@ type Word struct {
 
 // WordRecord 用户与某个单词的学习关系（用户数据，读写）
 type WordRecord struct {
-	ID            int64         `json:"id"`
-	UserID        int64         `json:"user_id"`
-	WordID        int64         `json:"word_id"`
-	MasteryLevel  int           `json:"mastery_level"` // 0~5，SM-2 重复次数
-	NextReviewAt  time.Time     `json:"next_review_at"`
-	EaseFactor    float64       `json:"ease_factor"` // SM-2 EF，初始 2.5
-	Interval      int           `json:"interval"`    // 距下次复习的天数
-	ReviewHistory []ReviewEvent `json:"review_history"`
-	UpdatedAt     time.Time     `json:"updated_at"`
-}
-
-// ReviewEvent 一次评分事件记录
-type ReviewEvent struct {
-	Rating     ReviewRating `json:"rating"`
-	ReviewedAt time.Time    `json:"reviewed_at"`
+	ID            int64            `json:"id"`
+	UserID        int64            `json:"user_id"`
+	WordID        int64            `json:"word_id"`
+	MasteryLevel  int              `json:"mastery_level"` // 0~5，SM-2 重复次数
+	NextReviewAt  time.Time        `json:"next_review_at"`
+	EaseFactor    float64          `json:"ease_factor"` // SM-2 EF，初始 2.5
+	Interval      int              `json:"interval"`    // 距下次复习的天数
+	ReviewHistory []sm2.ReviewEvent `json:"review_history"`
+	UpdatedAt     time.Time        `json:"updated_at"`
 }
 
 // WordCard 复习队列中的单张卡片（聚合 Word + WordRecord）

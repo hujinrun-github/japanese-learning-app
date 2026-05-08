@@ -3,6 +3,9 @@ package word
 import (
 	"fmt"
 	"log/slog"
+	"time"
+
+	"japanese-learning-app/internal/sm2"
 )
 
 // WordStoreInterface defines data access methods required by WordService.
@@ -103,9 +106,20 @@ func (s *WordService) SubmitRating(userID, wordID int64, rating ReviewRating) er
 		base = WordRecord{UserID: userID, WordID: wordID, EaseFactor: 2.5}
 	}
 
-	updated := CalcNextReview(base, rating)
-	updated.UserID = userID
-	updated.WordID = wordID
+	newMastery, newInterval, newEF, nextReview, newHistory := sm2.CalcNextReview(
+		base.MasteryLevel, base.Interval, base.EaseFactor,
+		sm2.Rating(rating), base.ReviewHistory,
+	)
+	updated := WordRecord{
+		UserID:        userID,
+		WordID:        wordID,
+		MasteryLevel:  newMastery,
+		Interval:      newInterval,
+		EaseFactor:    newEF,
+		NextReviewAt:  nextReview,
+		ReviewHistory: newHistory,
+		UpdatedAt:     time.Now(),
+	}
 
 	if err := s.store.UpsertRecord(updated); err != nil {
 		slog.Error("WordService.SubmitRating: UpsertRecord failed", "err", err)
