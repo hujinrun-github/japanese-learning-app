@@ -108,7 +108,7 @@ func main() {
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	wordH     := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
-	grammarH  := grammar.NewGrammarHandler(grammarSvc)
+	grammarH  := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
 	lessonH   := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	writingH  := writing.NewWritingHandler(writingSvc)
@@ -210,6 +210,23 @@ func (p *wordNoteProvider) ListByReference(userID int64, refType string, refID i
 	result := make([]word.NoteDigest, len(digests))
 	for i, d := range digests {
 		result[i] = word.NoteDigest{ID: d.ID, Title: d.Title, Type: string(d.Type)}
+	}
+	return result, nil
+}
+
+// grammarNoteProvider adapts note.NoteService to grammar.NoteDigestProvider.
+type grammarNoteProvider struct {
+	svc *note.NoteService
+}
+
+func (p *grammarNoteProvider) ListByReference(userID int64, refType string, refID int64, limit int) ([]grammar.NoteDigest, error) {
+	digests, err := p.svc.ListByReference(userID, refType, refID, limit)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]grammar.NoteDigest, len(digests))
+	for i, d := range digests {
+		result[i] = grammar.NoteDigest{ID: d.ID, Title: d.Title, Type: string(d.Type)}
 	}
 	return result, nil
 }
