@@ -400,3 +400,159 @@ func formatSQLiteTimePtr(t *time.Time) interface{} {
 	}
 	return formatSQLiteTime(*t)
 }
+
+// Promote sets next_review_at to now, adding the note to the review queue.
+func (s *NoteStore) Promote(userID, noteID int64) error {
+	slog.Debug("NoteStore.Promote called", "user_id", userID, "note_id", noteID)
+
+	result, err := s.db.Exec(
+		`UPDATE notes SET next_review_at = datetime('now'), updated_at = datetime('now')
+		 WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+		noteID, userID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.Promote failed", "err", err)
+		return fmt.Errorf("NoteStore.Promote: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("NoteStore.Promote: note %d not found", noteID)
+	}
+	return nil
+}
+
+// Demote removes the note from the review queue by setting next_review_at to NULL.
+func (s *NoteStore) Demote(userID, noteID int64) error {
+	slog.Debug("NoteStore.Demote called", "user_id", userID, "note_id", noteID)
+
+	result, err := s.db.Exec(
+		`UPDATE notes SET next_review_at = NULL, updated_at = datetime('now')
+		 WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+		noteID, userID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.Demote failed", "err", err)
+		return fmt.Errorf("NoteStore.Demote: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("NoteStore.Demote: note %d not found", noteID)
+	}
+	return nil
+}
+
+// SaveReview persists SM-2 review results (mastery, interval, EF, next_review_at, history).
+func (s *NoteStore) SaveReview(userID, noteID int64, n note.Note) error {
+	slog.Debug("NoteStore.SaveReview called", "user_id", userID, "note_id", noteID)
+
+	historyJSON, err := json.Marshal(n.ReviewHistory)
+	if err != nil {
+		return fmt.Errorf("NoteStore.SaveReview marshal history: %w", err)
+	}
+
+	_, err = s.db.Exec(
+		`UPDATE notes SET
+		    mastery_level = ?, next_review_at = ?, ease_factor = ?, interval = ?,
+		    review_history_json = ?, updated_at = datetime('now')
+		 WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+		n.MasteryLevel, formatSQLiteTimePtr(n.NextReviewAt), n.EaseFactor,
+		n.Interval, string(historyJSON),
+		noteID, userID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.SaveReview failed", "err", err)
+		return fmt.Errorf("NoteStore.SaveReview: %w", err)
+	}
+	return nil
+}
+
+// ListDueNotes returns notes due for review (next_review_at <= now, not deleted).
+func (s *NoteStore) ListDueNotes(userID int64) ([]note.Note, error) {
+	slog.Debug("NoteStore.ListDueNotes called", "user_id", userID)
+
+	rows, err := s.db.Query(
+		`SELECT id, user_id, type, title, content, source_text, reference_id, reference_type,
+		        tags_json, mastery_level, next_review_at, ease_factor, interval,
+		        review_history_json, created_at, updated_at
+		 FROM notes
+		 WHERE user_id = ? AND next_review_at IS NOT NULL AND next_review_at <= datetime('now')
+		       AND deleted_at IS NULL
+		 ORDER BY next_review_at ASC`,
+		userID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.ListDueNotes query failed", "err", err)
+		return nil, fmt.Errorf("NoteStore.ListDueNotes: %w", err)
+	}
+	defer rows.Close()
+
+	var notes []note.Note
+	for rows.Next() {
+		n, err := scanNote(rows)
+		if err != nil {
+			return nil, fmt.Errorf("NoteStore.ListDueNotes scan: %w", err)
+		}
+		notes = append(notes, *n)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("NoteStore.ListDueNotes rows: %w", err)
+	}
+
+	slog.Debug("NoteStore.ListDueNotes done", "user_id", userID, "count", len(notes))
+	return notes, nil
+}
+
+// ListArchived returns graduated notes (mastery >= 5, next_review_at IS NULL, not deleted).
+func (s *NoteStore) ListArchived(userID int64, params note.NoteListParams) ([]note.Note, int, error) {
+	slog.Debug("NoteStore.ListArchived called", "user_id", userID)
+
+	where := "WHERE user_id = ? AND mastery_level >= 5 AND next_review_at IS NULL AND deleted_at IS NULL"
+	args := []interface{}{userID}
+
+	sortCol := "updated_at"
+	if params.Sort == "created_at" {
+		sortCol = "created_at"
+	}
+	order := "DESC"
+	if params.Order == "asc" {
+		order = "ASC"
+	}
+
+	var total int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM notes %s", where)
+	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		slog.Error("NoteStore.ListArchived count failed", "err", err)
+		return nil, 0, fmt.Errorf("NoteStore.ListArchived count: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		`SELECT id, user_id, type, title, content, source_text, reference_id, reference_type,
+		        tags_json, mastery_level, next_review_at, ease_factor, interval,
+		        review_history_json, created_at, updated_at
+		 FROM notes %s ORDER BY %s %s LIMIT ? OFFSET ?`,
+		where, sortCol, order,
+	)
+	args = append(args, params.Limit, params.Offset)
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("NoteStore.ListArchived query failed", "err", err)
+		return nil, 0, fmt.Errorf("NoteStore.ListArchived query: %w", err)
+	}
+	defer rows.Close()
+
+	var notes []note.Note
+	for rows.Next() {
+		n, err := scanNote(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("NoteStore.ListArchived scan: %w", err)
+		}
+		notes = append(notes, *n)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("NoteStore.ListArchived rows: %w", err)
+	}
+
+	slog.Debug("NoteStore.ListArchived done", "user_id", userID, "count", len(notes), "total", total)
+	return notes, total, nil
+}

@@ -2,6 +2,7 @@ package data
 
 import (
 	"testing"
+	"time"
 
 	"japanese-learning-app/internal/module/note"
 )
@@ -322,5 +323,92 @@ func TestNoteStore_Links(t *testing.T) {
 		if len(remaining) != 1 {
 			t.Errorf("len = %d, want 1 after removal", len(remaining))
 		}
+	})
+}
+
+func TestNoteStore_SRS(t *testing.T) {
+	insertTestUser(t, 100, "note_srs@example.com")
+
+	db := testDB
+	store := NewNoteStore(db)
+
+	n := &note.Note{UserID: 100, Type: note.TypeWord, Title: "雨", Content: "ame"}
+	if err := store.Create(n); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	t.Run("promote", func(t *testing.T) {
+		if err := store.Promote(100, n.ID); err != nil {
+			t.Fatalf("Promote failed: %v", err)
+		}
+		got, _ := store.GetByID(100, n.ID)
+		if got.NextReviewAt == nil {
+			t.Error("NextReviewAt should be set after promote")
+		}
+		if got.MasteryLevel != 0 {
+			t.Errorf("MasteryLevel = %d, want 0", got.MasteryLevel)
+		}
+	})
+
+	t.Run("demote", func(t *testing.T) {
+		if err := store.Demote(100, n.ID); err != nil {
+			t.Fatalf("Demote failed: %v", err)
+		}
+		got, _ := store.GetByID(100, n.ID)
+		if got.NextReviewAt != nil {
+			t.Error("NextReviewAt should be nil after demote")
+		}
+	})
+
+	t.Run("save review", func(t *testing.T) {
+		store.Promote(100, n.ID)
+		got, _ := store.GetByID(100, n.ID)
+		got.MasteryLevel = 2
+		got.EaseFactor = 2.5
+		got.Interval = 6
+		now := time.Now()
+		got.NextReviewAt = &now
+
+		if err := store.SaveReview(100, n.ID, *got); err != nil {
+			t.Fatalf("SaveReview failed: %v", err)
+		}
+		updated, _ := store.GetByID(100, n.ID)
+		if updated.MasteryLevel != 2 {
+			t.Errorf("MasteryLevel = %d, want 2", updated.MasteryLevel)
+		}
+	})
+
+	t.Run("list due notes", func(t *testing.T) {
+		store.Promote(100, n.ID)
+		due, err := store.ListDueNotes(100)
+		if err != nil {
+			t.Fatalf("ListDueNotes failed: %v", err)
+		}
+		found := false
+		for _, dn := range due {
+			if dn.ID == n.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("promoted note should appear in due notes")
+		}
+	})
+
+	t.Run("list archived", func(t *testing.T) {
+		n2 := &note.Note{UserID: 100, Type: note.TypeWord, Title: "graduated", Content: "x"}
+		store.Create(n2)
+		// Directly update to simulate graduation (mastery >= 5, next_review_at = NULL)
+		db.Exec(`UPDATE notes SET mastery_level = 5, next_review_at = NULL WHERE id = ?`, n2.ID)
+
+		archived, total, err := store.ListArchived(100, note.NoteListParams{Offset: 0, Limit: 10, Sort: "created_at", Order: "asc"})
+		if err != nil {
+			t.Fatalf("ListArchived failed: %v", err)
+		}
+		if total < 1 {
+			t.Errorf("total = %d, want >= 1", total)
+		}
+		_ = archived
 	})
 }
