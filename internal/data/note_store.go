@@ -296,6 +296,103 @@ func (s *NoteStore) SoftDelete(userID, noteID int64) error {
 	return nil
 }
 
+// AddLink creates a link between two notes.
+func (s *NoteStore) AddLink(userID, noteID, targetNoteID int64, relation note.LinkRelation) (*note.NoteLink, error) {
+	slog.Debug("NoteStore.AddLink called", "user_id", userID)
+
+	result, err := s.db.Exec(
+		`INSERT INTO note_links (user_id, note_id, target_note_id, relation)
+		 VALUES (?, ?, ?, ?)`,
+		userID, noteID, targetNoteID, string(relation),
+	)
+	if err != nil {
+		slog.Error("NoteStore.AddLink failed", "err", err)
+		return nil, fmt.Errorf("NoteStore.AddLink: %w", err)
+	}
+
+	id, _ := result.LastInsertId()
+	return &note.NoteLink{
+		ID:           id,
+		NoteID:       noteID,
+		TargetNoteID: targetNoteID,
+		Relation:     relation,
+	}, nil
+}
+
+// RemoveLink deletes a link by ID.
+func (s *NoteStore) RemoveLink(userID, linkID int64) error {
+	slog.Debug("NoteStore.RemoveLink called", "user_id", userID, "link_id", linkID)
+
+	result, err := s.db.Exec(
+		`DELETE FROM note_links WHERE id = ? AND user_id = ?`,
+		linkID, userID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.RemoveLink failed", "err", err)
+		return fmt.Errorf("NoteStore.RemoveLink: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("NoteStore.RemoveLink: link %d not found", linkID)
+	}
+	return nil
+}
+
+// GetOutgoingLinks returns all links from a note to others, with target note digests populated.
+func (s *NoteStore) GetOutgoingLinks(userID, noteID int64) ([]note.NoteLink, error) {
+	slog.Debug("NoteStore.GetOutgoingLinks called", "user_id", userID, "note_id", noteID)
+
+	rows, err := s.db.Query(
+		`SELECT nl.id, nl.note_id, nl.target_note_id, nl.relation,
+		        n.id, n.title, n.type
+		 FROM note_links nl
+		 JOIN notes n ON nl.target_note_id = n.id
+		 WHERE nl.user_id = ? AND nl.note_id = ? AND n.deleted_at IS NULL`,
+		userID, noteID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NoteStore.GetOutgoingLinks: %w", err)
+	}
+	defer rows.Close()
+
+	return scanNoteLinks(rows)
+}
+
+// GetIncomingLinks returns all links from other notes to this note (backlinks).
+func (s *NoteStore) GetIncomingLinks(userID, noteID int64) ([]note.NoteLink, error) {
+	slog.Debug("NoteStore.GetIncomingLinks called", "user_id", userID, "note_id", noteID)
+
+	rows, err := s.db.Query(
+		`SELECT nl.id, nl.note_id, nl.target_note_id, nl.relation,
+		        n.id, n.title, n.type
+		 FROM note_links nl
+		 JOIN notes n ON nl.note_id = n.id
+		 WHERE nl.user_id = ? AND nl.target_note_id = ? AND n.deleted_at IS NULL`,
+		userID, noteID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NoteStore.GetIncomingLinks: %w", err)
+	}
+	defer rows.Close()
+
+	return scanNoteLinks(rows)
+}
+
+func scanNoteLinks(rows *sql.Rows) ([]note.NoteLink, error) {
+	var links []note.NoteLink
+	for rows.Next() {
+		var l note.NoteLink
+		var digest note.NoteDigest
+		if err := rows.Scan(&l.ID, &l.NoteID, &l.TargetNoteID, &l.Relation,
+			&digest.ID, &digest.Title, &digest.Type); err != nil {
+			return nil, fmt.Errorf("scanNoteLinks: %w", err)
+		}
+		l.TargetNote = &digest
+		links = append(links, l)
+	}
+	return links, rows.Err()
+}
+
 // formatSQLiteTimePtr formats a *time.Time for SQLite, returning nil if nil.
 func formatSQLiteTimePtr(t *time.Time) interface{} {
 	if t == nil {

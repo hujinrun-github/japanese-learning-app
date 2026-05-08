@@ -255,3 +255,72 @@ func TestNoteStore_SoftDelete(t *testing.T) {
 	}
 	_ = notes
 }
+
+func TestNoteStore_Links(t *testing.T) {
+	insertTestUser(t, 20, "note_links@example.com")
+
+	store := NewNoteStore(testDB)
+
+	wordNote := &note.Note{UserID: 20, Type: note.TypeWord, Title: "雨", Content: "ame"}
+	grammarNote := &note.Note{UserID: 20, Type: note.TypeGrammar, Title: "～ている", Content: "持续体"}
+	sentenceNote := &note.Note{UserID: 20, Type: note.TypeSentence, Title: "雨が降っている", Content: "正在下雨"}
+	for _, n := range []*note.Note{wordNote, grammarNote, sentenceNote} {
+		if err := store.Create(n); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+	}
+
+	t.Run("add link", func(t *testing.T) {
+		link, err := store.AddLink(20, grammarNote.ID, wordNote.ID, note.RelationUsesWord)
+		if err != nil {
+			t.Fatalf("AddLink failed: %v", err)
+		}
+		if link.ID == 0 {
+			t.Error("link ID not set")
+		}
+		if link.Relation != note.RelationUsesWord {
+			t.Errorf("relation = %q", link.Relation)
+		}
+	})
+
+	t.Run("duplicate link", func(t *testing.T) {
+		_, err := store.AddLink(20, grammarNote.ID, wordNote.ID, note.RelationUsesWord)
+		if err == nil {
+			t.Error("expected error for duplicate link")
+		}
+	})
+
+	store.AddLink(20, sentenceNote.ID, wordNote.ID, note.RelationContext)
+	store.AddLink(20, sentenceNote.ID, grammarNote.ID, note.RelationUsesGrammar)
+
+	t.Run("outgoing links", func(t *testing.T) {
+		links, err := store.GetOutgoingLinks(20, sentenceNote.ID)
+		if err != nil {
+			t.Fatalf("GetOutgoingLinks failed: %v", err)
+		}
+		if len(links) != 2 {
+			t.Fatalf("len = %d, want 2", len(links))
+		}
+	})
+
+	t.Run("incoming links", func(t *testing.T) {
+		links, err := store.GetIncomingLinks(20, wordNote.ID)
+		if err != nil {
+			t.Fatalf("GetIncomingLinks failed: %v", err)
+		}
+		if len(links) != 2 {
+			t.Fatalf("len = %d, want 2 (grammar uses_word + sentence context)", len(links))
+		}
+	})
+
+	t.Run("remove link", func(t *testing.T) {
+		links, _ := store.GetOutgoingLinks(20, sentenceNote.ID)
+		if err := store.RemoveLink(20, links[0].ID); err != nil {
+			t.Fatalf("RemoveLink failed: %v", err)
+		}
+		remaining, _ := store.GetOutgoingLinks(20, sentenceNote.ID)
+		if len(remaining) != 1 {
+			t.Errorf("len = %d, want 1 after removal", len(remaining))
+		}
+	})
+}
