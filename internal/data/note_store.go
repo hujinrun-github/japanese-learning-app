@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"japanese-learning-app/internal/module/note"
 )
@@ -197,4 +198,68 @@ func scanNote(scanner interface{ Scan(...interface{}) error }) (*note.Note, erro
 	}
 
 	return &n, nil
+}
+
+// Update updates all editable fields of a note. The updated_at timestamp is refreshed.
+func (s *NoteStore) Update(n *note.Note) error {
+	slog.Debug("NoteStore.Update called", "user_id", n.UserID, "note_id", n.ID)
+
+	tagsJSON, err := json.Marshal(n.Tags)
+	if err != nil {
+		return fmt.Errorf("NoteStore.Update marshal tags: %w", err)
+	}
+
+	historyJSON, err := json.Marshal(n.ReviewHistory)
+	if err != nil {
+		return fmt.Errorf("NoteStore.Update marshal review_history: %w", err)
+	}
+
+	_, err = s.db.Exec(
+		`UPDATE notes SET
+		    type = ?, title = ?, content = ?, source_text = ?,
+		    reference_id = ?, reference_type = ?, tags_json = ?,
+		    mastery_level = ?, next_review_at = ?, ease_factor = ?,
+		    interval = ?, review_history_json = ?, updated_at = datetime('now')
+		 WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+		n.Type, n.Title, n.Content, n.SourceText,
+		n.ReferenceID, n.ReferenceType, string(tagsJSON),
+		n.MasteryLevel, formatSQLiteTimePtr(n.NextReviewAt), n.EaseFactor,
+		n.Interval, string(historyJSON),
+		n.ID, n.UserID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.Update failed", "err", err)
+		return fmt.Errorf("NoteStore.Update exec: %w", err)
+	}
+
+	return nil
+}
+
+// SoftDelete marks a note as deleted by setting deleted_at.
+func (s *NoteStore) SoftDelete(userID, noteID int64) error {
+	slog.Debug("NoteStore.SoftDelete called", "user_id", userID, "note_id", noteID)
+
+	result, err := s.db.Exec(
+		`UPDATE notes SET deleted_at = datetime('now') WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+		noteID, userID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.SoftDelete failed", "err", err)
+		return fmt.Errorf("NoteStore.SoftDelete exec: %w", err)
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("NoteStore.SoftDelete: note %d not found or already deleted", noteID)
+	}
+
+	return nil
+}
+
+// formatSQLiteTimePtr formats a *time.Time for SQLite, returning nil if nil.
+func formatSQLiteTimePtr(t *time.Time) interface{} {
+	if t == nil {
+		return nil
+	}
+	return formatSQLiteTime(*t)
 }

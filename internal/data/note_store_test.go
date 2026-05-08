@@ -130,3 +130,69 @@ func TestNoteStore_List(t *testing.T) {
 		}
 	})
 }
+
+func TestNoteStore_Update(t *testing.T) {
+	insertTestUser(t, 10, "note_update@example.com")
+
+	db := testDB
+	store := NewNoteStore(db)
+
+	n := &note.Note{UserID: 10, Type: note.TypeWord, Title: "雨", Content: "old content", Tags: []string{"N5"}}
+	if err := store.Create(n); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	n.Title = "雨（更新）"
+	n.Content = "new content"
+	n.Tags = []string{"N5", "天气"}
+
+	if err := store.Update(n); err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	got, err := store.GetByID(10, n.ID)
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
+	if got.Title != "雨（更新）" {
+		t.Errorf("Title = %q", got.Title)
+	}
+	if got.Content != "new content" {
+		t.Errorf("Content = %q", got.Content)
+	}
+	if len(got.Tags) != 2 {
+		t.Errorf("Tags len = %d, want 2", len(got.Tags))
+	}
+}
+
+func TestNoteStore_SoftDelete(t *testing.T) {
+	insertTestUser(t, 11, "note_softdelete@example.com")
+
+	db := testDB
+	store := NewNoteStore(db)
+
+	n := &note.Note{UserID: 11, Type: note.TypeWord, Title: "to delete", Content: "x"}
+	if err := store.Create(n); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	if err := store.SoftDelete(11, n.ID); err != nil {
+		t.Fatalf("SoftDelete failed: %v", err)
+	}
+
+	// GetByID should return error for soft-deleted note
+	_, err := store.GetByID(11, n.ID)
+	if err == nil {
+		t.Error("expected error for soft-deleted note")
+	}
+
+	// List should not include soft-deleted note
+	notes, total, err := store.List(11, note.NoteListParams{Offset: 0, Limit: 10, Sort: "created_at", Order: "asc"})
+	if err != nil {
+		t.Fatalf("List failed: %v", err)
+	}
+	if total != 0 {
+		t.Errorf("total = %d, want 0", total)
+	}
+	_ = notes
+}
