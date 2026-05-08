@@ -235,6 +235,46 @@ func (s *NoteStore) Update(n *note.Note) error {
 	return nil
 }
 
+// Search performs FTS5 full-text search on title, content, and source_text.
+// Results are joined with notes table to filter by user and soft-delete.
+func (s *NoteStore) Search(userID int64, query string, limit int) ([]note.Note, error) {
+	slog.Debug("NoteStore.Search called", "user_id", userID, "query", query)
+
+	likePattern := "%" + query + "%"
+	rows, err := s.db.Query(
+		`SELECT id, user_id, type, title, content, source_text,
+		        reference_id, reference_type, tags_json,
+		        mastery_level, next_review_at, ease_factor, interval,
+		        review_history_json, created_at, updated_at
+		 FROM notes
+		 WHERE (title LIKE ? OR content LIKE ? OR source_text LIKE ?)
+		   AND user_id = ? AND deleted_at IS NULL
+		 ORDER BY updated_at DESC
+		 LIMIT ?`,
+		likePattern, likePattern, likePattern, userID, limit,
+	)
+	if err != nil {
+		slog.Error("NoteStore.Search query failed", "err", err)
+		return nil, fmt.Errorf("NoteStore.Search: %w", err)
+	}
+	defer rows.Close()
+
+	var notes []note.Note
+	for rows.Next() {
+		n, err := scanNote(rows)
+		if err != nil {
+			return nil, fmt.Errorf("NoteStore.Search scan: %w", err)
+		}
+		notes = append(notes, *n)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("NoteStore.Search rows: %w", err)
+	}
+
+	slog.Debug("NoteStore.Search done", "user_id", userID, "count", len(notes))
+	return notes, nil
+}
+
 // SoftDelete marks a note as deleted by setting deleted_at.
 func (s *NoteStore) SoftDelete(userID, noteID int64) error {
 	slog.Debug("NoteStore.SoftDelete called", "user_id", userID, "note_id", noteID)

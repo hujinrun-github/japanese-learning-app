@@ -43,7 +43,8 @@ CREATE INDEX IF NOT EXISTS idx_note_links_target ON note_links(target_note_id);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     title, content, source_text,
-    content=notes, content_rowid=id
+    content=notes, content_rowid=id,
+    tokenize='unicode61'
 );
 
 CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
