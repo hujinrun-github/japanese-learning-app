@@ -108,7 +108,7 @@ func (s *WordService) SubmitRating(userID, wordID int64, rating ReviewRating) er
 
 	newMastery, newInterval, newEF, nextReview, newHistory := sm2.CalcNextReview(
 		base.MasteryLevel, base.Interval, base.EaseFactor,
-		sm2.Rating(rating), base.ReviewHistory,
+		rating, base.ReviewHistory,
 	)
 	updated := WordRecord{
 		UserID:        userID,

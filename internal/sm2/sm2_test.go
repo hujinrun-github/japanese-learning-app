@@ -7,6 +7,27 @@ import (
 	"japanese-learning-app/internal/sm2"
 )
 
+func TestCalcNextReview_NonNilHistory(t *testing.T) {
+	oldHistory := []sm2.ReviewEvent{
+		{Rating: sm2.RatingEasy, ReviewedAt: time.Now().Add(-48 * time.Hour)},
+	}
+
+	_, _, _, _, newHistory := sm2.CalcNextReview(1, 1, 2.5, sm2.RatingNormal, oldHistory)
+
+	if len(newHistory) != len(oldHistory)+1 {
+		t.Errorf("history len = %d, want %d", len(newHistory), len(oldHistory)+1)
+	}
+	if newHistory[0].Rating != oldHistory[0].Rating {
+		t.Errorf("history[0].Rating = %s, want %s", newHistory[0].Rating, oldHistory[0].Rating)
+	}
+	if !newHistory[0].ReviewedAt.Equal(oldHistory[0].ReviewedAt) {
+		t.Errorf("history[0].ReviewedAt = %v, want %v", newHistory[0].ReviewedAt, oldHistory[0].ReviewedAt)
+	}
+	if newHistory[1].Rating != sm2.RatingNormal {
+		t.Errorf("history[1].Rating = %s, want %s", newHistory[1].Rating, sm2.RatingNormal)
+	}
+}
+
 func TestCalcNextReview(t *testing.T) {
 	tests := []struct {
 		name         string
