@@ -28,6 +28,11 @@ func NewWordService(store WordStoreInterface) *WordService {
 	return &WordService{store: store}
 }
 
+// GetByID returns a word by ID.
+func (s *WordService) GetByID(id int64) (*Word, error) {
+	return s.store.GetByID(id)
+}
+
 // GetReviewQueue returns the review queue for a user at the given JLPT level.
 // It merges due records (existing, overdue) with new words (no record yet).
 func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel) ([]WordCard, error) {
