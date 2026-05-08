@@ -107,7 +107,7 @@ func main() {
 	noteSvc     := note.NewNoteService(noteAdapter)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
-	wordH     := word.NewWordHandler(wordSvc)
+	wordH     := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
 	grammarH  := grammar.NewGrammarHandler(grammarSvc)
 	lessonH   := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
@@ -195,4 +195,21 @@ func setupLogger(level string) {
 		l = slog.LevelInfo
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: l})))
+}
+
+// wordNoteProvider adapts note.NoteService to word.NoteDigestProvider.
+type wordNoteProvider struct {
+	svc *note.NoteService
+}
+
+func (p *wordNoteProvider) ListByReference(userID int64, refType string, refID int64, limit int) ([]word.NoteDigest, error) {
+	digests, err := p.svc.ListByReference(userID, refType, refID, limit)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]word.NoteDigest, len(digests))
+	for i, d := range digests {
+		result[i] = word.NoteDigest{ID: d.ID, Title: d.Title, Type: string(d.Type)}
+	}
+	return result, nil
 }

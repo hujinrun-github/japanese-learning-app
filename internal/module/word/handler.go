@@ -11,14 +11,32 @@ import (
 	"japanese-learning-app/internal/sm2"
 )
 
+// NoteDigestProvider is the optional interface for cross-module note enrichment.
+type NoteDigestProvider interface {
+	ListByReference(userID int64, refType string, refID int64, limit int) ([]NoteDigest, error)
+}
+
+// NoteDigest is a lightweight note reference for cross-module responses.
+type NoteDigest struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+	Type  string `json:"type"`
+}
+
 // WordHandler handles HTTP requests for the word module.
 type WordHandler struct {
-	svc *WordService
+	svc     *WordService
+	noteSvc NoteDigestProvider
 }
 
 // NewWordHandler creates a WordHandler.
 func NewWordHandler(svc *WordService) *WordHandler {
 	return &WordHandler{svc: svc}
+}
+
+// NewWordHandlerWithNotes creates a WordHandler with optional note enrichment.
+func NewWordHandlerWithNotes(svc *WordService, noteSvc NoteDigestProvider) *WordHandler {
+	return &WordHandler{svc: svc, noteSvc: noteSvc}
 }
 
 // RegisterRoutes registers routes onto the provided mux.
@@ -27,6 +45,7 @@ func NewWordHandler(svc *WordService) *WordHandler {
 //   POST /api/v1/words/{id}/rate        → SubmitRating
 //   POST /api/v1/words/{id}/bookmark    → Bookmark
 func (h *WordHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/words/{id}", h.handleGetWord)
 	mux.HandleFunc("GET /api/v1/words/queue", h.handleGetReviewQueue)
 	mux.HandleFunc("POST /api/v1/words/{id}/rate", h.handleSubmitRating)
 	mux.HandleFunc("POST /api/v1/words/{id}/bookmark", h.handleBookmark)
@@ -107,4 +126,41 @@ func (h *WordHandler) handleBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{"status": "ok"}})
+}
+
+// handleGetWord handles GET /api/v1/words/{id}
+func (h *WordHandler) handleGetWord(w http.ResponseWriter, r *http.Request) {
+	userID, ok := user.UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+
+	wordID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid word id", "")
+		return
+	}
+
+	wrd, err := h.svc.GetByID(wordID)
+	if err != nil {
+		slog.Error("handleGetWord failed", "err", err, "word_id", wordID)
+		httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "word not found", "")
+		return
+	}
+
+	type enriched struct {
+		Word
+		RelatedNotes []NoteDigest `json:"related_notes"`
+	}
+	response := enriched{Word: *wrd}
+
+	if h.noteSvc != nil {
+		notes, err := h.noteSvc.ListByReference(userID, "word", wordID, 5)
+		if err == nil {
+			response.RelatedNotes = notes
+		}
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: response})
 }
