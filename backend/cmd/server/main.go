@@ -12,6 +12,7 @@ import (
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/note"
+	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/user"
@@ -115,6 +116,7 @@ func main() {
 	userH     := user.NewUserHandler(userSvc)
 	summaryH  := summary.NewSummaryHandler(summarySvc)
 	noteH     := note.NewNoteHandler(noteSvc)
+	reviewH   := review.NewReviewHandler(wordSvc, noteSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
@@ -132,6 +134,7 @@ func main() {
 	writingH.RegisterRoutes(protectedMux)
 	summaryH.RegisterRoutes(protectedMux)
 	noteH.RegisterRoutes(protectedMux)
+	reviewH.RegisterRoutes(protectedMux)
 
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
@@ -145,6 +148,7 @@ func main() {
 	mux.Handle("/api/v1/users/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/notes", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/notes/", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
