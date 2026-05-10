@@ -23,8 +23,8 @@ type wordImport struct {
 // words table using INSERT OR IGNORE (idempotent – duplicate (kanji_form, reading)
 // pairs are silently skipped).
 // It returns the number of rows actually inserted.
-func ImportWords(db *sql.DB, filePath string) (int, error) {
-	slog.Debug("ImportWords called", "file", filePath)
+func ImportWords(db *sql.DB, filePath string, autoFill bool) (int, error) {
+	slog.Debug("ImportWords called", "file", filePath, "autoFill", autoFill)
 
 	raw, err := os.ReadFile(filePath)
 	if err != nil {
@@ -34,6 +34,10 @@ func ImportWords(db *sql.DB, filePath string) (int, error) {
 	var words []wordImport
 	if err := json.Unmarshal(raw, &words); err != nil {
 		return 0, fmt.Errorf("cli.ImportWords Unmarshal: %w", err)
+	}
+
+	if autoFill {
+		words = AutoFillWords(words)
 	}
 
 	tx, err := db.Begin()

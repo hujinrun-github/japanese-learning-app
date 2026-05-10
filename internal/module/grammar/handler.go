@@ -12,14 +12,32 @@ import (
 	"japanese-learning-app/internal/module/user"
 )
 
+// NoteDigestProvider is the optional interface for cross-module note enrichment.
+type NoteDigestProvider interface {
+	ListByReference(userID int64, refType string, refID int64, limit int) ([]NoteDigest, error)
+}
+
+// NoteDigest is a lightweight note reference.
+type NoteDigest struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+	Type  string `json:"type"`
+}
+
 // GrammarHandler handles HTTP requests for the grammar module.
 type GrammarHandler struct {
-	svc *GrammarService
+	svc     *GrammarService
+	noteSvc NoteDigestProvider
 }
 
 // NewGrammarHandler creates a GrammarHandler.
 func NewGrammarHandler(svc *GrammarService) *GrammarHandler {
 	return &GrammarHandler{svc: svc}
+}
+
+// NewGrammarHandlerWithNotes creates a GrammarHandler with optional note enrichment.
+func NewGrammarHandlerWithNotes(svc *GrammarService, noteSvc NoteDigestProvider) *GrammarHandler {
+	return &GrammarHandler{svc: svc, noteSvc: noteSvc}
 }
 
 // RegisterRoutes registers grammar routes onto the provided mux.
@@ -59,6 +77,8 @@ func (h *GrammarHandler) handleGetPoint(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	userID, _ := user.UserIDFromContext(r.Context())
+
 	p, err := h.svc.GetPoint(id)
 	if err != nil {
 		slog.Error("handleGetPoint failed", "err", err, "grammar_point_id", id)
@@ -70,7 +90,20 @@ func (h *GrammarHandler) handleGetPoint(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: p})
+	type enriched struct {
+		GrammarPoint
+		RelatedNotes []NoteDigest `json:"related_notes"`
+	}
+	response := enriched{GrammarPoint: *p}
+
+	if h.noteSvc != nil {
+		notes, err := h.noteSvc.ListByReference(userID, "grammar", id, 5)
+		if err == nil {
+			response.RelatedNotes = notes
+		}
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: response})
 }
 
 func (h *GrammarHandler) handleScoreQuiz(w http.ResponseWriter, r *http.Request) {

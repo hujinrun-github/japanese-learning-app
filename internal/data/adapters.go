@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/note"
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
@@ -219,4 +220,84 @@ func (a *SessionStoreAdapter) SaveSummary(sum summary.SessionSummary) error {
 // ListSummaries delegates to SessionStore.ListSummaries.
 func (a *SessionStoreAdapter) ListSummaries(userID int64) ([]summary.SessionSummary, error) {
 	return a.s.ListSummaries(userID)
+}
+
+// ── NoteStoreAdapter ──────────────────────────────────────────────────────────
+
+// NoteStoreAdapter wraps NoteStore to satisfy note.NoteStoreInterface.
+type NoteStoreAdapter struct {
+	s *NoteStore
+}
+
+// NewNoteStoreAdapter creates a NoteStoreAdapter.
+func NewNoteStoreAdapter(s *NoteStore) *NoteStoreAdapter {
+	return &NoteStoreAdapter{s: s}
+}
+
+func (a *NoteStoreAdapter) Create(n *note.Note) error {
+	return a.s.Create(n)
+}
+
+func (a *NoteStoreAdapter) GetByID(userID, noteID int64) (*note.Note, error) {
+	return a.s.GetByID(userID, noteID)
+}
+
+func (a *NoteStoreAdapter) List(userID int64, params note.NoteListParams) ([]note.Note, int, error) {
+	return a.s.List(userID, params)
+}
+
+func (a *NoteStoreAdapter) Update(n *note.Note) error {
+	return a.s.Update(n)
+}
+
+func (a *NoteStoreAdapter) SoftDelete(userID, noteID int64) error {
+	return a.s.SoftDelete(userID, noteID)
+}
+
+func (a *NoteStoreAdapter) Search(userID int64, query string, limit int) ([]note.Note, error) {
+	return a.s.Search(userID, query, limit)
+}
+
+func (a *NoteStoreAdapter) AddLink(userID, noteID, targetNoteID int64, relation note.LinkRelation) (*note.NoteLink, error) {
+	return a.s.AddLink(userID, noteID, targetNoteID, relation)
+}
+
+func (a *NoteStoreAdapter) RemoveLink(userID, linkID int64) error {
+	return a.s.RemoveLink(userID, linkID)
+}
+
+func (a *NoteStoreAdapter) GetOutgoingLinks(userID, noteID int64) ([]note.NoteLink, error) {
+	return a.s.GetOutgoingLinks(userID, noteID)
+}
+
+func (a *NoteStoreAdapter) GetIncomingLinks(userID, noteID int64) ([]note.NoteLink, error) {
+	return a.s.GetIncomingLinks(userID, noteID)
+}
+
+func (a *NoteStoreAdapter) Promote(userID, noteID int64) error {
+	return a.s.Promote(userID, noteID)
+}
+
+func (a *NoteStoreAdapter) Demote(userID, noteID int64) error {
+	return a.s.Demote(userID, noteID)
+}
+
+func (a *NoteStoreAdapter) SaveReview(userID, noteID int64, n note.Note) error {
+	return a.s.SaveReview(userID, noteID, n)
+}
+
+func (a *NoteStoreAdapter) ListDueNotes(userID int64) ([]note.Note, error) {
+	return a.s.ListDueNotes(userID)
+}
+
+func (a *NoteStoreAdapter) ListArchived(userID int64, params note.NoteListParams) ([]note.Note, int, error) {
+	return a.s.ListArchived(userID, params)
+}
+
+func (a *NoteStoreAdapter) ListByReference(userID int64, refType string, refID int64, limit int) ([]note.NoteDigest, error) {
+	return a.s.ListByReference(userID, refType, refID, limit)
+}
+
+func (a *NoteStoreAdapter) ListTags(userID int64) ([]string, error) {
+	return a.s.ListTags(userID)
 }
