@@ -72,7 +72,7 @@ func TestImportWords_Success(t *testing.T) {
 	}
 	filePath := writeTempJSON(t, words)
 
-	n, err := cli.ImportWords(db, filePath)
+	n, err := cli.ImportWords(db, filePath, false)
 	if err != nil {
 		t.Fatalf("ImportWords error: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestImportWords_InvalidJSON(t *testing.T) {
 	f.Close()
 	t.Cleanup(func() { os.Remove(f.Name()) })
 
-	_, err := cli.ImportWords(db, f.Name())
+	_, err := cli.ImportWords(db, f.Name(), false)
 	if err == nil {
 		t.Error("expected error for invalid JSON file")
 	}
@@ -106,7 +106,7 @@ func TestImportWords_InvalidJSON(t *testing.T) {
 
 func TestImportWords_FileNotFound(t *testing.T) {
 	db := openTestDB(t)
-	_, err := cli.ImportWords(db, filepath.Join(os.TempDir(), "nonexistent_words_file.json"))
+	_, err := cli.ImportWords(db, filepath.Join(os.TempDir(), "nonexistent_words_file.json"), false)
 	if err == nil {
 		t.Error("expected error for nonexistent file")
 	}
@@ -120,13 +120,13 @@ func TestImportWords_IdempotentOnDuplicate(t *testing.T) {
 	}
 	filePath := writeTempJSON(t, words)
 
-	n1, err := cli.ImportWords(db, filePath)
+	n1, err := cli.ImportWords(db, filePath, false)
 	if err != nil {
 		t.Fatalf("first import error: %v", err)
 	}
 
 	// Second import of same file should not error and should not double-insert.
-	n2, err := cli.ImportWords(db, filePath)
+	n2, err := cli.ImportWords(db, filePath, false)
 	if err != nil {
 		t.Fatalf("second import error: %v", err)
 	}

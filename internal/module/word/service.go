@@ -58,11 +58,15 @@ func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel) ([]WordCard,
 
 	var cards []WordCard
 
-	// Add due cards first
+	// Add due cards first (filtered by requested level)
 	for _, r := range dueRecords {
 		w, err := s.store.GetByID(r.WordID)
 		if err != nil {
 			slog.Warn("WordService.GetReviewQueue: GetByID failed, skipping", "err", err, "word_id", r.WordID)
+			continue
+		}
+		// Skip due words that don't belong to the requested level
+		if w.JLPTLevel != level {
 			continue
 		}
 		cards = append(cards, WordCard{Word: *w, Record: r, IsNew: false})

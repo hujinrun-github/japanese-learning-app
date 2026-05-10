@@ -188,6 +188,44 @@ export interface WritingRecord {
   practiced_at: string
 }
 
+// Note
+export type NoteType = 'word' | 'grammar' | 'sentence'
+
+export type LinkRelation = 'related' | 'uses_word' | 'uses_grammar' | 'context'
+
+export interface Note {
+  id: number
+  type: NoteType
+  title: string
+  content: string
+  source_text: string
+  reference_id?: number
+  reference_type?: string
+  tags: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface NoteLink {
+  id: number
+  note_id: number
+  target_note_id: number
+  relation: LinkRelation
+  target_note?: Note
+}
+
+export interface NoteDetail extends Note {
+  links: NoteLink[]
+  backlinks: NoteLink[]
+}
+
+export interface PaginatedNotes {
+  items: Note[]
+  total: number
+  page: number
+  size: number
+}
+
 // Summary
 export interface SessionSummary {
   session_id: string

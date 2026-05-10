@@ -28,7 +28,12 @@ export function WordReviewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [truncated, setTruncated] = useState(false)
+  const [readingInput, setReadingInput] = useState('')
+  const [inputWrong, setInputWrong] = useState(false)
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
+
+  const REVIEW_LIMIT = 50
 
   // Cache preferred Japanese voice once on mount
   useEffect(() => {
@@ -45,18 +50,18 @@ export function WordReviewPage() {
     speechSynthesis.onvoiceschanged = loadVoice
   }, [])
 
-  // Pre-warm Google voice: speak a phrase at volume 0 to trigger voice download
+  // Auto-speak examples after flip
   useEffect(() => {
-    if (queue.length === 0) return
+    if (!flipped || !card) return
+    const examples = card.word.examples ?? []
+    if (examples.length === 0) return
     const timer = setTimeout(() => {
-      const u = new SpeechSynthesisUtterance('こんにちは')
-      u.lang = 'ja-JP'
-      u.volume = 0
-      if (voiceRef.current) u.voice = voiceRef.current
-      speechSynthesis.speak(u)
-    }, 500)
+      examples.forEach((ex, i) => {
+        setTimeout(() => handleSpeak(ex.japanese), i * 3500)
+      })
+    }, 600)
     return () => clearTimeout(timer)
-  }, [queue])
+  }, [flipped, currentIndex])
 
   useEffect(() => {
     loadQueue(level)
@@ -67,9 +72,12 @@ export function WordReviewPage() {
     setError('')
     setCurrentIndex(0)
     setFlipped(false)
+    setReadingInput('')
+    setInputWrong(false)
     try {
-      const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}`)
+      const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}&limit=${REVIEW_LIMIT}`)
       setQueue(cards ?? [])
+      setTruncated((cards ?? []).length >= REVIEW_LIMIT)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
@@ -91,6 +99,31 @@ export function WordReviewPage() {
     speechSynthesis.speak(u)
   }
 
+  function handleCheckReading() {
+    if (!flipped && card && !inputWrong) {
+      const expected = card.word.reading.trim()
+      const input = readingInput.trim()
+      if (input === expected) {
+        setFlipped(true)
+        setInputWrong(false)
+      } else {
+        setInputWrong(true)
+        setSubmitting(true)
+        // Auto-rate as hard; user must click to advance
+        apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating: 'hard' })
+        setSubmitting(false)
+      }
+    }
+  }
+
+  function handleNextAfterWrong() {
+    setSubmitting(false)
+    setFlipped(false)
+    setInputWrong(false)
+    setReadingInput('')
+    setCurrentIndex((i) => i + 1)
+  }
+
   async function handleRate(r: 'easy' | 'normal' | 'hard') {
     if (submitting) return
     const card = queue[currentIndex]
@@ -102,6 +135,8 @@ export function WordReviewPage() {
     } finally {
       setSubmitting(false)
       setFlipped(false)
+      setReadingInput('')
+      setInputWrong(false)
       setCurrentIndex((i) => i + 1)
     }
   }
@@ -138,7 +173,11 @@ export function WordReviewPage() {
       {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-4)' }}>{error}</p>}
 
       {done ? (
-        <EmptyState icon="🎉" title={t('word.queue.done')} description={t('word.queue.doneDesc')} />
+        truncated ? (
+          <EmptyState icon="📚" title={t('word.queue.batchDone')} description={t('word.queue.batchDoneDesc')} />
+        ) : (
+          <EmptyState icon="🎉" title={t('word.queue.done')} description={t('word.queue.doneDesc')} />
+        )
       ) : (
         <>
           <p className={styles.progress}>
@@ -146,7 +185,7 @@ export function WordReviewPage() {
           </p>
 
           {/* Flashcard */}
-          <div className={styles.cardScene} onClick={() => !flipped && setFlipped(true)}>
+          <div className={styles.cardScene}>
             <div className={`${styles.cardInner} ${flipped ? styles.cardFlipped : ''}`}>
               {/* Front face */}
               <div className={styles.cardFace}>
@@ -188,7 +227,38 @@ export function WordReviewPage() {
                     🔊
                   </button>
                 </div>
-                <p className={styles.flipHint}>{t('word.queue.flip')}</p>
+
+                {/* Kana input challenge */}
+                <div className={styles.inputRow}>
+                  <input
+                    className={`${styles.readingInput} ${inputWrong ? styles.readingInputWrong : ''}`}
+                    type="text"
+                    value={readingInput}
+                    onChange={(e) => { setReadingInput(e.target.value); setInputWrong(false) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCheckReading() }}
+                    placeholder={t('word.queue.inputPlaceholder')}
+                    autoComplete="off"
+                    disabled={submitting}
+                    autoFocus
+                  />
+                  <button
+                    className={styles.checkBtn}
+                    onClick={handleCheckReading}
+                    disabled={submitting || !readingInput.trim()}
+                  >
+                    {t('word.queue.check')}
+                  </button>
+                </div>
+                {inputWrong && card && (
+                  <div className={styles.wrongArea}>
+                    <p className={styles.wrongHint}>
+                      {t('word.queue.wrongHint', { reading: card.word.reading })}
+                    </p>
+                    <button className={styles.nextBtn} onClick={handleNextAfterWrong}>
+                      {t('word.queue.nextWord')}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Back face */}
