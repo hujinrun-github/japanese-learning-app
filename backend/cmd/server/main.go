@@ -11,6 +11,8 @@ import (
 	"japanese-learning-app/internal/data"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/note"
+	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/user"
@@ -66,6 +68,7 @@ func main() {
 	writingStore  := data.NewWritingStore(db)
 	userStore     := data.NewUserStore(db)
 	sessionStore  := data.NewSessionStore(db)
+	noteStore     := data.NewNoteStore(db)
 
 	// ── AI reviewer (writing) ─────────────────────────────────────────────────
 	var aiReviewer writing.AIReviewer
@@ -92,6 +95,7 @@ func main() {
 	lessonAdapter  := data.NewLessonStoreAdapter(lessonStore)
 	userAdapter    := data.NewUserStoreAdapter(userStore)
 	sessionAdapter := data.NewSessionStoreAdapter(sessionStore)
+	noteAdapter    := data.NewNoteStoreAdapter(noteStore)
 
 	// ── Services ──────────────────────────────────────────────────────────────
 	wordSvc     := word.NewWordService(wordAdapter)
@@ -101,15 +105,18 @@ func main() {
 	writingSvc  := writing.NewWritingService(writingStore, aiReviewer)
 	userSvc     := user.NewUserService(userAdapter, jwtSecret, mailer, appBaseURL)
 	summarySvc  := summary.NewSummaryService(sessionAdapter)
+	noteSvc     := note.NewNoteService(noteAdapter)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
-	wordH     := word.NewWordHandler(wordSvc)
-	grammarH  := grammar.NewGrammarHandler(grammarSvc)
+	wordH     := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
+	grammarH  := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
 	lessonH   := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	writingH  := writing.NewWritingHandler(writingSvc)
 	userH     := user.NewUserHandler(userSvc)
 	summaryH  := summary.NewSummaryHandler(summarySvc)
+	noteH     := note.NewNoteHandler(noteSvc)
+	reviewH   := review.NewReviewHandler(wordSvc, noteSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
@@ -126,6 +133,8 @@ func main() {
 	speakingH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)
 	summaryH.RegisterRoutes(protectedMux)
+	noteH.RegisterRoutes(protectedMux)
+	reviewH.RegisterRoutes(protectedMux)
 
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
@@ -137,6 +146,9 @@ func main() {
 	mux.Handle("/api/v1/summary", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/summary/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/users/", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/notes", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/notes/", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
@@ -187,4 +199,38 @@ func setupLogger(level string) {
 		l = slog.LevelInfo
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: l})))
+}
+
+// wordNoteProvider adapts note.NoteService to word.NoteDigestProvider.
+type wordNoteProvider struct {
+	svc *note.NoteService
+}
+
+func (p *wordNoteProvider) ListByReference(userID int64, refType string, refID int64, limit int) ([]word.NoteDigest, error) {
+	digests, err := p.svc.ListByReference(userID, refType, refID, limit)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]word.NoteDigest, len(digests))
+	for i, d := range digests {
+		result[i] = word.NoteDigest{ID: d.ID, Title: d.Title, Type: string(d.Type)}
+	}
+	return result, nil
+}
+
+// grammarNoteProvider adapts note.NoteService to grammar.NoteDigestProvider.
+type grammarNoteProvider struct {
+	svc *note.NoteService
+}
+
+func (p *grammarNoteProvider) ListByReference(userID int64, refType string, refID int64, limit int) ([]grammar.NoteDigest, error) {
+	digests, err := p.svc.ListByReference(userID, refType, refID, limit)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]grammar.NoteDigest, len(digests))
+	for i, d := range digests {
+		result[i] = grammar.NoteDigest{ID: d.ID, Title: d.Title, Type: string(d.Type)}
+	}
+	return result, nil
 }

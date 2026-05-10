@@ -3,6 +3,9 @@ package word
 import (
 	"fmt"
 	"log/slog"
+	"time"
+
+	"japanese-learning-app/internal/sm2"
 )
 
 // WordStoreInterface defines data access methods required by WordService.
@@ -23,6 +26,11 @@ type WordService struct {
 // NewWordService creates a WordService instance.
 func NewWordService(store WordStoreInterface) *WordService {
 	return &WordService{store: store}
+}
+
+// GetByID returns a word by ID.
+func (s *WordService) GetByID(id int64) (*Word, error) {
+	return s.store.GetByID(id)
 }
 
 // GetReviewQueue returns the review queue for a user at the given JLPT level.
@@ -50,11 +58,15 @@ func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel) ([]WordCard,
 
 	var cards []WordCard
 
-	// Add due cards first
+	// Add due cards first (filtered by requested level)
 	for _, r := range dueRecords {
 		w, err := s.store.GetByID(r.WordID)
 		if err != nil {
 			slog.Warn("WordService.GetReviewQueue: GetByID failed, skipping", "err", err, "word_id", r.WordID)
+			continue
+		}
+		// Skip due words that don't belong to the requested level
+		if w.JLPTLevel != level {
 			continue
 		}
 		cards = append(cards, WordCard{Word: *w, Record: r, IsNew: false})
@@ -103,9 +115,20 @@ func (s *WordService) SubmitRating(userID, wordID int64, rating ReviewRating) er
 		base = WordRecord{UserID: userID, WordID: wordID, EaseFactor: 2.5}
 	}
 
-	updated := CalcNextReview(base, rating)
-	updated.UserID = userID
-	updated.WordID = wordID
+	newMastery, newInterval, newEF, nextReview, newHistory := sm2.CalcNextReview(
+		base.MasteryLevel, base.Interval, base.EaseFactor,
+		rating, base.ReviewHistory,
+	)
+	updated := WordRecord{
+		UserID:        userID,
+		WordID:        wordID,
+		MasteryLevel:  newMastery,
+		Interval:      newInterval,
+		EaseFactor:    newEF,
+		NextReviewAt:  nextReview,
+		ReviewHistory: newHistory,
+		UpdatedAt:     time.Now(),
+	}
 
 	if err := s.store.UpsertRecord(updated); err != nil {
 		slog.Error("WordService.SubmitRating: UpsertRecord failed", "err", err)

@@ -37,6 +37,79 @@ make seed-all    # 导入全部（词汇 + 语法 + 课文 + 口语 + 写作）
 make seed        # 仅导入词汇（N5/N4）
 ```
 
+### CLI 数据导入
+
+服务器二进制提供了多个 `import-*` 子命令，用于批量或单条导入数据。
+
+```bash
+# 构建服务器
+go build -o ./server ./backend/cmd/server/
+
+# 导入单词
+./server import-words --file ./data/seed/words_n5.json
+
+# 导入语法 / 课文 / 口语 / 写作
+./server import-grammar --file ./data/seed/grammar_n5.json
+./server import-lessons --file ./data/seed/lessons_n5.json
+./server import-speaking --file ./data/seed/speaking_materials.json
+./server import-writing --file ./data/seed/writing_questions.json
+```
+
+**`import-words` 选项:**
+
+| 选项 | 默认值 | 说明 |
+|---|---|---|
+| `--file` | (必填) | JSON 文件路径，文件内容为单词对象数组 |
+| `--db` | `./data/app.db` | SQLite 数据库路径 |
+| `--auto-fill` | `false` | 使用 kagome 形态分析自动填充缺失字段 |
+
+**单词 JSON 格式:**
+
+```json
+[
+  {
+    "kanji_form": "経験",
+    "reading": "",
+    "part_of_speech": "",
+    "meaning": "experience",
+    "jlpt_level": "N4",
+    "reading_type": ""
+  }
+]
+```
+
+必需字段：`kanji_form`、`meaning`、`jlpt_level`。其余字段为空时可启用 `--auto-fill` 自动补全。
+
+**仅有关键字段时自动补全（`--auto-fill`）:**
+
+当你拿到的单词数据只有 `kanji_form` 和 `meaning` 时，`--auto-fill` 会调用 kagome 日语形态分析器自动补全以下字段：
+
+- **reading** — 假名注音（片假名自动转为平假名）
+- **part_of_speech** — 词性（名詞 / 動詞 / 形容詞 等）
+- **reading_type** — 读音类型（1=音読み / 2=訓読み / 6=其他）
+
+已有值的字段不会被覆盖（仅填充空字段）。
+
+```bash
+# 示例：导入只含 kanji_form + meaning 的 N4 词汇
+./server import-words --file ./data/n4_words.json --auto-fill
+```
+
+示例 JSON（`n4_words.json`）:
+
+```json
+[
+  {"kanji_form": "経験", "meaning": "experience", "jlpt_level": "N4"},
+  {"kanji_form": "文化", "meaning": "culture", "jlpt_level": "N4"},
+  {"kanji_form": "病院", "meaning": "hospital", "jlpt_level": "N4"},
+  {"kanji_form": "薬", "meaning": "medicine", "jlpt_level": "N4"},
+  {"kanji_form": "集める", "meaning": "to collect", "jlpt_level": "N4"},
+  {"kanji_form": "返事", "meaning": "reply, response", "jlpt_level": "N4"}
+]
+```
+
+> **注意：** `reading_type` 对于单个汉字且无送假名的单词（如「薬」），无法区分音读/训读，会标记为「6（其他）」。导入后建议快速检查，手动校准少数词条。
+
 ### 启动前端
 
 ```bash

@@ -57,6 +57,7 @@ func runImportWords(args []string) int {
 	fs := flag.NewFlagSet("import-words", flag.ContinueOnError)
 	filePath := fs.String("file", "", "path to the JSON file containing words to import")
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	autoFill := fs.Bool("auto-fill", false, "use kagome morphological analyzer to fill missing reading/part_of_speech/reading_type")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "import-words: %v\n", err)
@@ -82,7 +83,7 @@ func runImportWords(args []string) int {
 		return 1
 	}
 
-	n, err := ImportWords(db, *filePath)
+	n, err := ImportWords(db, *filePath, *autoFill)
 	if err != nil {
 		slog.Error("import-words: ImportWords failed", "file", *filePath, "err", err)
 		fmt.Fprintf(os.Stderr, "import-words: %v\n", err)

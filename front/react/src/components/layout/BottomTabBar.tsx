@@ -8,6 +8,7 @@ const TAB_CONFIG = [
   { to: '/grammar',      key: 'nav.grammar',  icon: '📝', end: false },
   { to: '/speaking',     key: 'nav.speaking', icon: '🎙️', end: false },
   { to: '/writing',      key: 'nav.writing',  icon: '✏️', end: false },
+  { to: '/notes',       key: 'nav.notes',    icon: '🗒️', end: false },
   { to: '/lesson',       key: 'nav.lesson',   icon: '📚', end: false },
 ]
 
