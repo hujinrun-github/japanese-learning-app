@@ -1,0 +1,3326 @@
+[
+  {
+    "kanji_form": "字",
+    "reading": "じ",
+    "meaning": "character (esp. kanji)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "怒る",
+    "reading": "おこる",
+    "meaning": "to get angry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "市",
+    "reading": "し",
+    "meaning": "city",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "大事",
+    "reading": "だいじ",
+    "meaning": "important",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "木綿",
+    "reading": "もめん",
+    "meaning": "string made of cut steamed, soaked mulberry bark f",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "包む",
+    "reading": "つつむ",
+    "meaning": "to wrap up",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "汚れる",
+    "reading": "よごれる",
+    "meaning": "to be violated",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "けれど",
+    "reading": "けれども",
+    "meaning": "but",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "僕",
+    "reading": "ぼく",
+    "meaning": "I",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "十分",
+    "reading": "じゅうぶん",
+    "meaning": "enough",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "畳",
+    "reading": "たたみ",
+    "meaning": "folding paper-case",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "昼間",
+    "reading": "ひるま",
+    "meaning": "daytime",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "途中",
+    "reading": "とちゅう",
+    "meaning": "on the way",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "止める",
+    "reading": "やめる",
+    "meaning": "to stop (an activity)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "音",
+    "reading": "おと",
+    "meaning": "sound",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "不便",
+    "reading": "ふべん",
+    "meaning": "inconvenience",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "下る",
+    "reading": "さがる",
+    "meaning": "to descend",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "退院",
+    "reading": "たいいん",
+    "meaning": "leaving hospital",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "大分",
+    "reading": "だいぶ",
+    "meaning": "considerably",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "上る",
+    "reading": "あがる",
+    "meaning": "to ascend",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "拝見",
+    "reading": "はいけん",
+    "meaning": "seeing",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "やっぱり",
+    "reading": "やっぱり",
+    "meaning": "as expected",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "案内",
+    "reading": "あんない",
+    "meaning": "guidance",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "うん",
+    "reading": "うん",
+    "meaning": "yes",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "運転",
+    "reading": "うんてん",
+    "meaning": "operation (of a machine)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "運動",
+    "reading": "うんどう",
+    "meaning": "exercise",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "遠慮",
+    "reading": "えんりょ",
+    "meaning": "reserve",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "計画",
+    "reading": "けいかく",
+    "meaning": "plan",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "経験",
+    "reading": "けいけん",
+    "meaning": "experience",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "工場",
+    "reading": "こうじょう",
+    "meaning": "factory",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "故障",
+    "reading": "こしょう",
+    "meaning": "fault",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "支度",
+    "reading": "したく",
+    "meaning": "preparation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "出席",
+    "reading": "しゅっせき",
+    "meaning": "attendance",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "出発",
+    "reading": "しゅっぱつ",
+    "meaning": "departure",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "準備",
+    "reading": "じゅんび",
+    "meaning": "preparation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "招待",
+    "reading": "しょうたい",
+    "meaning": "invitation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "承知",
+    "reading": "しょうち",
+    "meaning": "knowledge",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "食事",
+    "reading": "しょくじ",
+    "meaning": "meal",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "心配",
+    "reading": "しんぱい",
+    "meaning": "worry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "空く",
+    "reading": "あく",
+    "meaning": "to become less crowded",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "すると",
+    "reading": "すると",
+    "meaning": "(and) then",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "生産",
+    "reading": "せいさん",
+    "meaning": "production",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "世話",
+    "reading": "せわ",
+    "meaning": "care",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "そう",
+    "reading": "そう",
+    "meaning": "appearing that",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "相談",
+    "reading": "そうだん",
+    "meaning": "consultation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "だから",
+    "reading": "だから",
+    "meaning": "so",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "日",
+    "reading": "ひ",
+    "meaning": "nth day (of the month)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "入院",
+    "reading": "にゅういん",
+    "meaning": "hospitalization",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "入学",
+    "reading": "にゅうがく",
+    "meaning": "admission (to a school or university)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "びっくり",
+    "reading": "びっくり",
+    "meaning": "to be surprised",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "表",
+    "reading": "おもて",
+    "meaning": "table",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "打つ",
+    "reading": "うつ",
+    "meaning": "to hit",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "放送",
+    "reading": "ほうそう",
+    "meaning": "broadcasting",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "間",
+    "reading": "あいだ",
+    "meaning": "space (between)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "皆",
+    "reading": "みな",
+    "meaning": "everyone",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "都",
+    "reading": "と",
+    "meaning": "capital (esp. Kyoto, Japan's former capital)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "訳",
+    "reading": "わけ",
+    "meaning": "reason",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "やはり",
+    "reading": "やっぱり",
+    "meaning": "as expected",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "輸出",
+    "reading": "ゆしゅつ",
+    "meaning": "export",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "輸入",
+    "reading": "ゆにゅう",
+    "meaning": "import",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "レポート",
+    "reading": "リポート",
+    "meaning": "report",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ああ",
+    "reading": "ああ",
+    "meaning": "like that",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "合う",
+    "reading": "あう",
+    "meaning": "to come together",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "赤ん坊",
+    "reading": "あかんぼう",
+    "meaning": "baby",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "アクセサリー",
+    "reading": "アクセサリー",
+    "meaning": "accessory (fashion)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "浅い",
+    "reading": "あさい",
+    "meaning": "shallow",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "味",
+    "reading": "あじ",
+    "meaning": "(sense of) taste",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "アジア",
+    "reading": "アジア",
+    "meaning": "Asia",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "明日",
+    "reading": "あす",
+    "meaning": "tomorrow",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "遊び",
+    "reading": "あそび",
+    "meaning": "play",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "集る",
+    "reading": "あつまる",
+    "meaning": "to gather",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "集める",
+    "reading": "あつめる",
+    "meaning": "to collect",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "アナウンサー",
+    "reading": "アナウンサー",
+    "meaning": "announcer",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "アフリカ",
+    "reading": "アフリカ",
+    "meaning": "Africa",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "アメリカ",
+    "reading": "アメリカ",
+    "meaning": "(United States of) America",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "謝る",
+    "reading": "あやまる",
+    "meaning": "to apologize",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "アルコール",
+    "reading": "アルコール",
+    "meaning": "alcohol",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "アルバイト",
+    "reading": "アルバイト",
+    "meaning": "albite",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "安心",
+    "reading": "あんしん",
+    "meaning": "obtaining peace of mind through faith or ascetic p",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "安全",
+    "reading": "あんぜん",
+    "meaning": "safety",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "あんな",
+    "reading": "あんな",
+    "meaning": "that sort of",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "以下",
+    "reading": "いか",
+    "meaning": "not exceeding ...",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "以外",
+    "reading": "いがい",
+    "meaning": "excluding",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "医学",
+    "reading": "いがく",
+    "meaning": "medical science",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "生きる",
+    "reading": "いきる",
+    "meaning": "to live",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "意見",
+    "reading": "いけん",
+    "meaning": "opinion",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "石",
+    "reading": "いし",
+    "meaning": "koku",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "以上",
+    "reading": "いじょう",
+    "meaning": "not less than ...",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "急ぐ",
+    "reading": "いそぐ",
+    "meaning": "to hurry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "致す",
+    "reading": "いたす",
+    "meaning": "to do",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "一度",
+    "reading": "いちど",
+    "meaning": "once",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "一生懸命",
+    "reading": "いっしょうけんめい",
+    "meaning": "very hard",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "糸",
+    "reading": "いと",
+    "meaning": "thread",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "以内",
+    "reading": "いない",
+    "meaning": "within",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "田舎",
+    "reading": "いなか",
+    "meaning": "country",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "祈る",
+    "reading": "いのる",
+    "meaning": "to pray",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "いらっしゃる",
+    "reading": "いらっしゃる",
+    "meaning": "to come",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "植える",
+    "reading": "うえる",
+    "meaning": "to plant",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "受付",
+    "reading": "うけつけ",
+    "meaning": "reception (desk)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "受ける",
+    "reading": "うける",
+    "meaning": "to receive",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "動く",
+    "reading": "うごく",
+    "meaning": "to move",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "美しい",
+    "reading": "うつくしい",
+    "meaning": "beautiful",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "写す",
+    "reading": "うつす",
+    "meaning": "to copy",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "移る",
+    "reading": "うつる",
+    "meaning": "to move (house)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "腕",
+    "reading": "うで",
+    "meaning": "arm",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "裏",
+    "reading": "うら",
+    "meaning": "opposite side",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "売り場",
+    "reading": "うりば",
+    "meaning": "selling area",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "運転手",
+    "reading": "うんてんしゅ",
+    "meaning": "driver",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "エスカレーター",
+    "reading": "エスカレーター",
+    "meaning": "escalator",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "枝",
+    "reading": "えだ",
+    "meaning": "counter for long, thin things (i.e. swords)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "選ぶ",
+    "reading": "えらぶ",
+    "meaning": "to choose",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "お祝い",
+    "reading": "おいわい",
+    "meaning": "congratulation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "オートバイ",
+    "reading": "オートバイ",
+    "meaning": "motorcycle",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "億",
+    "reading": "おく",
+    "meaning": "hundred million",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "屋上",
+    "reading": "おくじょう",
+    "meaning": "rooftop",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "贈り物",
+    "reading": "おくりもの",
+    "meaning": "present",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "送る",
+    "reading": "おくる",
+    "meaning": "to send",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "遅れる",
+    "reading": "おくれる",
+    "meaning": "to be late",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "行う",
+    "reading": "おこなう",
+    "meaning": "to perform",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "お嬢さん",
+    "reading": "おじょうさん",
+    "meaning": "(another's) daughter",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "お宅",
+    "reading": "おたく",
+    "meaning": "your house",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "夫",
+    "reading": "おっと",
+    "meaning": "husband",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "踊り",
+    "reading": "おどり",
+    "meaning": "dance",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "踊る",
+    "reading": "おどる",
+    "meaning": "to dance (orig. a hopping dance)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "驚く",
+    "reading": "おどろく",
+    "meaning": "to be surprised",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "お祭り",
+    "reading": "おまつり",
+    "meaning": "festival",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "お見舞い",
+    "reading": "おみまい",
+    "meaning": "calling on someone who is ill",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "お土産",
+    "reading": "おみやげ",
+    "meaning": "土産",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "思い出す",
+    "reading": "おもいだす",
+    "meaning": "to recall",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "思う",
+    "reading": "おもう",
+    "meaning": "to think",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "親",
+    "reading": "おや",
+    "meaning": "intimacy",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "折る",
+    "reading": "おる",
+    "meaning": "to break",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "お礼",
+    "reading": "おれい",
+    "meaning": "thanks",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "折れる",
+    "reading": "おれる",
+    "meaning": "to break",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "終わり",
+    "reading": "おわり",
+    "meaning": "end",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "カーテン",
+    "reading": "カーテン",
+    "meaning": "curtain",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "海岸",
+    "reading": "かいがん",
+    "meaning": "coast",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "会議",
+    "reading": "かいぎ",
+    "meaning": "meeting",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "会議室",
+    "reading": "かいぎしつ",
+    "meaning": "conference room",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "会場",
+    "reading": "かいじょう",
+    "meaning": "assembly hall",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "会話",
+    "reading": "かいわ",
+    "meaning": "conversation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "帰り",
+    "reading": "かえり",
+    "meaning": "return",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "変える",
+    "reading": "かえる",
+    "meaning": "to change",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "科学",
+    "reading": "かがく",
+    "meaning": "science",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "掛ける",
+    "reading": "かける",
+    "meaning": "to hang up (e.g. a coat, a picture on the wall)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "飾る",
+    "reading": "かざる",
+    "meaning": "to decorate",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "火事",
+    "reading": "かじ",
+    "meaning": "fire",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ガス",
+    "reading": "ガス",
+    "meaning": "gas (as a fuel)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ガソリン",
+    "reading": "ガソリン",
+    "meaning": "gasoline",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ガソリンスタンド",
+    "reading": "ガソリンスタンド",
+    "meaning": "gas station",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "堅",
+    "reading": "かたい",
+    "meaning": "strength",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "硬",
+    "reading": "かたい",
+    "meaning": "hardness",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "形",
+    "reading": "かたち",
+    "meaning": "form",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "片付ける",
+    "reading": "かたづける",
+    "meaning": "to put in order",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "課長",
+    "reading": "かちょう",
+    "meaning": "section manager",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "勝つ",
+    "reading": "かつ",
+    "meaning": "to win",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "家内",
+    "reading": "かない",
+    "meaning": "(my) wife",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "悲しい",
+    "reading": "かなしい",
+    "meaning": "sad",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "必ず",
+    "reading": "かならず",
+    "meaning": "always",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "彼女",
+    "reading": "かのじょ",
+    "meaning": "she",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "壁",
+    "reading": "かべ",
+    "meaning": "wall",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "髪",
+    "reading": "かみ",
+    "meaning": "(a) hair",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "噛む",
+    "reading": "かむ",
+    "meaning": "to chew (strongly)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "通う",
+    "reading": "かよう",
+    "meaning": "to go to and from (a place)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ガラス",
+    "reading": "ガラス",
+    "meaning": "glass",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "彼",
+    "reading": "かれ",
+    "meaning": "he",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "彼ら",
+    "reading": "かれら",
+    "meaning": "they",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "乾く",
+    "reading": "かわく",
+    "meaning": "to get dry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "代わり",
+    "reading": "かわり",
+    "meaning": "substitute",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "変わる",
+    "reading": "かわる",
+    "meaning": "to change",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "考える",
+    "reading": "かんがえる",
+    "meaning": "to think (about, of)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "関係",
+    "reading": "かんけい",
+    "meaning": "relation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "看護婦",
+    "reading": "かんごふ",
+    "meaning": "(female) nurse",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "簡単",
+    "reading": "かんたん",
+    "meaning": "simple",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "気",
+    "reading": "き",
+    "meaning": "-like nature",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "機会",
+    "reading": "きかい",
+    "meaning": "chance",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "危険",
+    "reading": "きけん",
+    "meaning": "danger",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "聞こえる",
+    "reading": "きこえる",
+    "meaning": "to be heard",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "汽車",
+    "reading": "きしゃ",
+    "meaning": "train (esp. long distance train)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "技術",
+    "reading": "ぎじゅつ",
+    "meaning": "technology",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "季節",
+    "reading": "きせつ",
+    "meaning": "season",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "規則",
+    "reading": "きそく",
+    "meaning": "rule",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "きっと",
+    "reading": "きっと",
+    "meaning": "surely",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "絹",
+    "reading": "きぬ",
+    "meaning": "silk",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "厳しい",
+    "reading": "きびしい",
+    "meaning": "severe",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "気分",
+    "reading": "きぶん",
+    "meaning": "feeling",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "決る",
+    "reading": "きまる",
+    "meaning": "to dig out",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "君",
+    "reading": "くん",
+    "meaning": "Mr",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "決める",
+    "reading": "きめる",
+    "meaning": "to decide",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "気持ち",
+    "reading": "きもち",
+    "meaning": "feeling",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "着物",
+    "reading": "きもの",
+    "meaning": "kimono",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "客",
+    "reading": "きゃく",
+    "meaning": "visitor from afar",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "急",
+    "reading": "きゅう",
+    "meaning": "sudden",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "急行",
+    "reading": "きゅうこう",
+    "meaning": "hurrying (to somewhere)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "教育",
+    "reading": "きょういく",
+    "meaning": "education",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "教会",
+    "reading": "きょうかい",
+    "meaning": "church",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "競争",
+    "reading": "きょうそう",
+    "meaning": "competition",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "興味",
+    "reading": "きょうみ",
+    "meaning": "interest (in something)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "近所",
+    "reading": "きんじょ",
+    "meaning": "neighbourhood",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "具合",
+    "reading": "ぐあい",
+    "meaning": "condition",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "空気",
+    "reading": "くうき",
+    "meaning": "air",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "空港",
+    "reading": "くうこう",
+    "meaning": "airport",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "草",
+    "reading": "くさ",
+    "meaning": "grass",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "首",
+    "reading": "くび",
+    "meaning": "neck",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "雲",
+    "reading": "くも",
+    "meaning": "cloud",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "比べる",
+    "reading": "くらべる",
+    "meaning": "to compare",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "くれる",
+    "reading": "くれる",
+    "meaning": "to give",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "暮れる",
+    "reading": "くれる",
+    "meaning": "to get dark",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "毛",
+    "reading": "け",
+    "meaning": "hair",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "経済",
+    "reading": "けいざい",
+    "meaning": "economy",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "警察",
+    "reading": "けいさつ",
+    "meaning": "police",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ケーキ",
+    "reading": "ケーキ",
+    "meaning": "cake",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "景色",
+    "reading": "けしき",
+    "meaning": "scenery",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "消しゴム",
+    "reading": "けしゴム",
+    "meaning": "eraser",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "下宿",
+    "reading": "げしゅく",
+    "meaning": "boarding",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "決して",
+    "reading": "けっして",
+    "meaning": "(not) ever",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "原因",
+    "reading": "げんいん",
+    "meaning": "cause",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "研究",
+    "reading": "けんきゅう",
+    "meaning": "research",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "研究室",
+    "reading": "けんきゅうしつ",
+    "meaning": "laboratory",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "見物",
+    "reading": "けんぶつ",
+    "meaning": "sight",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "子",
+    "reading": "こ",
+    "meaning": "child",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "こう",
+    "reading": "こう",
+    "meaning": "in this way",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "郊外",
+    "reading": "こうがい",
+    "meaning": "suburb",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "講義",
+    "reading": "こうぎ",
+    "meaning": "lecture",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "工業",
+    "reading": "こうぎょう",
+    "meaning": "(manufacturing) industry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "高校",
+    "reading": "こうこう",
+    "meaning": "senior high school",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "高校生",
+    "reading": "こうこうせい",
+    "meaning": "senior high school student",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "校長",
+    "reading": "こうちょう",
+    "meaning": "principal",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "交通",
+    "reading": "こうつう",
+    "meaning": "traffic",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "講堂",
+    "reading": "こうどう",
+    "meaning": "auditorium",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "高等学校",
+    "reading": "こうとうがっこう",
+    "meaning": "senior high school",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "公務員",
+    "reading": "こうむいん",
+    "meaning": "public employee",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "国際",
+    "reading": "こくさい",
+    "meaning": "international",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "心",
+    "reading": "こころ",
+    "meaning": "mind",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "こと",
+    "reading": "こと",
+    "meaning": "particle indicating a command",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "小鳥",
+    "reading": "ことり",
+    "meaning": "small bird",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "細かい",
+    "reading": "こまかい",
+    "meaning": "small",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "込む",
+    "reading": "こむ",
+    "meaning": "to be crowded",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "米",
+    "reading": "こめ",
+    "meaning": "(husked grains of) rice",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "これから",
+    "reading": "これから",
+    "meaning": "from now on",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "怖い",
+    "reading": "こわい",
+    "meaning": "scary",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "壊す",
+    "reading": "こわす",
+    "meaning": "to break",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "壊れる",
+    "reading": "こわれる",
+    "meaning": "to be broken",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "コンサート",
+    "reading": "コンサート",
+    "meaning": "concert",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "今度",
+    "reading": "こんど",
+    "meaning": "this time",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "コンピュータ",
+    "reading": "コンピューター",
+    "meaning": "computer",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "今夜",
+    "reading": "こんや",
+    "meaning": "this evening",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "最近",
+    "reading": "さいきん",
+    "meaning": "recently",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "最後",
+    "reading": "さいご",
+    "meaning": "end",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "最初",
+    "reading": "さいしょ",
+    "meaning": "beginning",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "坂",
+    "reading": "さか",
+    "meaning": "slope",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "探す",
+    "reading": "さがす",
+    "meaning": "to search for",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "盛ん",
+    "reading": "さかん",
+    "meaning": "prosperous",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "下げる",
+    "reading": "さげる",
+    "meaning": "to hang",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "差し上げる",
+    "reading": "さしあげる",
+    "meaning": "to lift up",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "さっき",
+    "reading": "さっき",
+    "meaning": "a short while ago",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "寂しい",
+    "reading": "さびしい",
+    "meaning": "lonely",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "サラダ",
+    "reading": "サラダ",
+    "meaning": "salad",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "騒ぐ",
+    "reading": "さわぐ",
+    "meaning": "to make noise",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "触る",
+    "reading": "さわる",
+    "meaning": "to touch",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "産業",
+    "reading": "さんぎょう",
+    "meaning": "industry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "サンダル",
+    "reading": "サンダル",
+    "meaning": "sandal",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "サンドイッチ",
+    "reading": "サンドイッチ",
+    "meaning": "sandwich",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "残念",
+    "reading": "ざんねん",
+    "meaning": "regrettable",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "試合",
+    "reading": "しあい",
+    "meaning": "match",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "仕方",
+    "reading": "しかた",
+    "meaning": "way",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "試験",
+    "reading": "しけん",
+    "meaning": "examination",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "事故",
+    "reading": "じこ",
+    "meaning": "accident",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "地震",
+    "reading": "じしん",
+    "meaning": "earthquake",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "時代",
+    "reading": "じだい",
+    "meaning": "period",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "下着",
+    "reading": "したぎ",
+    "meaning": "underwear",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "しっかり",
+    "reading": "しっかり",
+    "meaning": "tightly (holding on)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "失敗",
+    "reading": "しっぱい",
+    "meaning": "failure",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "辞典",
+    "reading": "じてん",
+    "meaning": "dictionary",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "品物",
+    "reading": "しなもの",
+    "meaning": "article",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "島",
+    "reading": "しま",
+    "meaning": "island",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "市民",
+    "reading": "しみん",
+    "meaning": "citizen (of a country)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "事務所",
+    "reading": "じむしょ",
+    "meaning": "office",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "社会",
+    "reading": "しゃかい",
+    "meaning": "society",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "社長",
+    "reading": "しゃちょう",
+    "meaning": "company president",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ジャム",
+    "reading": "ジャム",
+    "meaning": "jam",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "自由",
+    "reading": "じゆう",
+    "meaning": "freedom",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "習慣",
+    "reading": "しゅうかん",
+    "meaning": "habit",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "住所",
+    "reading": "じゅうしょ",
+    "meaning": "address",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "柔道",
+    "reading": "じゅうどう",
+    "meaning": "judo",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "趣味",
+    "reading": "しゅみ",
+    "meaning": "hobby",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "紹介",
+    "reading": "しょうかい",
+    "meaning": "introduction",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "小学校",
+    "reading": "しょうがっこう",
+    "meaning": "primary school",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "小説",
+    "reading": "しょうせつ",
+    "meaning": "novel",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "将来",
+    "reading": "しょうらい",
+    "meaning": "future",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "食料品",
+    "reading": "しょくりょうひん",
+    "meaning": "foodstuff",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "女性",
+    "reading": "じょせい",
+    "meaning": "woman",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "知らせる",
+    "reading": "しらせる",
+    "meaning": "to notify",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "調べる",
+    "reading": "しらべる",
+    "meaning": "to examine",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "人口",
+    "reading": "じんこう",
+    "meaning": "population",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "神社",
+    "reading": "じんじゃ",
+    "meaning": "Shinto shrine",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "親切",
+    "reading": "しんせつ",
+    "meaning": "kind",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "新聞社",
+    "reading": "しんぶんしゃ",
+    "meaning": "newspaper company",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "水泳",
+    "reading": "すいえい",
+    "meaning": "swimming",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "水道",
+    "reading": "すいどう",
+    "meaning": "water supply",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "数学",
+    "reading": "すうがく",
+    "meaning": "mathematics",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "スーツ",
+    "reading": "スーツ",
+    "meaning": "suit (clothing)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "スーツケース",
+    "reading": "スーツケース",
+    "meaning": "suitcase",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "過ぎる",
+    "reading": "すぎる",
+    "meaning": "to go by",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "スクリーン",
+    "reading": "スクリーン",
+    "meaning": "screen",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "凄い",
+    "reading": "すごい",
+    "meaning": "terrible",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "進む",
+    "reading": "すすむ",
+    "meaning": "to advance",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "すっかり",
+    "reading": "すっかり",
+    "meaning": "all",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "すっと",
+    "reading": "すっと",
+    "meaning": "straight",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ステーキ",
+    "reading": "ステーキ",
+    "meaning": "steak",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "捨てる",
+    "reading": "すてる",
+    "meaning": "to throw away",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ステレオ",
+    "reading": "ステレオ",
+    "meaning": "stereo (sound)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "砂",
+    "reading": "すな",
+    "meaning": "sand",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "滑る",
+    "reading": "すべる",
+    "meaning": "to slide",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "隅",
+    "reading": "すみ",
+    "meaning": "corner",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "済む",
+    "reading": "すむ",
+    "meaning": "to finish",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "すり",
+    "reading": "すり",
+    "meaning": "pickpocket",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "生活",
+    "reading": "せいかつ",
+    "meaning": "life",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "政治",
+    "reading": "せいじ",
+    "meaning": "politics",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "西洋",
+    "reading": "せいよう",
+    "meaning": "the West",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "世界",
+    "reading": "せかい",
+    "meaning": "the world",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "席",
+    "reading": "せき",
+    "meaning": "seat",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "説明",
+    "reading": "せつめい",
+    "meaning": "explanation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "背中",
+    "reading": "せなか",
+    "meaning": "back (of the body)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "線",
+    "reading": "せん",
+    "meaning": "line",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "戦争",
+    "reading": "せんそう",
+    "meaning": "war",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "先輩",
+    "reading": "せんぱい",
+    "meaning": "senior (at work or school)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "育てる",
+    "reading": "そだてる",
+    "meaning": "to raise",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "卒業",
+    "reading": "そつぎょう",
+    "meaning": "graduation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "祖父",
+    "reading": "そふ",
+    "meaning": "grandfather",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ソフト",
+    "reading": "ソフト",
+    "meaning": "soft",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "祖母",
+    "reading": "そぼ",
+    "meaning": "grandmother",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "それで",
+    "reading": "それで",
+    "meaning": "so",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "それに",
+    "reading": "それに",
+    "meaning": "besides",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "そろそろ",
+    "reading": "そろそろ",
+    "meaning": "soon",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "そんな",
+    "reading": "そんな",
+    "meaning": "such",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "そんなに",
+    "reading": "そんなに",
+    "meaning": "so much",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "大学生",
+    "reading": "だいがくせい",
+    "meaning": "university student",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "大体",
+    "reading": "だいたい",
+    "meaning": "generally",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "タイプ",
+    "reading": "タイプ",
+    "meaning": "type",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "台風",
+    "reading": "たいふう",
+    "meaning": "typhoon",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "倒れる",
+    "reading": "たおれる",
+    "meaning": "to fall (over, down)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "確か",
+    "reading": "たしか",
+    "meaning": "sure",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "足す",
+    "reading": "たす",
+    "meaning": "to add (numbers)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "訪ねる",
+    "reading": "たずねる",
+    "meaning": "to visit",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "尋ねる",
+    "reading": "たずねる",
+    "meaning": "to ask",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "正しい",
+    "reading": "ただしい",
+    "meaning": "right",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "立てる",
+    "reading": "たてる",
+    "meaning": "to stand up",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "建てる",
+    "reading": "たてる",
+    "meaning": "to build",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "例えば",
+    "reading": "たとえば",
+    "meaning": "for example",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "棚",
+    "reading": "たな",
+    "meaning": "shelf",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "楽しみ",
+    "reading": "たのしみ",
+    "meaning": "enjoyment",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "為",
+    "reading": "ため",
+    "meaning": "good",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "足りる",
+    "reading": "たりる",
+    "meaning": "to be sufficient",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "男性",
+    "reading": "だんせい",
+    "meaning": "man",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "暖房",
+    "reading": "だんぼう",
+    "meaning": "(indoor) heating",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "血",
+    "reading": "ち",
+    "meaning": "blood",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "チェック",
+    "reading": "チェック",
+    "meaning": "check (pattern)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "力",
+    "reading": "ちから",
+    "meaning": "force",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ちっとも",
+    "reading": "ちっとも",
+    "meaning": "(not) at all",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ちゃん",
+    "reading": "ちゃん",
+    "meaning": "suffix for familiar person",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "注意",
+    "reading": "ちゅうい",
+    "meaning": "attention",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "中学校",
+    "reading": "ちゅうがっこう",
+    "meaning": "junior high school",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "注射",
+    "reading": "ちゅうしゃ",
+    "meaning": "injection",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "駐車場",
+    "reading": "ちゅうしゃじょう",
+    "meaning": "parking lot",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "地理",
+    "reading": "ちり",
+    "meaning": "geography",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "捕まえる",
+    "reading": "つかまえる",
+    "meaning": "to catch",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "付く",
+    "reading": "つく",
+    "meaning": "to become (a state, condition, etc.)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "漬ける",
+    "reading": "つける",
+    "meaning": "to soak (in)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "都合",
+    "reading": "つごう",
+    "meaning": "circumstances",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "伝える",
+    "reading": "つたえる",
+    "meaning": "to convey",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "続く",
+    "reading": "つづく",
+    "meaning": "to continue",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "続ける",
+    "reading": "つづける",
+    "meaning": "to continue",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "妻",
+    "reading": "つま",
+    "meaning": "one's wife",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "釣る",
+    "reading": "つる",
+    "meaning": "to fish",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "連れる",
+    "reading": "つれる",
+    "meaning": "to take (someone) with one",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "丁寧",
+    "reading": "ていねい",
+    "meaning": "polite",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "テキスト",
+    "reading": "テキスト",
+    "meaning": "text",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "適当",
+    "reading": "てきとう",
+    "meaning": "suitable",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "手伝う",
+    "reading": "てつだう",
+    "meaning": "to help",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "テニス",
+    "reading": "テニス",
+    "meaning": "tennis",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "手袋",
+    "reading": "てぶくろ",
+    "meaning": "glove",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "寺",
+    "reading": "てら",
+    "meaning": "counter for temples",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "点",
+    "reading": "てん",
+    "meaning": "dot",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "店員",
+    "reading": "てんいん",
+    "meaning": "employee (of a store)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "天気予報",
+    "reading": "てんきよほう",
+    "meaning": "weather forecast",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "電灯",
+    "reading": "でんとう",
+    "meaning": "electric light",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "電報",
+    "reading": "でんぽう",
+    "meaning": "telegram",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "展覧会",
+    "reading": "てんらんかい",
+    "meaning": "exhibition",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "道具",
+    "reading": "どうぐ",
+    "meaning": "tool",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "とうとう",
+    "reading": "とうとう",
+    "meaning": "finally",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "動物園",
+    "reading": "どうぶつえん",
+    "meaning": "zoo",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "遠く",
+    "reading": "とおく",
+    "meaning": "far away",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "通る",
+    "reading": "とおる",
+    "meaning": "to go by",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "特に",
+    "reading": "とくに",
+    "meaning": "particularly",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "特別",
+    "reading": "とくべつ",
+    "meaning": "special",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "特急",
+    "reading": "とっきゅう",
+    "meaning": "used by JR, Seibu, Kintetsu, etc.",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "届ける",
+    "reading": "とどける",
+    "meaning": "to deliver",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "泊まる",
+    "reading": "とまる",
+    "meaning": "to stay at (e.g. hotel)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "取り替える",
+    "reading": "とりかえる",
+    "meaning": "to exchange",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "泥棒",
+    "reading": "どろぼう",
+    "meaning": "thief",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "どんどん",
+    "reading": "どんどん",
+    "meaning": "drumming (noise)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "直す",
+    "reading": "なおす",
+    "meaning": "to repair",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "直る",
+    "reading": "なおる",
+    "meaning": "to get mended",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "治る",
+    "reading": "なおる",
+    "meaning": "to get better",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "中々",
+    "reading": "なかなか",
+    "meaning": "very",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "泣く",
+    "reading": "なく",
+    "meaning": "to cry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "無くなる",
+    "reading": "なくなる",
+    "meaning": "to be lost (e.g. luggage)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "亡くなる",
+    "reading": "なくなる",
+    "meaning": "to die",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "投げる",
+    "reading": "なげる",
+    "meaning": "to throw",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "鳴る",
+    "reading": "なる",
+    "meaning": "to sound",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "慣れる",
+    "reading": "なれる",
+    "meaning": "to get used to",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "苦い",
+    "reading": "にがい",
+    "meaning": "bitter",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "二階建て",
+    "reading": "にかいだて",
+    "meaning": "two-storied building",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "逃げる",
+    "reading": "にげる",
+    "meaning": "to run away",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "日記",
+    "reading": "にっき",
+    "meaning": "diary",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "似る",
+    "reading": "にる",
+    "meaning": "to resemble",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "人形",
+    "reading": "にんぎょう",
+    "meaning": "doll",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "盗む",
+    "reading": "ぬすむ",
+    "meaning": "to steal",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "塗る",
+    "reading": "ぬる",
+    "meaning": "to cover (with)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "熱",
+    "reading": "ねつ",
+    "meaning": "heat",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "寝坊",
+    "reading": "ねぼう",
+    "meaning": "sleeping in late",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "眠い",
+    "reading": "ねむい",
+    "meaning": "sleepy",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "眠る",
+    "reading": "ねむる",
+    "meaning": "to sleep",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "残る",
+    "reading": "のこる",
+    "meaning": "to remain",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "乗り換える",
+    "reading": "のりかえる",
+    "meaning": "to transfer (trains)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "乗り物",
+    "reading": "のりもの",
+    "meaning": "vehicle",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "葉",
+    "reading": "は",
+    "meaning": "counter for leaves, pieces of paper, etc.",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "場合",
+    "reading": "ばあい",
+    "meaning": "case",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "パート",
+    "reading": "パート",
+    "meaning": "part",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "倍",
+    "reading": "ばい",
+    "meaning": "double",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "歯医者",
+    "reading": "はいしゃ",
+    "meaning": "dentist",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "運ぶ",
+    "reading": "はこぶ",
+    "meaning": "to carry",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "始める",
+    "reading": "はじめる",
+    "meaning": "to start",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "場所",
+    "reading": "ばしょ",
+    "meaning": "place",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "恥ずかしい",
+    "reading": "はずかしい",
+    "meaning": "embarrassing",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "パソコン",
+    "reading": "パソコン",
+    "meaning": "personal computer",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "発音",
+    "reading": "はつおん",
+    "meaning": "pronunciation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "はっきり",
+    "reading": "はっきり",
+    "meaning": "clearly",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "花見",
+    "reading": "はなみ",
+    "meaning": "cherry blossom viewing",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "林",
+    "reading": "はやし",
+    "meaning": "wood",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "払う",
+    "reading": "はらう",
+    "meaning": "to pay (e.g. money, bill)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "番組",
+    "reading": "ばんぐみ",
+    "meaning": "program (e.g. TV)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "反対",
+    "reading": "はんたい",
+    "meaning": "opposition",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ハンドバッグ",
+    "reading": "ハンドバッグ",
+    "meaning": "handbag",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "火",
+    "reading": "ひ",
+    "meaning": "Tuesday",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ピアノ",
+    "reading": "ピアノ",
+    "meaning": "piano (instrument)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "冷える",
+    "reading": "ひえる",
+    "meaning": "to get chilly",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "光",
+    "reading": "ひかり",
+    "meaning": "light",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "光る",
+    "reading": "ひかる",
+    "meaning": "to shine",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "引き出し",
+    "reading": "ひきだし",
+    "meaning": "drawer",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "引き出す",
+    "reading": "ひきだす",
+    "meaning": "to pull out",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "飛行場",
+    "reading": "ひこうじょう",
+    "meaning": "airfield",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "久しぶり",
+    "reading": "ひさしぶり",
+    "meaning": "a long time (since the last time)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "美術館",
+    "reading": "びじゅつかん",
+    "meaning": "art museum",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "非常に",
+    "reading": "ひじょうに",
+    "meaning": "very",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "引っ越す",
+    "reading": "ひっこす",
+    "meaning": "to move (house)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "必要",
+    "reading": "ひつよう",
+    "meaning": "necessary",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "開く",
+    "reading": "ひらく",
+    "meaning": "to open (e.g. doors)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ビル",
+    "reading": "ビル",
+    "meaning": "multi-floor building",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "昼休み",
+    "reading": "ひるやすみ",
+    "meaning": "lunch break",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "拾う",
+    "reading": "ひろう",
+    "meaning": "to pick up",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "増える",
+    "reading": "ふえる",
+    "meaning": "to increase",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "深い",
+    "reading": "ふかい",
+    "meaning": "deep",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "複雑",
+    "reading": "ふくざつ",
+    "meaning": "complex",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "復習",
+    "reading": "ふくしゅう",
+    "meaning": "review (of learned material)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "部長",
+    "reading": "ぶちょう",
+    "meaning": "head (chief, director) of a section or department",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "普通",
+    "reading": "ふつう",
+    "meaning": "normal",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "太る",
+    "reading": "ふとる",
+    "meaning": "to put on weight",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "布団",
+    "reading": "ふとん",
+    "meaning": "futon",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "踏む",
+    "reading": "ふむ",
+    "meaning": "to step on",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "降り出す",
+    "reading": "ふりだす",
+    "meaning": "to begin to rain",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "プレゼント",
+    "reading": "プレゼント",
+    "meaning": "present",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "文化",
+    "reading": "ぶんか",
+    "meaning": "culture",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "文学",
+    "reading": "ぶんがく",
+    "meaning": "literature",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "文法",
+    "reading": "ぶんぽう",
+    "meaning": "grammar",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "別",
+    "reading": "べつ",
+    "meaning": "distinction",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ベル",
+    "reading": "ベル",
+    "meaning": "bell",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "変",
+    "reading": "へん",
+    "meaning": "strange",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "返事",
+    "reading": "へんじ",
+    "meaning": "reply",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "貿易",
+    "reading": "ぼうえき",
+    "meaning": "(foreign) trade",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "法律",
+    "reading": "ほうりつ",
+    "meaning": "law",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "星",
+    "reading": "ほし",
+    "meaning": "星宿",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "翻訳",
+    "reading": "ほんやく",
+    "meaning": "translation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "参る",
+    "reading": "まいる",
+    "meaning": "to go",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "負ける",
+    "reading": "まける",
+    "meaning": "to lose",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "間違える",
+    "reading": "まちがえる",
+    "meaning": "to make a mistake (in)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "間に合う",
+    "reading": "まにあう",
+    "meaning": "to be in time (for)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "周り",
+    "reading": "まわり",
+    "meaning": "circumference",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "回る",
+    "reading": "まわる",
+    "meaning": "to turn",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "漫画",
+    "reading": "まんが",
+    "meaning": "cartoon",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "真中",
+    "reading": "まんなか",
+    "meaning": "middle",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "見える",
+    "reading": "みえる",
+    "meaning": "to have an audience",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "湖",
+    "reading": "みずうみ",
+    "meaning": "lake (in place names)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "味噌",
+    "reading": "みそ",
+    "meaning": "miso",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "見つかる",
+    "reading": "みつかる",
+    "meaning": "to be found",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "見つける",
+    "reading": "みつける",
+    "meaning": "to find",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "港",
+    "reading": "みなと",
+    "meaning": "harbour",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "向かう",
+    "reading": "むかう",
+    "meaning": "to face",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "迎える",
+    "reading": "むかえる",
+    "meaning": "to go out to meet",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "昔",
+    "reading": "むかし",
+    "meaning": "the old days",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "虫",
+    "reading": "むし",
+    "meaning": "insect",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "息子",
+    "reading": "むすこ",
+    "meaning": "son",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "娘",
+    "reading": "むすめ",
+    "meaning": "daughter",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "無理",
+    "reading": "むり",
+    "meaning": "unreasonable",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "召し上がる",
+    "reading": "めしあがる",
+    "meaning": "to eat",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "珍しい",
+    "reading": "めずらしい",
+    "meaning": "rare",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "申し上げる",
+    "reading": "もうしあげる",
+    "meaning": "to say",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "申す",
+    "reading": "もうす",
+    "meaning": "to say",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "もうすぐ",
+    "reading": "もうすぐ",
+    "meaning": "soon",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "もし",
+    "reading": "もし",
+    "meaning": "excuse me! (when calling out to someone)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "もっとも",
+    "reading": "もっとも",
+    "meaning": "but then",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "戻る",
+    "reading": "もどる",
+    "meaning": "to turn back (e.g. half-way)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "森",
+    "reading": "もり",
+    "meaning": "forest",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "焼く",
+    "reading": "やく",
+    "meaning": "to burn",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "約束",
+    "reading": "やくそく",
+    "meaning": "promise",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "役に立つ",
+    "reading": "やくにたつ",
+    "meaning": "to be helpful",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "焼ける",
+    "reading": "やける",
+    "meaning": "to burn",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "優しい",
+    "reading": "やさしい",
+    "meaning": "tender",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "痩せる",
+    "reading": "やせる",
+    "meaning": "to become thin",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "やっと",
+    "reading": "やっと",
+    "meaning": "at last",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "止む",
+    "reading": "やむ",
+    "meaning": "to cease",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "柔らかい",
+    "reading": "やわらかい",
+    "meaning": "soft",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "湯",
+    "reading": "ゆ",
+    "meaning": "hot water",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "指",
+    "reading": "ゆび",
+    "meaning": "finger",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "指輪",
+    "reading": "ゆびわ",
+    "meaning": "(finger) ring",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "夢",
+    "reading": "ゆめ",
+    "meaning": "dream",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "揺れる",
+    "reading": "ゆれる",
+    "meaning": "to shake",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "用",
+    "reading": "よう",
+    "meaning": "business",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "用意",
+    "reading": "ようい",
+    "meaning": "preparation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "用事",
+    "reading": "ようじ",
+    "meaning": "business",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "予習",
+    "reading": "よしゅう",
+    "meaning": "preparation for a lesson",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "予定",
+    "reading": "よてい",
+    "meaning": "plans",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "予約",
+    "reading": "よやく",
+    "meaning": "reservation",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "寄る",
+    "reading": "よる",
+    "meaning": "to approach",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "喜ぶ",
+    "reading": "よろこぶ",
+    "meaning": "to be delighted",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "理由",
+    "reading": "りゆう",
+    "meaning": "reason",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "利用",
+    "reading": "りよう",
+    "meaning": "use",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "両方",
+    "reading": "りょうほう",
+    "meaning": "both",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "旅館",
+    "reading": "りょかん",
+    "meaning": "ryokan",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "留守",
+    "reading": "るす",
+    "meaning": "absence",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "冷房",
+    "reading": "れいぼう",
+    "meaning": "air conditioning",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "歴史",
+    "reading": "れきし",
+    "meaning": "history",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "レジ",
+    "reading": "レジ",
+    "meaning": "(cash) register",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "連絡",
+    "reading": "れんらく",
+    "meaning": "contacting",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "ワープロ",
+    "reading": "ワープロ",
+    "meaning": "word processor",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "沸かす",
+    "reading": "わかす",
+    "meaning": "to boil",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "別れる",
+    "reading": "わかれる",
+    "meaning": "to part (usu. of people)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "沸く",
+    "reading": "わく",
+    "meaning": "to grow hot (e.g. water)",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "忘れ物",
+    "reading": "わすれもの",
+    "meaning": "lost article",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "笑う",
+    "reading": "わらう",
+    "meaning": "to laugh",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "割合",
+    "reading": "わりあい",
+    "meaning": "rate",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "割れる",
+    "reading": "われる",
+    "meaning": "to break",
+    "jlpt_level": "N4"
+  },
+  {
+    "kanji_form": "泳ぎ方",
+    "reading": "およぎかた",
+    "meaning": "way of swimming",
+    "jlpt_level": "N4"
+  }
+]

@@ -171,6 +171,102 @@
   margin-top: var(--space-4);
 }
 
+/* Reading input */
+.inputRow {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 320px;
+  margin-top: var(--space-4);
+}
+
+.readingInput {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-lg);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  text-align: center;
+}
+
+.readingInput:focus {
+  border-color: var(--color-primary);
+}
+
+.readingInputWrong {
+  border-color: var(--color-error);
+  animation: shake 0.4s ease;
+}
+
+.readingInput:disabled {
+  opacity: 0.5;
+}
+
+.checkBtn {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--transition-fast);
+}
+
+.checkBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.checkBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.wrongArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.wrongHint {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  text-align: center;
+  margin: 0;
+}
+
+.nextBtn {
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nextBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
 .readingRow {
   display: flex;
   align-items: center;

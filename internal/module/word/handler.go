@@ -51,7 +51,7 @@ func (h *WordHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/words/{id}/bookmark", h.handleBookmark)
 }
 
-// handleGetReviewQueue handles GET /api/v1/words/queue?level=N5
+// handleGetReviewQueue handles GET /api/v1/words/queue?level=N5&limit=50
 func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Request) {
 	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
@@ -69,6 +69,21 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 		slog.Error("handleGetReviewQueue failed", "err", err, "user_id", userID)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load review queue", "")
 		return
+	}
+
+	limit := parseLimitParam(r.URL.Query().Get("limit"), 50)
+	if len(cards) > limit {
+		cards = cards[:limit]
+	}
+
+	// Enrich examples with furigana HTML for any that don't have it pre-rendered
+	for i := range cards {
+		examples := cards[i].Word.Examples
+		for j := range examples {
+			if examples[j].FuriganaHTML == "" && examples[j].Japanese != "" {
+				examples[j].FuriganaHTML = FuriganaHTML(examples[j].Japanese)
+			}
+		}
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: cards})
@@ -163,4 +178,20 @@ func (h *WordHandler) handleGetWord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: response})
+}
+
+// parseLimitParam parses a limit query parameter, clamping to [1, 200] and
+// returning fallback if the value is missing or invalid.
+func parseLimitParam(raw string, fallback int) int {
+	if raw == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		return fallback
+	}
+	if n > 200 {
+		return 200
+	}
+	return n
 }

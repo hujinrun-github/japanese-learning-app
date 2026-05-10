@@ -31,6 +31,9 @@ export function TopNavBar() {
           <NavLink to="/writing" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
             {t('nav.writing')}
           </NavLink>
+          <NavLink to="/notes" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
+            {t('nav.notes')}
+          </NavLink>
         </nav>
 
         <div className={styles.user}>
