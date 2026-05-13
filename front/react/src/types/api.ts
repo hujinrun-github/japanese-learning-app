@@ -81,6 +81,7 @@ export interface QuizQuestion {
 export interface GrammarExample {
   japanese: string
   chinese: string
+  furigana_html?: string
 }
 
 export interface GrammarPoint {

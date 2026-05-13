@@ -10,6 +10,7 @@ import (
 
 	"japanese-learning-app/internal/httputil"
 	"japanese-learning-app/internal/module/user"
+	"japanese-learning-app/internal/module/word"
 )
 
 // NoteDigestProvider is the optional interface for cross-module note enrichment.
@@ -90,6 +91,9 @@ func (h *GrammarHandler) handleGetPoint(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Enrich examples with furigana HTML
+	enrichExamplesFurigana(p.Examples)
+
 	type enriched struct {
 		GrammarPoint
 		RelatedNotes []NoteDigest `json:"related_notes"`
@@ -133,4 +137,13 @@ func (h *GrammarHandler) handleScoreQuiz(w http.ResponseWriter, r *http.Request)
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: result})
+}
+
+// enrichExamplesFurigana generates furigana HTML for grammar examples that don't have it yet.
+func enrichExamplesFurigana(examples []GrammarExample) {
+	for i := range examples {
+		if examples[i].FuriganaHTML == "" && examples[i].Japanese != "" {
+			examples[i].FuriganaHTML = word.FuriganaHTML(examples[i].Japanese)
+		}
+	}
 }

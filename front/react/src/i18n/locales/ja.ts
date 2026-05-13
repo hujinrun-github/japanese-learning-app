@@ -110,6 +110,8 @@ const ja = {
       conjunction: '接続方法',
       usage: '用法説明',
       examples: '例文',
+      prev: '前へ',
+      next: '次へ',
       quiz: {
         title: '練習問題',
         submit: '回答を提出',

@@ -33,9 +33,10 @@ type QuizQuestion struct {
 
 // GrammarExample 语法例句
 type GrammarExample struct {
-	Japanese    string  `json:"japanese"`
-	Chinese     string  `json:"chinese"`
-	LinkedWords []int64 `json:"linked_word_ids,omitempty"` // 可一键加入单词本的词汇
+	Japanese     string  `json:"japanese"`
+	Chinese      string  `json:"chinese"`
+	FuriganaHTML string  `json:"furigana_html,omitempty"`
+	LinkedWords  []int64 `json:"linked_word_ids,omitempty"` // 可一键加入单词本的词汇
 }
 
 // GrammarPoint 语法点（内容库）
