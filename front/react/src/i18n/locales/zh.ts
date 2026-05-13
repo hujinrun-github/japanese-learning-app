@@ -110,6 +110,8 @@ const zh = {
       conjunction: '接续方式',
       usage: '用法说明',
       examples: '例句',
+      prev: '上一个',
+      next: '下一个',
       quiz: {
         title: '练习测验',
         submit: '提交答案',

@@ -38,9 +38,10 @@ export function TopNavBar() {
 
         <div className={styles.user}>
           <LanguageSwitcher />
+          <NavLink to="/" className={styles.userIcon} title={t('nav.home')}>👤</NavLink>
           {user && <span className={styles.userName}>{user.name}</span>}
           <button className={styles.logoutBtn} onClick={logout} title={t('nav.logout')}>
-            ⏻
+            ➡
           </button>
         </div>
       </div>

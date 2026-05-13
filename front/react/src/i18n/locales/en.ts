@@ -110,6 +110,8 @@ const en = {
       conjunction: 'Conjugation',
       usage: 'Usage',
       examples: 'Examples',
+      prev: 'Previous',
+      next: 'Next',
       quiz: {
         title: 'Practice Quiz',
         submit: 'Submit Answers',
