@@ -1,4 +1,5 @@
 import { tokenize } from 'kuromojin'
+import type { FuriganaToken } from '@/types/api'
 
 const KATAKANA_START = 0x30A1
 const HIRAGANA_START = 0x3041
@@ -39,4 +40,31 @@ export async function toFuriganaHTML(text: string): Promise<string> {
     }
   }
   return result
+}
+
+/**
+ * Tokenize Japanese text and return an array of FuriganaToken.
+ * Readings are converted from katakana to hiragana.
+ */
+export async function toFuriganaTokens(text: string): Promise<FuriganaToken[]> {
+  const tokens = await tokenize(text)
+  return tokens.map(t => ({
+    surface: t.surface_form,
+    reading: katakanaToHiragana(t.reading ?? ''),
+  }))
+}
+
+/**
+ * Map a character index within the original text to the corresponding token index.
+ * Returns the last token index if charIndex is beyond the total surface length.
+ */
+export function charIndexToTokenIndex(charIndex: number, tokens: FuriganaToken[]): number {
+  let offset = 0
+  for (let i = 0; i < tokens.length; i++) {
+    offset += tokens[i].surface.length
+    if (charIndex < offset) {
+      return i
+    }
+  }
+  return tokens.length - 1
 }

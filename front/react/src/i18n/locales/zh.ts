@@ -133,6 +133,28 @@ const zh = {
     free: '🎤 自由朗读',
     freeDesc: '朗读课文内容，AI 分析发音准确度。',
     micNote: '⚠️ 完整录音功能需要麦克风权限',
+    filter: {
+      all: '全部',
+      shadow: '影子跟读',
+      free: '自由朗读',
+    },
+    materials: {
+      level: '等级',
+      shadowLabel: '影子跟读',
+      freeLabel: '自由朗读',
+    },
+    practice: {
+      back: '← 返回列表',
+      playRef: '播放参考',
+      pauseRef: '暂停参考',
+      startRecord: '开始录音',
+      stopRecord: '停止录音',
+      reRecord: '重新录音',
+      playback: '回放',
+      selfRate: '自评',
+      submit: '提交',
+      submitSuccess: '练习已保存！',
+    },
     records: {
       title: '历史练习记录',
       empty: '暂无练习记录，开始你的第一次练习吧！',

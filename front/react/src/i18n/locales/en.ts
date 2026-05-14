@@ -133,6 +133,28 @@ const en = {
     free: '🎤 Free Reading',
     freeDesc: 'Read aloud and let AI analyze your accuracy.',
     micNote: '⚠️ Full recording requires microphone permission',
+    filter: {
+      all: 'All',
+      shadow: 'Shadowing',
+      free: 'Free Reading',
+    },
+    materials: {
+      level: 'Level',
+      shadowLabel: 'Shadowing',
+      freeLabel: 'Free Reading',
+    },
+    practice: {
+      back: '← Back to list',
+      playRef: 'Play Reference',
+      pauseRef: 'Pause Reference',
+      startRecord: 'Start Recording',
+      stopRecord: 'Stop Recording',
+      reRecord: 'Re-record',
+      playback: 'Playback',
+      selfRate: 'Self Rating',
+      submit: 'Submit',
+      submitSuccess: 'Practice saved!',
+    },
     records: {
       title: 'Practice History',
       empty: 'No practice records yet. Start your first session!',

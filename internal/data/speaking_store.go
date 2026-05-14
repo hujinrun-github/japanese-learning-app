@@ -18,22 +18,27 @@ func NewSpeakingStore(db *sql.DB) *SpeakingStore {
 	return &SpeakingStore{db: db}
 }
 
-// SaveRecord 保存一次口语练习记录。
-func (s *SpeakingStore) SaveRecord(r speaking.SpeakingRecord) error {
+// SaveRecord 保存一次口语练习记录，返回自动生成的记录 ID。
+func (s *SpeakingStore) SaveRecord(r speaking.SpeakingRecord) (int64, error) {
 	slog.Debug("SpeakingStore.SaveRecord called", "user_id", r.UserID, "material_id", r.MaterialID)
 
-	_, err := s.db.Exec(
+	result, err := s.db.Exec(
 		`INSERT INTO speaking_records (user_id, type, material_id, score, audio_ref, practiced_at)
 		 VALUES (?, ?, ?, ?, ?, ?)`,
 		r.UserID, r.Type, r.MaterialID, r.Score, r.AudioRef, formatSQLiteTime(r.PracticedAt),
 	)
 	if err != nil {
 		slog.Error("failed to insert speaking_record", "err", err, "user_id", r.UserID)
-		return fmt.Errorf("data.SpeakingStore.SaveRecord: %w", err)
+		return 0, fmt.Errorf("data.SpeakingStore.SaveRecord: %w", err)
 	}
 
-	slog.Debug("SpeakingStore.SaveRecord done", "user_id", r.UserID, "material_id", r.MaterialID)
-	return nil
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("data.SpeakingStore.SaveRecord LastInsertId: %w", err)
+	}
+
+	slog.Debug("SpeakingStore.SaveRecord done", "record_id", id, "user_id", r.UserID)
+	return id, nil
 }
 
 // ListRecords 查询用户所有口语练习记录，按 practiced_at 倒序。
@@ -103,4 +108,69 @@ func (s *SpeakingStore) GetRecord(id int64) (*speaking.SpeakingRecord, error) {
 
 	slog.Debug("SpeakingStore.GetRecord done", "record_id", id, "user_id", r.UserID)
 	return &r, nil
+}
+
+// ListMaterials 查询口语练习素材，支持按 type 和 level 过滤。
+func (s *SpeakingStore) ListMaterials(practiceType, level string) ([]speaking.SpeakingMaterial, error) {
+	slog.Debug("SpeakingStore.ListMaterials called", "type", practiceType, "level", level)
+
+	query := `SELECT id, type, title, text, audio_url, jlpt_level FROM speaking_materials WHERE 1=1`
+	var args []any
+
+	if practiceType != "" {
+		query += " AND type = ?"
+		args = append(args, practiceType)
+	}
+	if level != "" {
+		query += " AND jlpt_level = ?"
+		args = append(args, level)
+	}
+	query += " ORDER BY id ASC"
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("failed to query speaking_materials", "err", err)
+		return nil, fmt.Errorf("data.SpeakingStore.ListMaterials query: %w", err)
+	}
+	defer rows.Close()
+
+	materials := make([]speaking.SpeakingMaterial, 0)
+	for rows.Next() {
+		var m speaking.SpeakingMaterial
+		if err := rows.Scan(&m.ID, &m.Type, &m.Title, &m.Text, &m.AudioURL, &m.JLPTLevel); err != nil {
+			slog.Error("failed to scan speaking_material row", "err", err)
+			return nil, fmt.Errorf("data.SpeakingStore.ListMaterials scan: %w", err)
+		}
+		materials = append(materials, m)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("rows iteration error", "err", err)
+		return nil, fmt.Errorf("data.SpeakingStore.ListMaterials rows: %w", err)
+	}
+
+	slog.Debug("SpeakingStore.ListMaterials done", "count", len(materials))
+	return materials, nil
+}
+
+// GetMaterialByID 按 ID 查询单个口语练习素材，不存在时返回 nil, nil。
+func (s *SpeakingStore) GetMaterialByID(id int64) (*speaking.SpeakingMaterial, error) {
+	slog.Debug("SpeakingStore.GetMaterialByID called", "id", id)
+
+	row := s.db.QueryRow(
+		`SELECT id, type, title, text, audio_url, jlpt_level FROM speaking_materials WHERE id = ?`, id,
+	)
+
+	var m speaking.SpeakingMaterial
+	err := row.Scan(&m.ID, &m.Type, &m.Title, &m.Text, &m.AudioURL, &m.JLPTLevel)
+	if err == sql.ErrNoRows {
+		slog.Debug("speaking_material not found", "id", id)
+		return nil, nil
+	}
+	if err != nil {
+		slog.Error("failed to scan speaking_material", "err", err, "id", id)
+		return nil, fmt.Errorf("data.SpeakingStore.GetMaterialByID: %w", err)
+	}
+
+	slog.Debug("SpeakingStore.GetMaterialByID done", "id", id, "title", m.Title)
+	return &m, nil
 }
