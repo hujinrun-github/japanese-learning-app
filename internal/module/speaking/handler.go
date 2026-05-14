@@ -1,7 +1,7 @@
 package speaking
 
 import (
-	"io"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -22,15 +22,26 @@ func NewSpeakingHandler(svc *SpeakingService) *SpeakingHandler {
 
 // RegisterRoutes registers speaking routes.
 // Routes:
-//   POST /api/v1/speaking/practice          → Practice (multipart/form-data)
-//   GET  /api/v1/speaking/records           → ListRecords
+//
+//	POST /api/v1/speaking/practice           → record a self-rated practice
+//	GET  /api/v1/speaking/records            → list user's practice records
+//	GET  /api/v1/speaking/materials          → list practice materials
+//	GET  /api/v1/speaking/materials/{id}     → get a single material
 func (h *SpeakingHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/speaking/practice", h.handlePractice)
 	mux.HandleFunc("GET /api/v1/speaking/records", h.handleListRecords)
+	mux.HandleFunc("GET /api/v1/speaking/materials", h.handleListMaterials)
+	mux.HandleFunc("GET /api/v1/speaking/materials/{id}", h.handleGetMaterial)
+}
+
+type practiceRequest struct {
+	Type       string `json:"type"`
+	MaterialID int64  `json:"material_id"`
+	Score      int    `json:"score"`
 }
 
 // handlePractice handles POST /api/v1/speaking/practice
-// Expects multipart/form-data with fields: type, material_id, reference_audio, user_audio
+// Accepts JSON body with type, material_id, and score fields.
 func (h *SpeakingHandler) handlePractice(w http.ResponseWriter, r *http.Request) {
 	userID, ok := user.UserIDFromContext(r.Context())
 	if !ok {
@@ -38,43 +49,30 @@ func (h *SpeakingHandler) handlePractice(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid multipart form", "")
+	var req practiceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid JSON body", "")
 		return
 	}
 
-	practiceType := PracticeType(r.FormValue("type"))
+	practiceType := PracticeType(req.Type)
 	if practiceType == "" {
 		practiceType = PracticeTypeShadow
 	}
 
-	materialIDStr := r.FormValue("material_id")
-	materialID, err := strconv.ParseInt(materialIDStr, 10, 64)
-	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid material_id", "")
+	if req.Score < 0 || req.Score > 100 {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "score must be 0-100", "")
 		return
 	}
 
-	refAudio, err := readFormFile(r, "reference_audio")
-	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "missing reference_audio", "")
-		return
-	}
-
-	userAudio, err := readFormFile(r, "user_audio")
-	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "missing user_audio", "")
-		return
-	}
-
-	result, err := h.svc.Practice(userID, practiceType, materialID, refAudio, userAudio)
+	record, err := h.svc.RecordPractice(userID, practiceType, req.MaterialID, req.Score)
 	if err != nil {
 		slog.Error("handlePractice failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to process speaking practice", "")
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to save practice record", "")
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: result})
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: record})
 }
 
 // handleListRecords handles GET /api/v1/speaking/records
@@ -95,12 +93,40 @@ func (h *SpeakingHandler) handleListRecords(w http.ResponseWriter, r *http.Reque
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: records})
 }
 
-// readFormFile reads all bytes from the named multipart file field.
-func readFormFile(r *http.Request, field string) ([]byte, error) {
-	f, _, err := r.FormFile(field)
+// handleListMaterials handles GET /api/v1/speaking/materials
+func (h *SpeakingHandler) handleListMaterials(w http.ResponseWriter, r *http.Request) {
+	practiceType := r.URL.Query().Get("type")
+	level := r.URL.Query().Get("level")
+
+	materials, err := h.svc.ListMaterials(practiceType, level)
 	if err != nil {
-		return nil, err
+		slog.Error("handleListMaterials failed", "err", err)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load materials", "")
+		return
 	}
-	defer f.Close()
-	return io.ReadAll(f)
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: materials})
+}
+
+// handleGetMaterial handles GET /api/v1/speaking/materials/{id}
+func (h *SpeakingHandler) handleGetMaterial(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid material id", "")
+		return
+	}
+
+	material, err := h.svc.GetMaterialByID(id)
+	if err != nil {
+		slog.Error("handleGetMaterial failed", "err", err, "id", id)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load material", "")
+		return
+	}
+	if material == nil {
+		httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "material not found", "")
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: material})
 }

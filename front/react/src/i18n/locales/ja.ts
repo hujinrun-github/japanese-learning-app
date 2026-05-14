@@ -133,6 +133,28 @@ const ja = {
     free: '🎤 自由音読',
     freeDesc: 'テキストを音読し、AIが発音の正確さを分析します。',
     micNote: '⚠️ 録音機能にはマイクの許可が必要です',
+    filter: {
+      all: '全て',
+      shadow: 'シャドーイング',
+      free: '自由音読',
+    },
+    materials: {
+      level: 'レベル',
+      shadowLabel: 'シャドーイング',
+      freeLabel: '自由音読',
+    },
+    practice: {
+      back: '← 一覧に戻る',
+      playRef: 'お手本を再生',
+      pauseRef: 'お手本を停止',
+      startRecord: '録音開始',
+      stopRecord: '録音停止',
+      reRecord: '録り直す',
+      playback: '再生',
+      selfRate: '自己評価',
+      submit: '提出',
+      submitSuccess: '練習を保存しました！',
+    },
     records: {
       title: '練習履歴',
       empty: '練習履歴がありません。最初の練習を始めましょう！',

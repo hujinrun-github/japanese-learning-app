@@ -154,10 +154,22 @@ export interface ScoreResult {
   annotations: SentenceAnnotation[]
 }
 
+export interface SpeakingMaterial {
+  id: number
+  type: string
+  title: string
+  text: string
+  audio_url: string
+  jlpt_level: string
+}
+
 export interface SpeakingRecord {
   id: number
+  user_id: number
+  type: string
   material_id: number
-  score: ScoreResult
+  score: number
+  audio_ref: string
   practiced_at: string
 }
 

@@ -17,11 +17,11 @@ type fakeSpeakingStore struct {
 	nextID  int64
 }
 
-func (f *fakeSpeakingStore) SaveRecord(r speaking.SpeakingRecord) error {
+func (f *fakeSpeakingStore) SaveRecord(r speaking.SpeakingRecord) (int64, error) {
 	f.nextID++
 	r.ID = f.nextID
 	f.records[r.ID] = &r
-	return nil
+	return f.nextID, nil
 }
 
 func (f *fakeSpeakingStore) ListRecords(userID int64) ([]speaking.SpeakingRecord, error) {
@@ -56,7 +56,7 @@ func TestSpeakingService_SaveRecord(t *testing.T) {
 		AudioRef:    "audio/user1/session1.wav",
 		PracticedAt: time.Now(),
 	}
-	if err := svc.SaveRecord(r); err != nil {
+	if _, err := svc.SaveRecord(r); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(store.records) != 1 {
