@@ -239,6 +239,52 @@ export interface PaginatedNotes {
   size: number
 }
 
+// Translation
+export interface TranslationSource {
+  id: number
+  title: string
+  source_type: string // "manual" | "url" | "api"
+  source_url: string
+  api_endpoint: string
+  raw_content: string
+  direction?: string
+  created_at: string
+}
+
+export interface TranslationSentence {
+  id: number
+  source_id: number
+  direction: string // "cn2jp" | "jp2cn"
+  source_text: string
+  reference_translation: string
+  position: number
+}
+
+export interface GrammarExplanation {
+  grammar_point: string
+  explanation: string
+  matched_db_id?: number
+}
+
+export interface TranslationFeedback {
+  ai_score: number
+  grammar_explanations: GrammarExplanation[]
+  issue_description: string
+  corrected_translation: string
+  reference_translation: string
+}
+
+export interface TranslationRecord {
+  id: number
+  user_id: number
+  sentence_id: number
+  user_translation: string
+  score: number
+  rule_score: number
+  ai_feedback?: TranslationFeedback
+  practiced_at: string
+}
+
 // Summary
 export interface SessionSummary {
   session_id: string
