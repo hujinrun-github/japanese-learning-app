@@ -18,6 +18,7 @@ type AuthAction =
   | { type: 'LOGIN'; payload: { token: string; user: User } }
   | { type: 'LOGOUT' }
   | { type: 'RESTORE'; payload: { token: string; user: User } }
+  | { type: 'UPDATE_USER'; user: User }
 
 function authReducer(_state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
@@ -30,12 +31,15 @@ function authReducer(_state: AuthState, action: AuthAction): AuthState {
       }
     case 'LOGOUT':
       return { user: null, token: null, isAuthenticated: false }
+    case 'UPDATE_USER':
+      return { ..._state, user: action.user }
   }
 }
 
 interface AuthContextValue extends AuthState {
   login: (token: string, user: User) => void
   logout: () => void
+  updateUser: (user: User) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -77,8 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'LOGOUT' })
   }, [])
 
+  const updateUser = useCallback((user: User) => {
+    dispatch({ type: 'UPDATE_USER', user })
+    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user))
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ ..._state, login, logout }}>
+    <AuthContext.Provider value={{ ..._state, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

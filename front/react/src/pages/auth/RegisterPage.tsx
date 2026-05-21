@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiFetch } from '@/api/client'
+import type { JLPTLevel } from '@/types/api'
 import { Button } from '@/components/ui/Button'
 import { EyeIcon } from './EyeIcon'
 import styles from './AuthPage.module.css'
@@ -13,7 +14,7 @@ interface RegisterResponse {
     id: number
     name: string
     email: string
-    jlpt_level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1'
+    jlpt_levels: JLPTLevel[]
     streak_days: number
     created_at: string
   }
