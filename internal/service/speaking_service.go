@@ -9,7 +9,7 @@ import (
 
 // SpeakingStoreInterface defines the data access methods required by SpeakingService.
 type SpeakingStoreInterface interface {
-	SaveRecord(r speaking.SpeakingRecord) error
+	SaveRecord(r speaking.SpeakingRecord) (int64, error)
 	ListRecords(userID int64) ([]speaking.SpeakingRecord, error)
 	GetRecord(id int64) (*speaking.SpeakingRecord, error)
 }
@@ -25,16 +25,17 @@ func NewSpeakingService(store SpeakingStoreInterface) *SpeakingService {
 }
 
 // SaveRecord persists a speaking practice record.
-func (s *SpeakingService) SaveRecord(r speaking.SpeakingRecord) error {
+func (s *SpeakingService) SaveRecord(r speaking.SpeakingRecord) (int64, error) {
 	slog.Debug("SpeakingService.SaveRecord called", "user_id", r.UserID, "type", r.Type)
 
-	if err := s.store.SaveRecord(r); err != nil {
+	id, err := s.store.SaveRecord(r)
+	if err != nil {
 		slog.Error("SpeakingService.SaveRecord: failed", "err", err)
-		return fmt.Errorf("service.SpeakingService.SaveRecord: %w", err)
+		return 0, fmt.Errorf("service.SpeakingService.SaveRecord: %w", err)
 	}
 
-	slog.Debug("SpeakingService.SaveRecord done", "user_id", r.UserID)
-	return nil
+	slog.Debug("SpeakingService.SaveRecord done", "user_id", r.UserID, "record_id", id)
+	return id, nil
 }
 
 // ListRecords returns all speaking records for the user, ordered by practiced_at desc.

@@ -34,13 +34,17 @@ export function TopNavBar() {
           <NavLink to="/notes" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
             {t('nav.notes')}
           </NavLink>
+          <NavLink to="/translation" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
+            {t('nav.translation')}
+          </NavLink>
         </nav>
 
         <div className={styles.user}>
           <LanguageSwitcher />
+          <NavLink to="/" className={styles.userIcon} title={t('nav.home')}>👤</NavLink>
           {user && <span className={styles.userName}>{user.name}</span>}
           <button className={styles.logoutBtn} onClick={logout} title={t('nav.logout')}>
-            ⏻
+            ➡
           </button>
         </div>
       </div>

@@ -81,6 +81,7 @@ export interface QuizQuestion {
 export interface GrammarExample {
   japanese: string
   chinese: string
+  furigana_html?: string
 }
 
 export interface GrammarPoint {
@@ -153,10 +154,22 @@ export interface ScoreResult {
   annotations: SentenceAnnotation[]
 }
 
+export interface SpeakingMaterial {
+  id: number
+  type: string
+  title: string
+  text: string
+  audio_url: string
+  jlpt_level: string
+}
+
 export interface SpeakingRecord {
   id: number
+  user_id: number
+  type: string
   material_id: number
-  score: ScoreResult
+  score: number
+  audio_ref: string
   practiced_at: string
 }
 
@@ -235,4 +248,52 @@ export interface SessionSummary {
   suggestions: string
   score_summary: Record<string, number>
   created_at: string
+}
+
+// Translation
+export type TranslationDirection = 'cn2jp' | 'jp2cn'
+
+export interface GrammarExplanation {
+  grammar_point: string
+  explanation: string
+  matched_db_id?: number
+}
+
+export interface TranslationFeedback {
+  ai_score: number
+  grammar_explanations: GrammarExplanation[]
+  issue_description: string
+  corrected_translation: string
+  reference_translation: string
+}
+
+export interface TranslationSource {
+  id: number
+  title: string
+  source_type: 'manual' | 'url' | 'api'
+  source_url: string
+  api_endpoint: string
+  raw_content: string
+  direction?: string
+  created_at: string
+}
+
+export interface TranslationSentence {
+  id: number
+  source_id: number
+  direction: TranslationDirection
+  source_text: string
+  reference_translation: string
+  position: number
+}
+
+export interface TranslationRecord {
+  id: number
+  user_id: number
+  sentence_id: number
+  user_translation: string
+  score: number
+  rule_score: number
+  ai_feedback?: TranslationFeedback
+  practiced_at: string
 }

@@ -25,6 +25,16 @@ type ScoreResult struct {
 	FeedbackMS   int64                `json:"feedback_ms"` // 评分耗时（毫秒，用于监控 SC-005）
 }
 
+// SpeakingMaterial 口语练习素材（只读内容）。
+type SpeakingMaterial struct {
+	ID        int64  `json:"id"`
+	Type      string `json:"type"`
+	Title     string `json:"title"`
+	Text      string `json:"text"`
+	AudioURL  string `json:"audio_url"`
+	JLPTLevel string `json:"jlpt_level"`
+}
+
 // SpeakingRecord 一次口语练习记录
 type SpeakingRecord struct {
 	ID          int64        `json:"id"`

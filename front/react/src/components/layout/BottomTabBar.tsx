@@ -10,6 +10,7 @@ const TAB_CONFIG = [
   { to: '/writing',      key: 'nav.writing',  icon: '✏️', end: false },
   { to: '/notes',       key: 'nav.notes',    icon: '🗒️', end: false },
   { to: '/lesson',       key: 'nav.lesson',   icon: '📚', end: false },
+  { to: '/translation',  key: 'nav.translation', icon: '🌐', end: false },
 ]
 
 export function BottomTabBar() {

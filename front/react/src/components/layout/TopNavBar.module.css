@@ -53,6 +53,23 @@
   color: var(--color-primary);
 }
 
+.userIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: var(--font-size-md);
+  transition: background-color var(--transition-fast);
+}
+
+.userIcon:hover {
+  background-color: var(--color-primary-light);
+}
+
 .user {
   display: flex;
   align-items: center;

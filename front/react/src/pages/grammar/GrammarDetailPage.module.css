@@ -87,15 +87,44 @@
   padding: var(--space-3) var(--space-4);
 }
 
+.exampleJaRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
 .exampleJa {
   font-size: var(--font-size-md);
   color: var(--color-text-primary);
-  margin-bottom: var(--space-1);
+  flex: 1;
 }
 
 .exampleZh {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+.speakBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  line-height: 1;
+  padding: 0;
+}
+
+.speakBtn:hover {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-surface));
 }
 
 /* Quiz */
@@ -186,6 +215,14 @@
   color: var(--color-text-primary);
 }
 
+.option input[type='radio'] {
+  margin: 0;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
 .option:hover {
   border-color: var(--color-primary);
   background: var(--color-bg-surface);
@@ -254,4 +291,12 @@
 .scoreLabel {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+.navRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
