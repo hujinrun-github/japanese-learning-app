@@ -16,7 +16,7 @@ export interface User {
   id: number
   name: string
   email: string
-  jlpt_level: JLPTLevel
+  jlpt_levels: JLPTLevel[]
   streak_days: number
   created_at: string
 }
