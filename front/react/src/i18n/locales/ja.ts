@@ -11,6 +11,7 @@ const ja = {
     writing: '作文',
     notes: 'ノート',
     lesson: 'テキスト',
+    translation: '翻訳',
     logout: 'ログアウト',
     mainNav: 'メインナビゲーション',
   },
