@@ -21,11 +21,11 @@ type StoreInterface interface {
 // TranslationService handles business logic for translation practice.
 type TranslationService struct {
 	store    StoreInterface
-	reviewer interface{} // TranslationReviewer (defined in ai_client.go)
+	reviewer TranslationReviewer
 }
 
 // NewTranslationService creates a TranslationService.
-func NewTranslationService(store StoreInterface, reviewer interface{}) *TranslationService {
+func NewTranslationService(store StoreInterface, reviewer TranslationReviewer) *TranslationService {
 	slog.Debug("TranslationService created")
 	return &TranslationService{store: store, reviewer: reviewer}
 }
