@@ -27,7 +27,8 @@ export function HomePage() {
   const { t } = useTranslation()
   const [stats, setStats] = useState<UserStats>(EMPTY_STATS)
   const [loading, setLoading] = useState(true)
-  const jlptLevel = (user?.jlpt_level ?? 'N5') as JLPTLevel
+  const jlptLevels = user?.jlpt_levels ?? ['N5']
+  const jlptLevel = jlptLevels[0] as JLPTLevel
 
   useEffect(() => {
     let cancelled = false
