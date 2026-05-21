@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -23,12 +24,12 @@ func NewUserStore(db *sql.DB) *UserStore {
 }
 
 // Create 创建新用户，返回创建后的用户数据。邮箱重复时返回 error。
-func (s *UserStore) Create(email, passwordHash string, goalLevel user.JLPTLevel) (*user.User, error) {
-	slog.Debug("UserStore.Create called", "email", email, "goal_level", goalLevel)
+func (s *UserStore) Create(name, email, passwordHash string, jlptLevelsJSON string) (*user.User, error) {
+	slog.Debug("UserStore.Create called", "email", email, "name", name)
 
 	res, err := s.db.Exec(
-		`INSERT INTO users (email, password_hash, goal_level) VALUES (?, ?, ?)`,
-		email, passwordHash, goalLevel,
+		`INSERT INTO users (name, email, password_hash, jlpt_levels) VALUES (?, ?, ?, ?)`,
+		name, email, passwordHash, jlptLevelsJSON,
 	)
 	if err != nil {
 		slog.Error("failed to insert user", "err", err, "email", email)
@@ -58,12 +59,13 @@ func (s *UserStore) GetByEmail(email string) (*user.User, error) {
 	slog.Debug("UserStore.GetByEmail called", "email", email)
 
 	row := s.db.QueryRow(
-		`SELECT id, email, goal_level, streak_days, created_at FROM users WHERE email = ?`, email,
+		`SELECT id, name, email, jlpt_levels, streak_days, created_at FROM users WHERE email = ?`, email,
 	)
 
 	var u user.User
 	var createdAt string
-	err := row.Scan(&u.ID, &u.Email, &u.GoalLevel, &u.StreakDays, &createdAt)
+	var jlptLevelsJSON string
+	err := row.Scan(&u.ID, &u.Name, &u.Email, &jlptLevelsJSON, &u.StreakDays, &createdAt)
 	if err == sql.ErrNoRows {
 		slog.Error("user not found by email", "email", email)
 		return nil, fmt.Errorf("data.UserStore.GetByEmail %q: %w", email, sql.ErrNoRows)
@@ -73,6 +75,7 @@ func (s *UserStore) GetByEmail(email string) (*user.User, error) {
 		return nil, fmt.Errorf("data.UserStore.GetByEmail: %w", err)
 	}
 
+	u.JLPTLevels = parseJLPTLevels(jlptLevelsJSON)
 	u.CreatedAt, err = parseSQLiteTime(createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("data.UserStore.GetByEmail parse created_at: %w", err)
@@ -87,12 +90,13 @@ func (s *UserStore) GetByID(id int64) (*user.User, error) {
 	slog.Debug("UserStore.GetByID called", "user_id", id)
 
 	row := s.db.QueryRow(
-		`SELECT id, email, goal_level, streak_days, created_at FROM users WHERE id = ?`, id,
+		`SELECT id, name, email, jlpt_levels, streak_days, created_at FROM users WHERE id = ?`, id,
 	)
 
 	var u user.User
 	var createdAt string
-	err := row.Scan(&u.ID, &u.Email, &u.GoalLevel, &u.StreakDays, &createdAt)
+	var jlptLevelsJSON string
+	err := row.Scan(&u.ID, &u.Name, &u.Email, &jlptLevelsJSON, &u.StreakDays, &createdAt)
 	if err == sql.ErrNoRows {
 		slog.Error("user not found by id", "user_id", id)
 		return nil, fmt.Errorf("data.UserStore.GetByID %d: %w", id, sql.ErrNoRows)
@@ -102,6 +106,7 @@ func (s *UserStore) GetByID(id int64) (*user.User, error) {
 		return nil, fmt.Errorf("data.UserStore.GetByID: %w", err)
 	}
 
+	u.JLPTLevels = parseJLPTLevels(jlptLevelsJSON)
 	u.CreatedAt, err = parseSQLiteTime(createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("data.UserStore.GetByID parse created_at: %w", err)
@@ -220,6 +225,26 @@ func (s *UserStore) UpdatePassword(userID int64, newPasswordHash string) error {
 	return nil
 }
 
+// UpdateUser updates the user's name, email, and jlpt_levels.
+func (s *UserStore) UpdateUser(id int64, name, email, jlptLevelsJSON string) error {
+	slog.Debug("UserStore.UpdateUser called", "user_id", id)
+
+	_, err := s.db.Exec(
+		`UPDATE users SET name = ?, email = ?, jlpt_levels = ? WHERE id = ?`,
+		name, email, jlptLevelsJSON, id,
+	)
+	if err != nil {
+		slog.Error("failed to update user", "err", err, "user_id", id)
+		if isUniqueConstraintError(err) {
+			return fmt.Errorf("data.UserStore.UpdateUser: %w", user.ErrEmailTaken)
+		}
+		return fmt.Errorf("data.UserStore.UpdateUser: %w", err)
+	}
+
+	slog.Debug("UserStore.UpdateUser done", "user_id", id)
+	return nil
+}
+
 // GetStats returns the user's learning stats across all modules.
 func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	slog.Debug("UserStore.GetStats called", "user_id", userID)
@@ -306,4 +331,20 @@ func isUniqueConstraintError(err error) bool {
 		return false
 	}
 	return sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE
+}
+
+// parseJLPTLevels parses a JSON array string like '["N5","N4"]' into a []string.
+// Returns []string{"N5"} for empty or unparseable input.
+func parseJLPTLevels(jsonStr string) []string {
+	if jsonStr == "" {
+		return []string{"N5"}
+	}
+	var levels []string
+	if err := json.Unmarshal([]byte(jsonStr), &levels); err != nil {
+		return []string{"N5"}
+	}
+	if len(levels) == 0 {
+		return []string{"N5"}
+	}
+	return levels
 }
