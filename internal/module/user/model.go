@@ -21,6 +21,19 @@ type ResetPasswordReq struct {
 	NewPassword string `json:"new_password"`
 }
 
+// UpdateProfileReq 更新个人信息请求
+type UpdateProfileReq struct {
+	Name       string   `json:"name"`
+	Email      string   `json:"email"`
+	JLPTLevels []string `json:"jlpt_levels"`
+}
+
+// UpdatePasswordReq 修改密码请求
+type UpdatePasswordReq struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
 // JLPTLevel 表示 JLPT 等级（独立定义，避免循环依赖）
 type JLPTLevel string
 
@@ -34,11 +47,12 @@ const (
 
 // User 用户账户
 type User struct {
-	ID         int64     `json:"id"`
-	Email      string    `json:"email"`
-	GoalLevel  JLPTLevel `json:"goal_level"` // 学习目标等级
-	StreakDays int       `json:"streak_days"` // 连续学习天数
-	CreatedAt  time.Time `json:"created_at"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	JLPTLevels  []string  `json:"jlpt_levels"`
+	StreakDays  int       `json:"streak_days"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // RegisterReq 注册请求
