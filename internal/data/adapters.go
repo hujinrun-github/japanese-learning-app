@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -122,7 +123,8 @@ func NewUserStoreAdapter(s *UserStore) *UserStoreAdapter {
 // CreateUser creates a new user.
 func (a *UserStoreAdapter) CreateUser(u user.User, passwordHash string) (*user.User, error) {
 	slog.Debug("UserStoreAdapter.CreateUser called", "email", u.Email)
-	created, err := a.s.Create(u.Email, passwordHash, u.GoalLevel)
+	jlptJSON, _ := json.Marshal(u.JLPTLevels)
+	created, err := a.s.Create(u.Name, u.Email, passwordHash, string(jlptJSON))
 	if err != nil {
 		return nil, fmt.Errorf("UserStoreAdapter.CreateUser: %w", err)
 	}
@@ -181,6 +183,12 @@ func (a *UserStoreAdapter) GetStats(userID int64) (*user.UserStats, error) {
 // UpdatePassword delegates to UserStore.UpdatePassword.
 func (a *UserStoreAdapter) UpdatePassword(userID int64, newPasswordHash string) error {
 	return a.s.UpdatePassword(userID, newPasswordHash)
+}
+
+// UpdateUser updates user profile fields.
+func (a *UserStoreAdapter) UpdateUser(id int64, name, email string, jlptLevels []string) error {
+	jlptJSON, _ := json.Marshal(jlptLevels)
+	return a.s.UpdateUser(id, name, email, string(jlptJSON))
 }
 
 // ── SessionStoreAdapter ──────────────────────────────────────────────────────
