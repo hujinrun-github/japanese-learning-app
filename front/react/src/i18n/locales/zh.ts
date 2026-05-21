@@ -11,6 +11,7 @@ const zh = {
     writing: '写作',
     notes: '笔记',
     lesson: '课文',
+    translation: '翻译',
     logout: '退出登录',
     mainNav: '主导航',
   },

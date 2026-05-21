@@ -11,6 +11,7 @@ const en = {
     writing: 'Writing',
     notes: 'Notes',
     lesson: 'Reading',
+    translation: 'Translation',
     logout: 'Logout',
     mainNav: 'Main navigation',
   },
