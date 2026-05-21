@@ -57,6 +57,7 @@ type User struct {
 
 // RegisterReq 注册请求
 type RegisterReq struct {
+	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Password  string    `json:"password"`   // 明文，服务端立即哈希，不持久化
 	GoalLevel JLPTLevel `json:"goal_level"`
