@@ -2,3 +2,4 @@
 .idean
 *.DS_Store
 .node_modules
+.mcp.json

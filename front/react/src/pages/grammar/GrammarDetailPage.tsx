@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
@@ -24,6 +24,41 @@ export function GrammarDetailPage() {
   const [result, setResult] = useState<QuizResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // Neighbor navigation
+  const [prevId, setPrevId] = useState<number | null>(null)
+  const [nextId, setNextId] = useState<number | null>(null)
+
+  // TTS voice
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
+
+  useEffect(() => {
+    const loadVoice = () => {
+      const voices = speechSynthesis.getVoices()
+      const jaVoices = voices.filter((v) => v.lang.startsWith('ja'))
+      if (jaVoices.length > 0) {
+        voiceRef.current = jaVoices.find((v) => v.name.includes('Google'))
+          ?? jaVoices.find((v) => v.name.includes('Kyoko'))
+          ?? jaVoices[0]
+      }
+    }
+    loadVoice()
+    speechSynthesis.onvoiceschanged = loadVoice
+  }, [])
+
+  function handleSpeak(text: string) {
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel()
+    }
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ja-JP'
+    u.rate = 0.95
+    u.pitch = 1.1
+    if (voiceRef.current) {
+      u.voice = voiceRef.current
+    }
+    speechSynthesis.speak(u)
+  }
+
   useEffect(() => {
     if (!id) return
     loadPoint(Number(id))
@@ -32,13 +67,33 @@ export function GrammarDetailPage() {
   async function loadPoint(pointId: number) {
     setLoading(true)
     setError('')
+    setQuizOpen(false)
+    setAnswers({})
+    setResult(null)
+    setPrevId(null)
+    setNextId(null)
     try {
       const data = await apiFetch<GrammarPointWithStatus>('GET', `/api/v1/grammar/${pointId}`)
       setPoint(data)
+      // Fetch neighbors after point is loaded so we know the level
+      loadNeighbors(pointId, data.jlpt_level)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadNeighbors(pointId: number, level: string) {
+    try {
+      const all = await apiFetch<GrammarPointWithStatus[]>('GET', `/api/v1/grammar?level=${level}`)
+      if (!all || all.length === 0) return
+      const ids = all.map((p) => p.id)
+      const idx = ids.indexOf(pointId)
+      setPrevId(idx > 0 ? ids[idx - 1] : null)
+      setNextId(idx < ids.length - 1 ? ids[idx + 1] : null)
+    } catch {
+      // non-critical, ignore
     }
   }
 
@@ -112,7 +167,21 @@ export function GrammarDetailPage() {
           <div className={styles.exampleList}>
             {point.examples.map((ex, i) => (
               <div key={i} className={styles.exampleItem}>
-                <div className={styles.exampleJa}>{ex.japanese}</div>
+                <div className={styles.exampleJaRow}>
+                  {ex.furigana_html ? (
+                    <div className={styles.exampleJa} dangerouslySetInnerHTML={{ __html: ex.furigana_html }} />
+                  ) : (
+                    <div className={styles.exampleJa}>{ex.japanese}</div>
+                  )}
+                  <button
+                    className={styles.speakBtn}
+                    onClick={() => handleSpeak(ex.japanese)}
+                    title="🔊"
+                    aria-label="Read aloud"
+                  >
+                    🔊
+                  </button>
+                </div>
                 <div className={styles.exampleZh}>{ex.chinese}</div>
               </div>
             ))}
@@ -172,7 +241,6 @@ export function GrammarDetailPage() {
                                 checked={selected}
                                 onChange={() => !result && setAnswers((a) => ({ ...a, [q.id]: opt }))}
                                 disabled={!!result}
-                                style={{ accentColor: 'var(--color-primary)' }}
                               />
                               {opt}
                             </label>
@@ -208,6 +276,24 @@ export function GrammarDetailPage() {
           )}
         </div>
       )}
+
+      {/* Prev / Next navigation */}
+      <div className={styles.navRow}>
+        <Button
+          variant="secondary"
+          disabled={!prevId}
+          onClick={() => prevId && navigate(`/grammar/${prevId}`)}
+        >
+          ← {t('grammar.detail.prev')}
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={!nextId}
+          onClick={() => nextId && navigate(`/grammar/${nextId}`)}
+        >
+          {t('grammar.detail.next')} →
+        </Button>
+      </div>
     </div>
   )
 }
