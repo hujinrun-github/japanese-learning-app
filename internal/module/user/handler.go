@@ -34,6 +34,7 @@ func (h *UserHandler) RegisterProtectedRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/v1/users/me/profile", h.handleUpdateProfile)
 	mux.HandleFunc("PUT /api/v1/users/me/password", h.handleChangePassword)
 	mux.HandleFunc("GET /api/v1/users/stats", h.handleGetStats)
+	mux.HandleFunc("PUT /api/v1/users/me/daily-goals", h.handleUpdateDailyGoals)
 }
 
 // handleRegister handles POST /api/v1/auth/register
@@ -189,6 +190,28 @@ func (h *UserHandler) handleChangePassword(w http.ResponseWriter, r *http.Reques
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
 		"message": "Password changed successfully.",
+	}})
+}
+
+// handleUpdateDailyGoals handles PUT /api/v1/users/me/daily-goals
+func (h *UserHandler) handleUpdateDailyGoals(w http.ResponseWriter, r *http.Request) {
+	userID, ok := UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+	var req DailyGoalsReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
+		return
+	}
+	if err := h.svc.UpdateDailyGoals(userID, req); err != nil {
+		slog.Error("handleUpdateDailyGoals failed", "err", err, "user_id", userID)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
+		"message": "Daily goals updated.",
 	}})
 }
 

@@ -23,10 +23,16 @@ type NoteDigest struct {
 	Type  string `json:"type"`
 }
 
+// DailyGoalProvider returns the user's daily word review goal.
+type DailyGoalProvider interface {
+	GetWordDailyGoal(userID int64) int
+}
+
 // WordHandler handles HTTP requests for the word module.
 type WordHandler struct {
-	svc     *WordService
-	noteSvc NoteDigestProvider
+	svc       *WordService
+	noteSvc   NoteDigestProvider
+	dailyGoal DailyGoalProvider
 }
 
 // NewWordHandler creates a WordHandler.
@@ -37,6 +43,11 @@ func NewWordHandler(svc *WordService) *WordHandler {
 // NewWordHandlerWithNotes creates a WordHandler with optional note enrichment.
 func NewWordHandlerWithNotes(svc *WordService, noteSvc NoteDigestProvider) *WordHandler {
 	return &WordHandler{svc: svc, noteSvc: noteSvc}
+}
+
+// SetDailyGoalProvider sets an optional provider for the user's daily word goal.
+func (h *WordHandler) SetDailyGoalProvider(p DailyGoalProvider) {
+	h.dailyGoal = p
 }
 
 // RegisterRoutes registers routes onto the provided mux.
@@ -71,7 +82,13 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	limit := parseLimitParam(r.URL.Query().Get("limit"), 50)
+	fallbackLimit := 50
+	if h.dailyGoal != nil {
+		if goal := h.dailyGoal.GetWordDailyGoal(userID); goal > 0 {
+			fallbackLimit = goal
+		}
+	}
+	limit := parseLimitParam(r.URL.Query().Get("limit"), fallbackLimit)
 	if len(cards) > limit {
 		cards = cards[:limit]
 	}

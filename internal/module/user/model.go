@@ -34,6 +34,14 @@ type UpdatePasswordReq struct {
 	NewPassword     string `json:"new_password"`
 }
 
+// DailyGoalsReq 每日学习目标请求
+type DailyGoalsReq struct {
+	Word     int `json:"word"`
+	Grammar  int `json:"grammar"`
+	Speaking int `json:"speaking"`
+	Writing  int `json:"writing"`
+}
+
 // JLPTLevel 表示 JLPT 等级（独立定义，避免循环依赖）
 type JLPTLevel string
 
@@ -84,7 +92,9 @@ type UserStats struct {
 
 // ModuleStat 单个模块的进度统计
 type ModuleStat struct {
-	DueCount      int `json:"due_count"`
-	MasteredCount int `json:"mastered_count"`
-	TotalCount    int `json:"total_count"`
+	DueCount       int `json:"due_count"`
+	MasteredCount  int `json:"mastered_count"`
+	TotalCount     int `json:"total_count"`
+	TodayCompleted int `json:"today_completed"`
+	DailyGoal      int `json:"daily_goal"`
 }

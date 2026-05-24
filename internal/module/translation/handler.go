@@ -33,6 +33,7 @@ func (h *TranslationHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/translation/sources/import", h.handleImportURL)
 	mux.HandleFunc("POST /api/v1/translation/sources", h.handleImportSource)
 	mux.HandleFunc("GET /api/v1/translation/sources", h.handleListSources)
+	mux.HandleFunc("DELETE /api/v1/translation/sources/{id}", h.handleDeleteSource)
 }
 
 // getUserID extracts user ID from request context.
@@ -244,20 +245,99 @@ func (h *TranslationHandler) handleImportURL(w http.ResponseWriter, r *http.Requ
 }
 
 // extractTextFromHTML strips HTML tags and returns the plain text content.
+// Skips <style> and <script> blocks to avoid CSS/JS noise in extracted text.
+// Also decodes common HTML entities and collapses whitespace.
 func extractTextFromHTML(html string) string {
+	return stripTags(html)
+}
+
+// stripTags removes HTML tags, <style> and <script> blocks, and decodes entities.
+func stripTags(html string) string {
 	var result strings.Builder
-	inTag := false
-	for _, r := range html {
-		switch {
-		case r == '<':
-			inTag = true
-		case r == '>':
-			inTag = false
-		case !inTag:
-			result.WriteRune(r)
+	inSkip := false
+	for i := 0; i < len(html); {
+		if html[i] != '<' {
+			if !inSkip {
+				result.WriteByte(html[i])
+			}
+			i++
+			continue
+		}
+		tagEnd := strings.IndexByte(html[i:], '>')
+		if tagEnd == -1 {
+			if !inSkip {
+				result.WriteByte(html[i])
+			}
+			i++
+			continue
+		}
+		tagContent := strings.ToLower(html[i : i+tagEnd])
+		if strings.HasPrefix(tagContent, "</style") || strings.HasPrefix(tagContent, "</script") {
+			inSkip = false
+		} else if !inSkip && (strings.HasPrefix(tagContent, "<style") || strings.HasPrefix(tagContent, "<script")) {
+			inSkip = true
+		}
+		i += tagEnd + 1
+	}
+	raw := strings.TrimSpace(result.String())
+	raw = htmlUnescape(raw)
+	raw = collapseSpaces(raw)
+	return raw
+}
+
+// htmlUnescape replaces common HTML entities with their Unicode equivalents.
+func htmlUnescape(s string) string {
+	replacer := strings.NewReplacer(
+		"&#8230;", "…",
+		"&#8211;", "–",
+		"&#8212;", "—",
+		"&#8216;", "`",
+		"&#8217;", "'",
+		"&#8220;", "“",
+		"&#8221;", "”",
+		"&amp;", "&",
+		"&lt;", "<",
+		"&gt;", ">",
+		"&quot;", "\"",
+		"&#039;", "'",
+		"&nbsp;", " ",
+	)
+	return replacer.Replace(s)
+}
+
+// collapseSpaces replaces runs of whitespace characters with a single space.
+func collapseSpaces(s string) string {
+	var b strings.Builder
+	inSpace := false
+	for _, r := range s {
+		if r == ' ' || r == '\t' || r == '\n' || r == '\r' {
+			if !inSpace {
+				b.WriteByte(' ')
+				inSpace = true
+			}
+		} else {
+			b.WriteRune(r)
+			inSpace = false
 		}
 	}
-	return strings.TrimSpace(result.String())
+	return strings.TrimSpace(b.String())
+}
+
+// handleDeleteSource deletes a source and cascades to its sentences and records.
+func (h *TranslationHandler) handleDeleteSource(w http.ResponseWriter, r *http.Request) {
+	sourceID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid source id", r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	if err := h.svc.DeleteSource(sourceID); err != nil {
+		slog.Error("handleDeleteSource failed", "err", err, "source_id", sourceID)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to delete source: "+err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{"status": "deleted"}, RequestID: r.Header.Get("X-Request-ID")})
 }
 
 // handleListSources returns all translation sources.

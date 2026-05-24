@@ -25,11 +25,20 @@ export interface ModuleStat {
   due_count: number
   mastered_count: number
   total_count: number
+  today_completed: number
+  daily_goal: number
 }
 
 export interface UserStats {
   streak_days: number
   modules: Record<string, ModuleStat>
+}
+
+export interface DailyGoals {
+  word: number
+  grammar: number
+  speaking: number
+  writing: number
 }
 
 // Word

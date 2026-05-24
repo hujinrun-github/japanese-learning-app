@@ -18,6 +18,8 @@ type StoreInterface interface {
 	GetRecord(id int64) (*TranslationRecord, error)
 	ListRecords(userID int64) ([]TranslationRecord, error)
 	UpdateRecordFeedback(recordID int64, score int, feedbackJSON string) error
+	UpdateSentenceReference(sentenceID int64, reference string) error
+	DeleteSource(id int64) error
 }
 
 // TranslationService handles business logic for translation practice.
@@ -79,6 +81,16 @@ func (s *TranslationService) GetFreeSentences(userID int64, direction string, so
 	return nil, nil
 }
 
+// DeleteSource deletes a source and all its sentences (cascaded by DB).
+func (s *TranslationService) DeleteSource(id int64) error {
+	slog.Debug("TranslationService.DeleteSource called", "source_id", id)
+	if err := s.store.DeleteSource(id); err != nil {
+		return fmt.Errorf("translation.TranslationService.DeleteSource: %w", err)
+	}
+	slog.Debug("TranslationService.DeleteSource done", "source_id", id)
+	return nil
+}
+
 // ListSources returns all translation sources.
 func (s *TranslationService) ListSources() ([]TranslationSource, error) {
 	return s.store.ListSources()
@@ -122,6 +134,13 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 			// Update record with AI feedback
 			if raw, err := json.Marshal(fb); err == nil {
 				s.store.UpdateRecordFeedback(recID, fb.AIScore, string(raw))
+			}
+			// Write back AI-generated reference translation to the sentence
+			// so subsequent users see it without needing another AI call.
+			if fb.ReferenceTranslation != "" && sent.ReferenceTranslation == "" {
+				if err := s.store.UpdateSentenceReference(sentenceID, fb.ReferenceTranslation); err != nil {
+					slog.Error("TranslationService.SubmitTranslation: UpdateSentenceReference failed", "err", err)
+				}
 			}
 		}
 	}
