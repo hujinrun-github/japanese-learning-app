@@ -60,8 +60,8 @@
 }
 
 .levelTabActive {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #fff;
 }
 
@@ -186,6 +186,34 @@
   min-height: 80px;
 }
 
+.sentenceLine {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-8);
+  position: relative;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s;
+}
+
+.sentenceLine:last-child {
+  margin-bottom: 0;
+}
+
+.speakerLabel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+}
+
 .token {
   transition: background-color 0.15s;
   padding: 2px 1px;
@@ -195,10 +223,6 @@
 .token rt {
   font-size: 0.55em;
   color: var(--color-text-secondary);
-}
-
-.tokenHighlight {
-  background-color: #fde68a;
 }
 
 /* ---- toolbar ---- */
