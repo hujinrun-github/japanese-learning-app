@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { speakExample } from '@/util/exampleAudio'
 import type { WordCard, JLPTLevel } from '@/types/api'
 import styles from './WordReviewPage.module.css'
 
@@ -30,23 +31,6 @@ export function WordReviewPage() {
   const [submitting, setSubmitting] = useState(false)
   const [readingInput, setReadingInput] = useState('')
   const [inputWrong, setInputWrong] = useState(false)
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
-
-  // Cache preferred Japanese voice once on mount
-  useEffect(() => {
-    const loadVoice = () => {
-      const voices = speechSynthesis.getVoices()
-      const jaVoices = voices.filter((v) => v.lang.startsWith('ja'))
-      if (jaVoices.length > 0) {
-        voiceRef.current = jaVoices.find((v) => v.name.includes('Google'))
-          ?? jaVoices.find((v) => v.name.includes('Kyoko'))
-          ?? jaVoices[0]
-      }
-    }
-    loadVoice()
-    speechSynthesis.onvoiceschanged = loadVoice
-  }, [])
-
   // Auto-speak examples after flip
   useEffect(() => {
     if (!flipped || !card) return
@@ -54,7 +38,7 @@ export function WordReviewPage() {
     if (examples.length === 0) return
     const timer = setTimeout(() => {
       examples.forEach((ex, i) => {
-        setTimeout(() => handleSpeak(ex.japanese), i * 3500)
+        setTimeout(() => speakExample(ex.japanese), i * 3500)
       })
     }, 600)
     return () => clearTimeout(timer)
@@ -79,20 +63,6 @@ export function WordReviewPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  function handleSpeak(text: string) {
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel()
-    }
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'ja-JP'
-    u.rate = 0.95
-    u.pitch = 1.1
-    if (voiceRef.current) {
-      u.voice = voiceRef.current
-    }
-    speechSynthesis.speak(u)
   }
 
   function handleCheckReading() {
@@ -214,7 +184,7 @@ export function WordReviewPage() {
                   <button
                     className={styles.speakBtn}
                     aria-label={t('word.queue.speak')}
-                    onClick={(e) => { e.stopPropagation(); handleSpeak(card!.word.reading) }}
+                    onClick={(e) => { e.stopPropagation(); speakExample(card!.word.reading) }}
                   >
                     🔊
                   </button>
@@ -260,7 +230,7 @@ export function WordReviewPage() {
                   <button
                     className={styles.speakBtn}
                     aria-label={t('word.queue.speak')}
-                    onClick={(e) => { e.stopPropagation(); handleSpeak(card!.word.reading) }}
+                    onClick={(e) => { e.stopPropagation(); speakExample(card!.word.reading) }}
                   >
                     🔊
                   </button>
@@ -283,7 +253,7 @@ export function WordReviewPage() {
                           <button
                             className={`${styles.speakBtn} ${styles.speakBtnSm}`}
                             aria-label={t('word.queue.speak')}
-                            onClick={(e) => { e.stopPropagation(); handleSpeak(ex.japanese) }}
+                            onClick={(e) => { e.stopPropagation(); speakExample(ex.japanese) }}
                           >
                             🔊
                           </button>

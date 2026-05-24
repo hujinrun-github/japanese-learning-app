@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { speakExample } from '@/util/exampleAudio'
 import type { GrammarPointWithStatus, QuizSubmission, QuizResult } from '@/types/api'
 import styles from './GrammarDetailPage.module.css'
 
@@ -27,37 +28,6 @@ export function GrammarDetailPage() {
   // Neighbor navigation
   const [prevId, setPrevId] = useState<number | null>(null)
   const [nextId, setNextId] = useState<number | null>(null)
-
-  // TTS voice
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
-
-  useEffect(() => {
-    const loadVoice = () => {
-      const voices = speechSynthesis.getVoices()
-      const jaVoices = voices.filter((v) => v.lang.startsWith('ja'))
-      if (jaVoices.length > 0) {
-        voiceRef.current = jaVoices.find((v) => v.name.includes('Google'))
-          ?? jaVoices.find((v) => v.name.includes('Kyoko'))
-          ?? jaVoices[0]
-      }
-    }
-    loadVoice()
-    speechSynthesis.onvoiceschanged = loadVoice
-  }, [])
-
-  function handleSpeak(text: string) {
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel()
-    }
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'ja-JP'
-    u.rate = 0.95
-    u.pitch = 1.1
-    if (voiceRef.current) {
-      u.voice = voiceRef.current
-    }
-    speechSynthesis.speak(u)
-  }
 
   useEffect(() => {
     if (!id) return
@@ -175,7 +145,7 @@ export function GrammarDetailPage() {
                   )}
                   <button
                     className={styles.speakBtn}
-                    onClick={() => handleSpeak(ex.japanese)}
+                    onClick={() => speakExample(ex.japanese)}
                     title="🔊"
                     aria-label="Read aloud"
                   >
