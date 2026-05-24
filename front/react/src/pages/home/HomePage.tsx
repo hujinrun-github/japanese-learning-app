@@ -64,8 +64,7 @@ export function HomePage() {
         ) : (
           <div className={styles.moduleGrid}>
             {MODULE_CONFIG.map((mod) => {
-              const s = stats.modules[mod.key] ?? { due_count: 0, mastered_count: 0, total_count: 0 }
-              const pct = s.total_count > 0 ? Math.round((s.mastered_count / s.total_count) * 100) : 0
+              const s = stats.modules[mod.key] ?? { due_count: 0, mastered_count: 0, total_count: 0, today_completed: 0, daily_goal: 0 }
               return (
                 <Link key={mod.key} to={mod.to} className={styles.moduleLink}>
                   <Card hoverable padding="md" className={styles.moduleCard}>
@@ -76,7 +75,14 @@ export function HomePage() {
                         <span className={styles.dueBadge}>{s.due_count}</span>
                       )}
                     </div>
-                    <ProgressBar value={pct} label={t('home.mastered', { mastered: s.mastered_count, total: s.total_count })} />
+                    <div className={styles.todayRow}>
+                      <span className={styles.todayLabel}>{t('home.todayProgress', { completed: s.today_completed, goal: s.daily_goal })}</span>
+                      {s.today_completed >= s.daily_goal && s.daily_goal > 0 && (
+                        <span className={styles.todayDone}>✓</span>
+                      )}
+                    </div>
+                    <ProgressBar value={s.daily_goal > 0 ? Math.min(100, Math.round((s.today_completed / s.daily_goal) * 100)) : 0} />
+                    <ProgressBar value={s.total_count > 0 ? Math.round((s.mastered_count / s.total_count) * 100) : 0} label={t('home.mastered', { mastered: s.mastered_count, total: s.total_count })} />
                   </Card>
                 </Link>
               )

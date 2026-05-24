@@ -98,6 +98,19 @@ func (f *fakeStore) UpdateRecordFeedback(recordID int64, score int, feedbackJSON
 	return nil
 }
 
+func (f *fakeStore) UpdateSentenceReference(sentenceID int64, reference string) error {
+	if s, ok := f.sentences[sentenceID]; ok {
+		s.ReferenceTranslation = reference
+		f.sentences[sentenceID] = s
+	}
+	return nil
+}
+
+func (f *fakeStore) DeleteSource(id int64) error {
+	delete(f.sources, id)
+	return nil
+}
+
 func (f *fakeStore) GetRecord(id int64) (*translation.TranslationRecord, error) {
 	r, ok := f.records[id]
 	if !ok {
