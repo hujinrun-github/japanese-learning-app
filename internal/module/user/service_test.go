@@ -96,6 +96,18 @@ func (f *fakeUserStore) GetStats(userID int64) (*user.UserStats, error) {
 	}, nil
 }
 
+func (f *fakeUserStore) UpdateUser(id int64, name, email string, jlptLevels []string) error {
+	return nil
+}
+
+func (f *fakeUserStore) UpdateDailyGoals(userID int64, goals map[string]int) error {
+	return nil
+}
+
+func (f *fakeUserStore) GetDailyGoals(userID int64) (map[string]int, error) {
+	return map[string]int{"word": 20, "grammar": 5, "speaking": 3, "writing": 3}, nil
+}
+
 // --- tests ---
 
 func TestUserService_Register(t *testing.T) {

@@ -17,18 +17,23 @@ var ErrEmailTaken = errors.New("email already registered")
 // ErrTokenInvalid is returned when the reset token is not found, expired, or already used.
 var ErrTokenInvalid = errors.New("invalid or expired password reset token")
 
+var ErrWrongPassword = errors.New("current password is incorrect")
+
 // UserStoreInterface defines data access methods required by UserService.
 type UserStoreInterface interface {
 	CreateUser(u User, passwordHash string) (*User, error)
 	GetUserByEmail(email string) (*User, string, error) // returns (user, passwordHash, error)
 	GetUserByID(id int64) (*User, error)
 	GetStats(userID int64) (*UserStats, error)
+	UpdateDailyGoals(userID int64, goals map[string]int) error
+	GetDailyGoals(userID int64) (map[string]int, error)
 	// Password reset methods
 	GetUserIDByEmail(email string) (int64, error)
 	CreateResetToken(token string, userID int64, expiresAt time.Time) error
 	GetResetToken(token string) (*ResetToken, error)
 	MarkTokenUsed(token string) error
 	UpdatePassword(userID int64, newPasswordHash string) error
+	UpdateUser(id int64, name, email string, jlptLevels []string) error
 }
 
 // UserService handles business logic for user registration, login and profile.
@@ -52,9 +57,10 @@ func (s *UserService) Register(req RegisterReq) (*User, error) {
 	hash := hashPassword(req.Password)
 
 	u := User{
-		Email:     req.Email,
-		GoalLevel: req.GoalLevel,
-		CreatedAt: time.Now(),
+		Name:       req.Name,
+		Email:      req.Email,
+		JLPTLevels: []string{string(req.GoalLevel)},
+		CreatedAt:  time.Now(),
 	}
 
 	created, err := s.store.CreateUser(u, hash)
@@ -104,6 +110,50 @@ func (s *UserService) GetProfile(userID int64) (*User, error) {
 
 	slog.Debug("UserService.GetProfile done", "user_id", userID)
 	return u, nil
+}
+
+// UpdateProfile updates the user's profile fields.
+func (s *UserService) UpdateProfile(userID int64, req UpdateProfileReq) (*User, error) {
+	slog.Debug("UserService.UpdateProfile called", "user_id", userID)
+
+	if err := s.store.UpdateUser(userID, req.Name, req.Email, req.JLPTLevels); err != nil {
+		slog.Error("UserService.UpdateProfile: UpdateUser failed", "err", err, "user_id", userID)
+		return nil, fmt.Errorf("user.UserService.UpdateProfile UpdateUser: %w", err)
+	}
+
+	u, err := s.store.GetUserByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user.UserService.UpdateProfile GetUserByID: %w", err)
+	}
+
+	slog.Debug("UserService.UpdateProfile done", "user_id", userID)
+	return u, nil
+}
+
+// ChangePassword validates current password and sets a new one.
+func (s *UserService) ChangePassword(userID int64, req UpdatePasswordReq) error {
+	slog.Debug("UserService.ChangePassword called", "user_id", userID)
+
+	u, err := s.store.GetUserByID(userID)
+	if err != nil {
+		return fmt.Errorf("user.UserService.ChangePassword GetUserByID: %w", err)
+	}
+
+	_, storedHash, err := s.store.GetUserByEmail(u.Email)
+	if err != nil {
+		return fmt.Errorf("user.UserService.ChangePassword GetUserByEmail: %w", err)
+	}
+
+	if hashPassword(req.CurrentPassword) != storedHash {
+		return ErrWrongPassword
+	}
+
+	if err := s.store.UpdatePassword(userID, hashPassword(req.NewPassword)); err != nil {
+		return fmt.Errorf("user.UserService.ChangePassword UpdatePassword: %w", err)
+	}
+
+	slog.Info("UserService.ChangePassword done", "user_id", userID)
+	return nil
 }
 
 // hashPassword returns a hex-encoded SHA-256 hash of the password.
@@ -201,6 +251,21 @@ func (s *UserService) GetStats(userID int64) (*UserStats, error) {
 	}
 
 	return stats, nil
+}
+
+// UpdateDailyGoals updates the user's daily learning goals.
+func (s *UserService) UpdateDailyGoals(userID int64, req DailyGoalsReq) error {
+	slog.Debug("UserService.UpdateDailyGoals called", "user_id", userID)
+	goals := map[string]int{
+		"word": req.Word, "grammar": req.Grammar,
+		"speaking": req.Speaking, "writing": req.Writing,
+	}
+	if err := s.store.UpdateDailyGoals(userID, goals); err != nil {
+		slog.Error("UserService.UpdateDailyGoals failed", "err", err, "user_id", userID)
+		return fmt.Errorf("user.UserService.UpdateDailyGoals: %w", err)
+	}
+	slog.Debug("UserService.UpdateDailyGoals done", "user_id", userID)
+	return nil
 }
 
 // generateToken creates a 32-byte cryptographically random hex token.

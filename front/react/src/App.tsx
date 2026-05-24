@@ -10,11 +10,14 @@ import { WordReviewPage } from '@/pages/word/WordReviewPage'
 import { GrammarListPage } from '@/pages/grammar/GrammarListPage'
 import { GrammarDetailPage } from '@/pages/grammar/GrammarDetailPage'
 import { SpeakingPage } from '@/pages/speaking/SpeakingPage'
+import { TranslationListPage } from '@/pages/translation/TranslationListPage'
+import { TranslationPracticePage } from '@/pages/translation/TranslationPracticePage'
 import { WritingQueuePage } from '@/pages/writing/WritingQueuePage'
 import { LessonPage } from '@/pages/lesson/LessonPage'
 import { NoteListPage } from '@/pages/note/NoteListPage'
 import { NoteEditPage } from '@/pages/note/NoteEditPage'
 import { NoteDetailPage } from '@/pages/note/NoteDetailPage'
+import SettingsPage from '@/pages/settings/SettingsPage'
 
 export default function App() {
   return (
@@ -39,6 +42,9 @@ export default function App() {
             <Route path="/notes" element={<NoteListPage />} />
             <Route path="/notes/new" element={<NoteEditPage />} />
             <Route path="/notes/:id" element={<NoteDetailPage />} />
+            <Route path="/translation" element={<TranslationListPage />} />
+            <Route path="/translation/practice" element={<TranslationPracticePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
           {/* Fallback */}

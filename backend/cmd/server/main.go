@@ -17,6 +17,7 @@ import (
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
+	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/writing"
 )
 
@@ -69,6 +70,7 @@ func main() {
 	userStore     := data.NewUserStore(db)
 	sessionStore  := data.NewSessionStore(db)
 	noteStore     := data.NewNoteStore(db)
+	translationStore := data.NewTranslationStore(db)
 
 	// ── AI reviewer (writing) ─────────────────────────────────────────────────
 	var aiReviewer writing.AIReviewer
@@ -78,6 +80,15 @@ func main() {
 	} else {
 		slog.Warn("AI_API_KEY not set — using StubReviewer (no real AI feedback)")
 		aiReviewer = &writing.StubReviewer{}
+	}
+
+	// ── AI reviewer (translation) ──────────────────────────────────────────────
+	var translationReviewer translation.TranslationReviewer
+	if aiAPIKey != "" {
+		translationReviewer = translation.NewClaudeTranslationReviewer(aiAPIKey)
+	} else {
+		slog.Warn("AI_API_KEY not set — using StubReviewer for translation (no real AI feedback)")
+		translationReviewer = &translation.StubReviewer{}
 	}
 
 	// ── Mailer (password reset) ───────────────────────────────────────────────
@@ -105,10 +116,12 @@ func main() {
 	writingSvc  := writing.NewWritingService(writingStore, aiReviewer)
 	userSvc     := user.NewUserService(userAdapter, jwtSecret, mailer, appBaseURL)
 	summarySvc  := summary.NewSummaryService(sessionAdapter)
-	noteSvc     := note.NewNoteService(noteAdapter)
+	noteSvc        := note.NewNoteService(noteAdapter)
+	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	wordH     := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
+	wordH.SetDailyGoalProvider(&wordGoalProvider{store: userStore})
 	grammarH  := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
 	lessonH   := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
@@ -116,7 +129,8 @@ func main() {
 	userH     := user.NewUserHandler(userSvc)
 	summaryH  := summary.NewSummaryHandler(summarySvc)
 	noteH     := note.NewNoteHandler(noteSvc)
-	reviewH   := review.NewReviewHandler(wordSvc, noteSvc)
+	reviewH      := review.NewReviewHandler(wordSvc, noteSvc)
+	translationH := translation.NewTranslationHandler(translationSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
@@ -135,6 +149,7 @@ func main() {
 	summaryH.RegisterRoutes(protectedMux)
 	noteH.RegisterRoutes(protectedMux)
 	reviewH.RegisterRoutes(protectedMux)
+	translationH.RegisterRoutes(protectedMux)
 
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
@@ -149,6 +164,7 @@ func main() {
 	mux.Handle("/api/v1/notes", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/notes/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
@@ -216,6 +232,19 @@ func (p *wordNoteProvider) ListByReference(userID int64, refType string, refID i
 		result[i] = word.NoteDigest{ID: d.ID, Title: d.Title, Type: string(d.Type)}
 	}
 	return result, nil
+}
+
+// wordGoalProvider adapts data.UserStore to word.DailyGoalProvider.
+type wordGoalProvider struct {
+	store *data.UserStore
+}
+
+func (p *wordGoalProvider) GetWordDailyGoal(userID int64) int {
+	goals, err := p.store.GetDailyGoals(userID)
+	if err != nil {
+		return 20
+	}
+	return goals["word"]
 }
 
 // grammarNoteProvider adapts note.NoteService to grammar.NoteDigestProvider.

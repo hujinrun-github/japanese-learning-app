@@ -16,7 +16,7 @@ export interface User {
   id: number
   name: string
   email: string
-  jlpt_level: JLPTLevel
+  jlpt_levels: JLPTLevel[]
   streak_days: number
   created_at: string
 }
@@ -25,11 +25,20 @@ export interface ModuleStat {
   due_count: number
   mastered_count: number
   total_count: number
+  today_completed: number
+  daily_goal: number
 }
 
 export interface UserStats {
   streak_days: number
   modules: Record<string, ModuleStat>
+}
+
+export interface DailyGoals {
+  word: number
+  grammar: number
+  speaking: number
+  writing: number
 }
 
 // Word
@@ -239,26 +248,19 @@ export interface PaginatedNotes {
   size: number
 }
 
-// Translation
-export interface TranslationSource {
-  id: number
-  title: string
-  source_type: string // "manual" | "url" | "api"
-  source_url: string
-  api_endpoint: string
-  raw_content: string
-  direction?: string
+// Summary
+export interface SessionSummary {
+  session_id: string
+  module: string
+  strengths: string[]
+  weaknesses: string[]
+  suggestions: string
+  score_summary: Record<string, number>
   created_at: string
 }
 
-export interface TranslationSentence {
-  id: number
-  source_id: number
-  direction: string // "cn2jp" | "jp2cn"
-  source_text: string
-  reference_translation: string
-  position: number
-}
+// Translation
+export type TranslationDirection = 'cn2jp' | 'jp2cn'
 
 export interface GrammarExplanation {
   grammar_point: string
@@ -274,6 +276,26 @@ export interface TranslationFeedback {
   reference_translation: string
 }
 
+export interface TranslationSource {
+  id: number
+  title: string
+  source_type: 'manual' | 'url' | 'api'
+  source_url: string
+  api_endpoint: string
+  raw_content: string
+  direction?: string
+  created_at: string
+}
+
+export interface TranslationSentence {
+  id: number
+  source_id: number
+  direction: TranslationDirection
+  source_text: string
+  reference_translation: string
+  position: number
+}
+
 export interface TranslationRecord {
   id: number
   user_id: number
@@ -283,15 +305,4 @@ export interface TranslationRecord {
   rule_score: number
   ai_feedback?: TranslationFeedback
   practiced_at: string
-}
-
-// Summary
-export interface SessionSummary {
-  session_id: string
-  module: string
-  strengths: string[]
-  weaknesses: string[]
-  suggestions: string
-  score_summary: Record<string, number>
-  created_at: string
 }
