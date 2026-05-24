@@ -16,6 +16,10 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
       },
+      '/audio': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
     },
   },
   build: {
