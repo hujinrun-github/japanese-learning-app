@@ -39,7 +39,24 @@
   - 校验脚本位置：`scripts/validate_words.py`，导入前先跑，不通过则拒绝导入
 
 ---
-## 5. UI 规范
+## 5. 数据库迁移系统问题（已知缺陷）
+- **迁移系统无追踪机制**（`internal/data/db.go`）：每次启动重新执行所有 `.sql` 文件，仅靠错误字符串 `"duplicate column name"` 判断跳过。
+  - `CREATE TABLE IF NOT EXISTS` → 静默成功，日志显示 "applied"
+  - `ALTER TABLE ADD COLUMN` → 列已存在时报错 "duplicate column name"，被正确跳过
+  - **002_seed.sql** 的 `INSERT OR IGNORE INTO words` 在 004 的 UNIQUE 索引之前执行，每次启动会重复插入 60 条种子词，产生重复数据
+- **003_fix_writing_questions.sql** 包含 `DROP TABLE + CREATE TABLE`，每次启动会重建 `writing_questions` 表
+- **用户进度数据（word_records、grammar_records 等）未被迁移破坏**，不会丢失
+- **修复重复词**（保留最小 ID 的原始行）：
+  ```sql
+  DELETE FROM words WHERE id NOT IN (
+    SELECT MIN(id) FROM words GROUP BY kanji_form, reading
+  );
+  ```
+  **注意**：仅在应用首次启动后需要执行，后续若再重启会再次产生重复
+- **TODO**: 添加 `schema_migrations` 表实现真正的迁移追踪；将 002 的 UNIQUE 约束提前或让 seed 真正幂等
+
+---
+## 6. UI 规范
 - **图标选用规则**：
   - 优先使用 emoji（兼容性最好）
   - 次选 SVG（需要清晰度时）
