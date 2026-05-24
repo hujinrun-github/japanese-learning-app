@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'audio_volume'
+const STORAGE_KEY = 'app_audio_volume'
 
 let listeners: Array<(v: number) => void> = []
 

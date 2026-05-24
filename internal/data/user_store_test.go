@@ -2,14 +2,12 @@ package data
 
 import (
 	"testing"
-
-	"japanese-learning-app/internal/module/user"
 )
 
 func TestUserStore_Create(t *testing.T) {
 	store := &UserStore{db: testDB}
 
-	u, err := store.Create("newuser@example.com", "hashedpwd", user.LevelN5)
+	u, err := store.Create("", "newuser@example.com", "hashedpwd", `["N5"]`)
 	if err != nil {
 		t.Fatalf("Create error: %v", err)
 	}
@@ -22,8 +20,8 @@ func TestUserStore_Create(t *testing.T) {
 	if u.Email != "newuser@example.com" {
 		t.Errorf("Email = %q, want %q", u.Email, "newuser@example.com")
 	}
-	if u.GoalLevel != user.LevelN5 {
-		t.Errorf("GoalLevel = %q, want N5", u.GoalLevel)
+	if len(u.JLPTLevels) == 0 || u.JLPTLevels[0] != "N5" {
+		t.Errorf("JLPTLevels = %v, want [N5]", u.JLPTLevels)
 	}
 }
 
@@ -31,12 +29,12 @@ func TestUserStore_Create_DuplicateEmail(t *testing.T) {
 	store := &UserStore{db: testDB}
 
 	email := "duplicate@example.com"
-	_, err := store.Create(email, "hash1", user.LevelN5)
+	_, err := store.Create("", email, "hash1", `["N5"]`)
 	if err != nil {
 		t.Fatalf("first Create error: %v", err)
 	}
 
-	_, err = store.Create(email, "hash2", user.LevelN4)
+	_, err = store.Create("", email, "hash2", `["N4"]`)
 	if err == nil {
 		t.Fatal("second Create with duplicate email expected error, got nil")
 	}
@@ -46,7 +44,7 @@ func TestUserStore_GetByEmail(t *testing.T) {
 	store := &UserStore{db: testDB}
 
 	email := "getbyemail@example.com"
-	created, err := store.Create(email, "securehash", user.LevelN4)
+	created, err := store.Create("", email, "securehash", `["N4"]`)
 	if err != nil {
 		t.Fatalf("Create error: %v", err)
 	}
@@ -81,7 +79,7 @@ func TestUserStore_GetByEmail_NotFound(t *testing.T) {
 func TestUserStore_GetByID(t *testing.T) {
 	store := &UserStore{db: testDB}
 
-	created, err := store.Create("getbyid@example.com", "hash", user.LevelN3)
+	created, err := store.Create("", "getbyid@example.com", "hash", `["N3"]`)
 	if err != nil {
 		t.Fatalf("Create error: %v", err)
 	}
@@ -98,7 +96,7 @@ func TestUserStore_GetByID(t *testing.T) {
 func TestUserStore_UpdateStreak(t *testing.T) {
 	store := &UserStore{db: testDB}
 
-	created, err := store.Create("streak@example.com", "hash", user.LevelN5)
+	created, err := store.Create("", "streak@example.com", "hash", `["N5"]`)
 	if err != nil {
 		t.Fatalf("Create error: %v", err)
 	}

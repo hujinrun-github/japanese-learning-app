@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"japanese-learning-app/internal/httputil"
 )
@@ -30,7 +31,10 @@ func (h *UserHandler) RegisterPublicRoutes(mux *http.ServeMux) {
 // RegisterProtectedRoutes registers routes that require authentication.
 func (h *UserHandler) RegisterProtectedRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/users/me", h.handleGetProfile)
+	mux.HandleFunc("PUT /api/v1/users/me/profile", h.handleUpdateProfile)
+	mux.HandleFunc("PUT /api/v1/users/me/password", h.handleChangePassword)
 	mux.HandleFunc("GET /api/v1/users/stats", h.handleGetStats)
+	mux.HandleFunc("PUT /api/v1/users/me/daily-goals", h.handleUpdateDailyGoals)
 }
 
 // handleRegister handles POST /api/v1/auth/register
@@ -40,8 +44,8 @@ func (h *UserHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
 		return
 	}
-	if req.Email == "" || req.Password == "" {
-		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "email and password are required", "")
+	if req.Name == "" || req.Email == "" || req.Password == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "name, email and password are required", "")
 		return
 	}
 
@@ -121,6 +125,93 @@ func (h *UserHandler) handleForgotPassword(w http.ResponseWriter, r *http.Reques
 	// Always return 200 to avoid email enumeration.
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
 		"message": "If that email is registered, a reset link has been sent.",
+	}})
+}
+
+// handleUpdateProfile handles PUT /api/v1/users/me/profile
+func (h *UserHandler) handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+
+	var req UpdateProfileReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
+		return
+	}
+	if strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.Email) == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "name and email are required", "")
+		return
+	}
+
+	u, err := h.svc.UpdateProfile(userID, req)
+	if err != nil {
+		slog.Error("handleUpdateProfile failed", "err", err, "user_id", userID)
+		if errors.Is(err, ErrEmailTaken) {
+			httputil.WriteError(w, http.StatusConflict, "ERR_EMAIL_TAKEN", "email already registered", "")
+		} else {
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		}
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: u})
+}
+
+// handleChangePassword handles PUT /api/v1/users/me/password
+func (h *UserHandler) handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID, ok := UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+
+	var req UpdatePasswordReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
+		return
+	}
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "current_password and new_password are required", "")
+		return
+	}
+
+	if err := h.svc.ChangePassword(userID, req); err != nil {
+		slog.Error("handleChangePassword failed", "err", err, "user_id", userID)
+		if errors.Is(err, ErrWrongPassword) {
+			httputil.WriteError(w, http.StatusBadRequest, "ERR_WRONG_PASSWORD", "current password is incorrect", "")
+		} else {
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		}
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
+		"message": "Password changed successfully.",
+	}})
+}
+
+// handleUpdateDailyGoals handles PUT /api/v1/users/me/daily-goals
+func (h *UserHandler) handleUpdateDailyGoals(w http.ResponseWriter, r *http.Request) {
+	userID, ok := UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+	var req DailyGoalsReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
+		return
+	}
+	if err := h.svc.UpdateDailyGoals(userID, req); err != nil {
+		slog.Error("handleUpdateDailyGoals failed", "err", err, "user_id", userID)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "internal server error", "")
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{
+		"message": "Daily goals updated.",
 	}})
 }
 

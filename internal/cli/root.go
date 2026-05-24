@@ -35,6 +35,8 @@ func Run(args []string) int {
 		return runImportSpeaking(args[1:])
 	case "import-writing":
 		return runImportWriting(args[1:])
+	case "import-translation-api":
+		return runImportTranslationAPI(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", args[0])
 		printUsage()
@@ -50,7 +52,8 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-grammar  --file <path> | --json <json>  import grammar points")
 	fmt.Fprintln(os.Stderr, "  import-lessons  --file <path> | --json <json>  import lessons")
 	fmt.Fprintln(os.Stderr, "  import-speaking --file <path> | --json <json>  import speaking materials")
-	fmt.Fprintln(os.Stderr, "  import-writing  --file <path> | --json <json>  import writing questions")
+	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")
+	fmt.Fprintln(os.Stderr, "  import-translation-api    --file <config.json>           import translation sentences from API")
 }
 
 func runImportWords(args []string) int {
@@ -256,6 +259,45 @@ func runImportSpeaking(args []string) int {
 		}
 		fmt.Printf("import-speaking: inserted %d speaking material(s)\n", n)
 	}
+	return 0
+}
+
+func runImportTranslationAPI(args []string) int {
+	fs := flag.NewFlagSet("import-translation-api", flag.ContinueOnError)
+	configPath := fs.String("file", "", "path to JSON config file for API import")
+	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "import-translation-api: %v\n", err)
+		return 1
+	}
+	if *configPath == "" {
+		fmt.Fprintln(os.Stderr, "import-translation-api: --file is required")
+		return 1
+	}
+
+	db, err := data.OpenDB(*dbPath)
+	if err != nil {
+		slog.Error("import-translation-api: failed to open database", "db", *dbPath, "err", err)
+		fmt.Fprintf(os.Stderr, "import-translation-api: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := data.RunMigrations(db); err != nil {
+		slog.Error("import-translation-api: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "import-translation-api: run migrations: %v\n", err)
+		return 1
+	}
+
+	n, err := ImportTranslationFromAPIConfig(db, *configPath)
+	if err != nil {
+		slog.Error("import-translation-api: ImportTranslationFromAPIConfig failed", "config", *configPath, "err", err)
+		fmt.Fprintf(os.Stderr, "import-translation-api: %v\n", err)
+		return 1
+	}
+
+	fmt.Printf("import-translation-api: imported %d sentence(s) from config %s\n", n, *configPath)
 	return 0
 }
 

@@ -28,12 +28,9 @@ export function WordReviewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [truncated, setTruncated] = useState(false)
   const [readingInput, setReadingInput] = useState('')
   const [inputWrong, setInputWrong] = useState(false)
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
-
-  const REVIEW_LIMIT = 50
 
   // Cache preferred Japanese voice once on mount
   useEffect(() => {
@@ -75,9 +72,8 @@ export function WordReviewPage() {
     setReadingInput('')
     setInputWrong(false)
     try {
-      const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}&limit=${REVIEW_LIMIT}`)
+      const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}`)
       setQueue(cards ?? [])
-      setTruncated((cards ?? []).length >= REVIEW_LIMIT)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
@@ -173,12 +169,8 @@ export function WordReviewPage() {
       {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-4)' }}>{error}</p>}
 
       {done ? (
-        truncated ? (
-          <EmptyState icon="📚" title={t('word.queue.batchDone')} description={t('word.queue.batchDoneDesc')} />
-        ) : (
           <EmptyState icon="🎉" title={t('word.queue.done')} description={t('word.queue.doneDesc')} />
-        )
-      ) : (
+        ) : (
         <>
           <p className={styles.progress}>
             {t('word.queue.progress', { current: currentIndex + 1, total: queue.length })}
