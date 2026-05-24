@@ -191,6 +191,16 @@ func (a *UserStoreAdapter) UpdateUser(id int64, name, email string, jlptLevels [
 	return a.s.UpdateUser(id, name, email, string(jlptJSON))
 }
 
+// UpdateDailyGoals delegates to UserStore.UpdateDailyGoals.
+func (a *UserStoreAdapter) UpdateDailyGoals(userID int64, goals map[string]int) error {
+	return a.s.UpdateDailyGoals(userID, goals)
+}
+
+// GetDailyGoals delegates to UserStore.GetDailyGoals.
+func (a *UserStoreAdapter) GetDailyGoals(userID int64) (map[string]int, error) {
+	return a.s.GetDailyGoals(userID)
+}
+
 // ── SessionStoreAdapter ──────────────────────────────────────────────────────
 // Bridges *SessionStore (CreateSession returning sessionID, GetSessionData) to
 // summary.SummaryStoreInterface (SaveSession, GetSession).

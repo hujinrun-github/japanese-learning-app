@@ -249,32 +249,45 @@ func (s *UserStore) UpdateUser(id int64, name, email, jlptLevelsJSON string) err
 func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	slog.Debug("UserStore.GetStats called", "user_id", userID)
 
-	stats := &user.UserStats{
-		ModuleStats: make(map[string]user.ModuleStat),
-	}
+	stats := &user.UserStats{ModuleStats: make(map[string]user.ModuleStat)}
 
-	// streak_days
 	var streakDays int
-	if err := s.db.QueryRow(`SELECT streak_days FROM users WHERE id = ?`, userID).Scan(&streakDays); err != nil {
+	var dailyGoalsJSON string
+	if err := s.db.QueryRow(
+		`SELECT streak_days, daily_goals_json FROM users WHERE id = ?`, userID,
+	).Scan(&streakDays, &dailyGoalsJSON); err != nil {
 		return nil, fmt.Errorf("data.UserStore.GetStats streak_days: %w", err)
 	}
 	stats.StreakDays = streakDays
+	goals := parseDailyGoals(dailyGoalsJSON)
 
 	// word
 	wordTotal, wordDue, wordMastered := s.countWords(userID)
-	stats.ModuleStats["word"] = user.ModuleStat{DueCount: wordDue, MasteredCount: wordMastered, TotalCount: wordTotal}
+	stats.ModuleStats["word"] = user.ModuleStat{
+		DueCount: wordDue, MasteredCount: wordMastered, TotalCount: wordTotal,
+		TodayCompleted: s.countTodayCompleted(userID, "word"), DailyGoal: goals["word"],
+	}
 
 	// grammar
 	grammarTotal, grammarDue, grammarMastered := s.countGrammar(userID)
-	stats.ModuleStats["grammar"] = user.ModuleStat{DueCount: grammarDue, MasteredCount: grammarMastered, TotalCount: grammarTotal}
+	stats.ModuleStats["grammar"] = user.ModuleStat{
+		DueCount: grammarDue, MasteredCount: grammarMastered, TotalCount: grammarTotal,
+		TodayCompleted: s.countTodayCompleted(userID, "grammar"), DailyGoal: goals["grammar"],
+	}
 
 	// speaking
 	speakingTotal, speakingMastered := s.countSpeaking(userID)
-	stats.ModuleStats["speaking"] = user.ModuleStat{DueCount: 0, MasteredCount: speakingMastered, TotalCount: speakingTotal}
+	stats.ModuleStats["speaking"] = user.ModuleStat{
+		DueCount: 0, MasteredCount: speakingMastered, TotalCount: speakingTotal,
+		TodayCompleted: s.countTodayCompleted(userID, "speaking"), DailyGoal: goals["speaking"],
+	}
 
 	// writing
 	writingTotal, writingMastered := s.countWriting(userID)
-	stats.ModuleStats["writing"] = user.ModuleStat{DueCount: 0, MasteredCount: writingMastered, TotalCount: writingTotal}
+	stats.ModuleStats["writing"] = user.ModuleStat{
+		DueCount: 0, MasteredCount: writingMastered, TotalCount: writingTotal,
+		TodayCompleted: s.countTodayCompleted(userID, "writing"), DailyGoal: goals["writing"],
+	}
 
 	slog.Debug("UserStore.GetStats done", "user_id", userID)
 	return stats, nil
@@ -322,6 +335,70 @@ func (s *UserStore) countWriting(userID int64) (total, mastered int) {
 		userID,
 	).Scan(&mastered)
 	return
+}
+
+func defaultDailyGoals() map[string]int {
+	return map[string]int{"word": 20, "grammar": 5, "speaking": 3, "writing": 3}
+}
+
+func (s *UserStore) countTodayCompleted(userID int64, module string) int {
+	var count int
+	s.db.QueryRow(
+		`SELECT COALESCE(SUM(completed_count), 0)
+		 FROM study_sessions
+		 WHERE user_id = ? AND module = ? AND date(started_at) = date('now')`,
+		userID, module,
+	).Scan(&count)
+	return count
+}
+
+func (s *UserStore) GetDailyGoals(userID int64) (map[string]int, error) {
+	slog.Debug("UserStore.GetDailyGoals called", "user_id", userID)
+	var jsonStr string
+	if err := s.db.QueryRow(
+		`SELECT daily_goals_json FROM users WHERE id = ?`, userID,
+	).Scan(&jsonStr); err != nil {
+		slog.Error("failed to query daily_goals_json", "err", err, "user_id", userID)
+		return nil, fmt.Errorf("data.UserStore.GetDailyGoals: %w", err)
+	}
+	goals := parseDailyGoals(jsonStr)
+	slog.Debug("UserStore.GetDailyGoals done", "user_id", userID)
+	return goals, nil
+}
+
+func (s *UserStore) UpdateDailyGoals(userID int64, goals map[string]int) error {
+	slog.Debug("UserStore.UpdateDailyGoals called", "user_id", userID)
+	jsonBytes, err := json.Marshal(goals)
+	if err != nil {
+		slog.Error("failed to marshal daily goals", "err", err)
+		return fmt.Errorf("data.UserStore.UpdateDailyGoals marshal: %w", err)
+	}
+	_, err = s.db.Exec(
+		`UPDATE users SET daily_goals_json = ? WHERE id = ?`,
+		string(jsonBytes), userID,
+	)
+	if err != nil {
+		slog.Error("failed to update daily_goals_json", "err", err, "user_id", userID)
+		return fmt.Errorf("data.UserStore.UpdateDailyGoals exec: %w", err)
+	}
+	slog.Debug("UserStore.UpdateDailyGoals done", "user_id", userID)
+	return nil
+}
+
+func parseDailyGoals(jsonStr string) map[string]int {
+	goals := defaultDailyGoals()
+	if jsonStr == "" || jsonStr == "{}" {
+		return goals
+	}
+	var stored map[string]int
+	if err := json.Unmarshal([]byte(jsonStr), &stored); err != nil {
+		slog.Warn("failed to parse daily_goals_json, using defaults", "err", err)
+		return goals
+	}
+	for k, v := range stored {
+		goals[k] = v
+	}
+	return goals
 }
 
 // isUniqueConstraintError reports whether err is a SQLite UNIQUE constraint violation.

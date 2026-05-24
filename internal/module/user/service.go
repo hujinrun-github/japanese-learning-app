@@ -25,6 +25,8 @@ type UserStoreInterface interface {
 	GetUserByEmail(email string) (*User, string, error) // returns (user, passwordHash, error)
 	GetUserByID(id int64) (*User, error)
 	GetStats(userID int64) (*UserStats, error)
+	UpdateDailyGoals(userID int64, goals map[string]int) error
+	GetDailyGoals(userID int64) (map[string]int, error)
 	// Password reset methods
 	GetUserIDByEmail(email string) (int64, error)
 	CreateResetToken(token string, userID int64, expiresAt time.Time) error
@@ -249,6 +251,21 @@ func (s *UserService) GetStats(userID int64) (*UserStats, error) {
 	}
 
 	return stats, nil
+}
+
+// UpdateDailyGoals updates the user's daily learning goals.
+func (s *UserService) UpdateDailyGoals(userID int64, req DailyGoalsReq) error {
+	slog.Debug("UserService.UpdateDailyGoals called", "user_id", userID)
+	goals := map[string]int{
+		"word": req.Word, "grammar": req.Grammar,
+		"speaking": req.Speaking, "writing": req.Writing,
+	}
+	if err := s.store.UpdateDailyGoals(userID, goals); err != nil {
+		slog.Error("UserService.UpdateDailyGoals failed", "err", err, "user_id", userID)
+		return fmt.Errorf("user.UserService.UpdateDailyGoals: %w", err)
+	}
+	slog.Debug("UserService.UpdateDailyGoals done", "user_id", userID)
+	return nil
 }
 
 // generateToken creates a 32-byte cryptographically random hex token.
