@@ -121,6 +121,7 @@ func main() {
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	wordH     := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
+	wordH.SetDailyGoalProvider(&wordGoalProvider{store: userStore})
 	grammarH  := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
 	lessonH   := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
@@ -231,6 +232,19 @@ func (p *wordNoteProvider) ListByReference(userID int64, refType string, refID i
 		result[i] = word.NoteDigest{ID: d.ID, Title: d.Title, Type: string(d.Type)}
 	}
 	return result, nil
+}
+
+// wordGoalProvider adapts data.UserStore to word.DailyGoalProvider.
+type wordGoalProvider struct {
+	store *data.UserStore
+}
+
+func (p *wordGoalProvider) GetWordDailyGoal(userID int64) int {
+	goals, err := p.store.GetDailyGoals(userID)
+	if err != nil {
+		return 20
+	}
+	return goals["word"]
 }
 
 // grammarNoteProvider adapts note.NoteService to grammar.NoteDigestProvider.
