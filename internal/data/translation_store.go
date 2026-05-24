@@ -216,6 +216,71 @@ func (s *TranslationStore) UpdateRecordFeedback(recordID int64, score int, feedb
 	return nil
 }
 
+// DeleteSource deletes a source and its sentences/records in a transaction.
+func (s *TranslationStore) DeleteSource(id int64) error {
+	slog.Debug("TranslationStore.DeleteSource called", "source_id", id)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		slog.Error("TranslationStore.DeleteSource begin tx failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSource: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete practice records for sentences belonging to this source.
+	_, err = tx.Exec(
+		`DELETE FROM translation_records WHERE sentence_id IN (SELECT id FROM translation_sentences WHERE source_id = ?)`,
+		id,
+	)
+	if err != nil {
+		slog.Error("TranslationStore.DeleteSource delete records failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSource: delete records: %w", err)
+	}
+
+	// Delete sentences (cascade is defined on sentences, but explicit for clarity).
+	_, err = tx.Exec(`DELETE FROM translation_sentences WHERE source_id = ?`, id)
+	if err != nil {
+		slog.Error("TranslationStore.DeleteSource delete sentences failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSource: delete sentences: %w", err)
+	}
+
+	// Delete the source.
+	result, err := tx.Exec(`DELETE FROM translation_sources WHERE id = ?`, id)
+	if err != nil {
+		slog.Error("TranslationStore.DeleteSource delete source failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSource: delete source: %w", err)
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("data.TranslationStore.DeleteSource: source %d not found", id)
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("TranslationStore.DeleteSource commit failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSource: commit: %w", err)
+	}
+
+	slog.Debug("TranslationStore.DeleteSource done", "source_id", id)
+	return nil
+}
+
+// UpdateSentenceReference sets the reference translation for a sentence.
+func (s *TranslationStore) UpdateSentenceReference(sentenceID int64, reference string) error {
+	slog.Debug("TranslationStore.UpdateSentenceReference called", "sentence_id", sentenceID)
+
+	_, err := s.db.Exec(
+		`UPDATE translation_sentences SET reference_translation = ? WHERE id = ?`,
+		reference, sentenceID,
+	)
+	if err != nil {
+		return fmt.Errorf("data.TranslationStore.UpdateSentenceReference: %w", err)
+	}
+
+	slog.Debug("TranslationStore.UpdateSentenceReference done", "sentence_id", sentenceID)
+	return nil
+}
+
 func (s *TranslationStore) GetRecord(id int64) (*translation.TranslationRecord, error) {
 	slog.Debug("TranslationStore.GetRecord called", "id", id)
 

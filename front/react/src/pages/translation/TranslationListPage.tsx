@@ -17,6 +17,7 @@ export function TranslationListPage() {
   const [pasteTitle, setPasteTitle] = useState('')
   const [importURL, setImportURL] = useState('')
   const [importing, setImporting] = useState(false)
+  const [deleting, setDeleting] = useState<number | null>(null)
 
   useEffect(() => { fetchSources() }, [])
 
@@ -68,6 +69,20 @@ export function TranslationListPage() {
     }
   }
 
+  async function handleDelete(id: number, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!confirm('确定删除这个素材及其所有句子吗？')) return
+    setDeleting(id)
+    try {
+      await apiFetch('DELETE', `/api/v1/translation/sources/${id}`)
+      fetchSources()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>翻訳練習</h1>
@@ -99,7 +114,17 @@ export function TranslationListPage() {
             >
               <div className={styles.sourceHeader}>
                 <span className={styles.sourceTitle}>{s.title}</span>
-                <span className={styles.sourceType}>{s.source_type}</span>
+                <div className={styles.sourceHeaderRight}>
+                  <span className={styles.sourceType}>{s.source_type}</span>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={e => handleDelete(s.id, e)}
+                    disabled={deleting === s.id}
+                    title="删除素材"
+                  >
+                    {deleting === s.id ? '…' : '🗑'}
+                  </button>
+                </div>
               </div>
               <p className={styles.sourcePreview}>{s.raw_content.slice(0, 100)}…</p>
             </div>
