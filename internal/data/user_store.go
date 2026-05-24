@@ -343,12 +343,39 @@ func defaultDailyGoals() map[string]int {
 
 func (s *UserStore) countTodayCompleted(userID int64, module string) int {
 	var count int
-	s.db.QueryRow(
-		`SELECT COALESCE(SUM(completed_count), 0)
-		 FROM study_sessions
-		 WHERE user_id = ? AND module = ? AND date(started_at) = date('now')`,
-		userID, module,
-	).Scan(&count)
+	switch module {
+	case "word":
+		s.db.QueryRow(
+			`SELECT COUNT(*) FROM word_records
+			 WHERE user_id = ? AND date(updated_at) = date('now')`,
+			userID,
+		).Scan(&count)
+	case "grammar":
+		s.db.QueryRow(
+			`SELECT COUNT(*) FROM grammar_records
+			 WHERE user_id = ? AND date(updated_at) = date('now')`,
+			userID,
+		).Scan(&count)
+	case "speaking":
+		s.db.QueryRow(
+			`SELECT COUNT(*) FROM speaking_records
+			 WHERE user_id = ? AND date(practiced_at) = date('now')`,
+			userID,
+		).Scan(&count)
+	case "writing":
+		s.db.QueryRow(
+			`SELECT COUNT(*) FROM writing_records
+			 WHERE user_id = ? AND date(practiced_at) = date('now')`,
+			userID,
+		).Scan(&count)
+	default:
+		s.db.QueryRow(
+			`SELECT COALESCE(SUM(completed_count), 0)
+			 FROM study_sessions
+			 WHERE user_id = ? AND module = ? AND date(started_at) = date('now')`,
+			userID, module,
+		).Scan(&count)
+	}
 	return count
 }
 

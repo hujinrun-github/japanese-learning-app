@@ -5,18 +5,40 @@ import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import { toFuriganaTokens, charIndexToTokenIndex } from '@/util/furigana'
+import { toFuriganaTokens } from '@/util/furigana'
+import { speakExample } from '@/util/exampleAudio'
 import type { SpeakingRecord, SpeakingMaterial, FuriganaToken, JLPTLevel } from '@/types/api'
 import styles from './SpeakingPage.module.css'
 
 type PracticeType = 'shadow' | 'free'
 
-const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3']
+const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
 const FILTER_OPTIONS: { key: PracticeType | ''; labelKey: string }[] = [
   { key: '', labelKey: 'speaking.filter.all' },
   { key: 'shadow', labelKey: 'speaking.filter.shadow' },
   { key: 'free', labelKey: 'speaking.filter.free' },
 ]
+
+const SPEAKER_COLORS = ['#228be6', '#2f9e44', '#e8590c', '#7950f2']
+
+/**
+ * Split Japanese text into sentences for per-line display.
+ * Splits on 。！？ followed by optional 」or ).
+ */
+function splitSentences(text: string): string[] {
+  const parts = text.split(/(?<=[。！？」])(?=[　-〿一-鿿぀-ゟ゠-ヿ])/)
+  if (parts.length === 0) return [text]
+  // Merge short fragments into previous sentence
+  const result: string[] = []
+  for (const p of parts) {
+    if (result.length > 0 && p.length < 4 && result[result.length - 1].length + p.length < 40) {
+      result[result.length - 1] += p
+    } else {
+      result.push(p)
+    }
+  }
+  return result
+}
 
 export function SpeakingPage() {
   const { t } = useTranslation()
@@ -31,8 +53,8 @@ export function SpeakingPage() {
 
   // practice state
   const [furiganaTokens, setFuriganaTokens] = useState<FuriganaToken[]>([])
-  const [highlightIdx, setHighlightIdx] = useState(-1)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [furiganaError, setFuriganaError] = useState(false)
+  const [rawSentences, setRawSentences] = useState<string[]>([])
   const [selfRating, setSelfRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -83,55 +105,33 @@ export function SpeakingPage() {
     setSelectedMaterial(m)
     setSubmitted(false)
     setSelfRating(0)
-    setHighlightIdx(-1)
-    setIsPlaying(false)
-    speechSynthesis.cancel()
+    setFuriganaError(false)
     if (recorder.audioURL) {
       URL.revokeObjectURL(recorder.audioURL)
     }
-    const tokens = await toFuriganaTokens(m.text)
-    setFuriganaTokens(tokens)
+    const sentences = splitSentences(m.text)
+    setRawSentences(sentences)
+    try {
+      const tokens = await toFuriganaTokens(m.text)
+      setFuriganaTokens(tokens)
+    } catch {
+      setFuriganaError(true)
+      setFuriganaTokens([])
+    }
     fetchRecords()
   }
 
   function handleBackToList() {
     setSelectedMaterial(null)
     setFuriganaTokens([])
-    setHighlightIdx(-1)
-    setIsPlaying(false)
-    speechSynthesis.cancel()
+    setFuriganaError(false)
+    setRawSentences([])
     setSubmitted(false)
   }
 
-  // TTS playback with token highlighting
   function handlePlayTTS() {
     if (!selectedMaterial) return
-    speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(selectedMaterial.text)
-    utterance.lang = 'ja-JP'
-    utterance.rate = 0.9
-
-    utterance.onboundary = (e) => {
-      const idx = charIndexToTokenIndex(e.charIndex, furiganaTokens)
-      setHighlightIdx(idx)
-    }
-    utterance.onend = () => {
-      setIsPlaying(false)
-      setHighlightIdx(-1)
-    }
-    utterance.onerror = () => {
-      setIsPlaying(false)
-      setHighlightIdx(-1)
-    }
-
-    setIsPlaying(true)
-    speechSynthesis.speak(utterance)
-  }
-
-  function handlePauseTTS() {
-    speechSynthesis.cancel()
-    setIsPlaying(false)
-    setHighlightIdx(-1)
+    speakExample(selectedMaterial.text)
   }
 
   // recording
@@ -172,6 +172,34 @@ export function SpeakingPage() {
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString()
+  }
+
+  // Group furigana tokens into sentence groups matching the raw sentence splits.
+  function groupTokensBySentence(
+    tokens: FuriganaToken[],
+    sentences: string[],
+  ): { tokens: FuriganaToken[]; raw: string }[] {
+    if (tokens.length === 0) {
+      return sentences.map((s) => ({ tokens: [], raw: s }))
+    }
+    const groups: { tokens: FuriganaToken[]; raw: string }[] = []
+    let ti = 0
+    let accum = ''
+    let currentTokens: FuriganaToken[] = []
+    for (let si = 0; si < sentences.length; si++) {
+      currentTokens = []
+      while (accum.length < sentences[si].length && ti < tokens.length) {
+        currentTokens.push(tokens[ti])
+        accum += tokens[ti].surface
+        ti++
+      }
+      groups.push({ tokens: currentTokens, raw: sentences[si] })
+    }
+    // Remaining tokens (punctuation etc.) go into last group
+    if (ti < tokens.length && groups.length > 0) {
+      groups[groups.length - 1].tokens.push(...tokens.slice(ti))
+    }
+    return groups
   }
 
   // ==== view: material list ====
@@ -260,32 +288,63 @@ export function SpeakingPage() {
         </span>
       </div>
 
-      {/* furigana text display */}
+      {/* furigana text display — grouped by sentence */}
       <div className={styles.textDisplay}>
-        {furiganaTokens.map((tok, i) => (
-          <ruby
-            key={i}
-            className={`${styles.token} ${i === highlightIdx ? styles.tokenHighlight : ''}`}
-          >
-            {tok.surface}
-            <rt>{tok.reading}</rt>
-          </ruby>
-        ))}
+        {furiganaError || furiganaTokens.length === 0 ? (
+          rawSentences.length > 0 ? (
+            rawSentences.map((s, i) => {
+              const isDialog = selectedMaterial.type === 'shadow'
+              const speakerIdx = isDialog ? i % 2 : -1
+              return (
+                <div key={i} className={styles.sentenceLine}>
+                  {speakerIdx >= 0 && rawSentences.length > 1 && (
+                    <span
+                      className={styles.speakerLabel}
+                      style={{ background: SPEAKER_COLORS[speakerIdx % SPEAKER_COLORS.length] }}
+                    >
+                      {String.fromCharCode(65 + speakerIdx)}
+                    </span>
+                  )}
+                  <span>{s}</span>
+                </div>
+              )
+            })
+          ) : (
+            <span>{selectedMaterial.text}</span>
+          )
+        ) : (
+          groupTokensBySentence(furiganaTokens, rawSentences).map((group, gi) => {
+            const isDialog = selectedMaterial.type === 'shadow'
+            const speakerIdx = isDialog ? gi % 2 : -1
+            return (
+              <div key={gi} className={styles.sentenceLine}>
+                {speakerIdx >= 0 && rawSentences.length > 1 && (
+                  <span
+                    className={styles.speakerLabel}
+                    style={{ background: SPEAKER_COLORS[speakerIdx % SPEAKER_COLORS.length] }}
+                  >
+                    {String.fromCharCode(65 + speakerIdx)}
+                  </span>
+                )}
+                {group.tokens.map((tok, ti) => (
+                  <ruby key={ti} className={styles.token}>
+                    {tok.surface}
+                    <rt>{tok.reading}</rt>
+                  </ruby>
+                ))}
+              </div>
+            )
+          })
+        )}
       </div>
 
       {/* toolbar */}
       <div className={styles.toolbar}>
         {/* TTS (shadowing mode) */}
         {selectedMaterial.type === 'shadow' && (
-          isPlaying ? (
-            <button className={styles.toolBtn} onClick={handlePauseTTS}>
-              {t('speaking.practice.pauseRef')}
-            </button>
-          ) : (
-            <button className={styles.toolBtn} onClick={handlePlayTTS}>
-              {t('speaking.practice.playRef')}
-            </button>
-          )
+          <button className={styles.toolBtn} onClick={handlePlayTTS}>
+            {t('speaking.practice.playRef')}
+          </button>
         )}
 
         {/* recording */}

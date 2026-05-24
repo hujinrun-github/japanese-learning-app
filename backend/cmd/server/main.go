@@ -166,6 +166,9 @@ func main() {
 	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
 
+	// Audio files (TTS-generated example audio)
+	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir("./data/audio"))))
+
 	// Static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 

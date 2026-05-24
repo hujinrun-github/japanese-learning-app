@@ -23,7 +23,12 @@ export function getExampleAudioURL(hash: string): string {
   return `/audio/examples/${hash}.wav`
 }
 
-export async function speakExample(text: string): Promise<void> {
+export interface SpeakOptions {
+  onBoundary?: (charIndex: number) => void
+  onEnd?: () => void
+}
+
+export async function speakExample(text: string, opts?: SpeakOptions): Promise<void> {
   stopCurrent()
 
   const hash = await sha256Hex(text)
@@ -37,10 +42,11 @@ export async function speakExample(text: string): Promise<void> {
 
     audio.onended = () => {
       audioEl = null
+      opts?.onEnd?.()
       resolve()
     }
     audio.onerror = () => {
-      // Fallback to browser SpeechSynthesis
+      // Fallback to browser SpeechSynthesis with boundary events
       audioEl = null
       speechSynthesis.cancel()
       const u = new SpeechSynthesisUtterance(text)
@@ -50,13 +56,18 @@ export async function speakExample(text: string): Promise<void> {
       const voices = speechSynthesis.getVoices()
       const jaVoice = voices.find(v => v.lang.startsWith('ja'))
       if (jaVoice) u.voice = jaVoice
-      u.onend = () => resolve()
+      if (opts?.onBoundary) {
+        u.onboundary = (e) => opts.onBoundary!(e.charIndex)
+      }
+      u.onend = () => {
+        opts?.onEnd?.()
+        resolve()
+      }
       u.onerror = () => resolve()
       speechSynthesis.speak(u)
     }
 
     audio.play().catch(() => {
-      // autoplay blocked – resolve silently
       audioEl = null
       resolve()
     })
