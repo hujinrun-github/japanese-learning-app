@@ -96,6 +96,10 @@ func (f *fakeUserStore) GetStats(userID int64) (*user.UserStats, error) {
 	}, nil
 }
 
+func (f *fakeUserStore) UpdateUser(id int64, name, email string, jlptLevels []string) error {
+	return nil
+}
+
 // --- tests ---
 
 func TestUserService_Register(t *testing.T) {
