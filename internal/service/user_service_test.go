@@ -24,7 +24,7 @@ func (f *fakeUserStore) Create(email, passwordHash string, goalLevel user.JLPTLe
 		return nil, fmt.Errorf("duplicate email: %w", errors.New("UNIQUE constraint failed"))
 	}
 	f.nextID++
-	u := &user.User{ID: f.nextID, Email: email, GoalLevel: goalLevel}
+	u := &user.User{ID: f.nextID, Email: email, JLPTLevels: []string{string(goalLevel)}}
 	f.byEmail[email] = u
 	f.byID[f.nextID] = u
 	f.passwords[email] = passwordHash
@@ -92,8 +92,8 @@ func TestUserService_Register(t *testing.T) {
 	if u.Email != "alice@example.com" {
 		t.Errorf("expected email alice@example.com, got %s", u.Email)
 	}
-	if u.GoalLevel != user.LevelN5 {
-		t.Errorf("expected goal level N5, got %s", u.GoalLevel)
+	if len(u.JLPTLevels) == 0 || u.JLPTLevels[0] != string(user.LevelN5) {
+		t.Errorf("expected goal level N5, got %v", u.JLPTLevels)
 	}
 }
 

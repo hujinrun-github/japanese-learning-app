@@ -199,8 +199,14 @@ func (h *TranslationHandler) handleImportURL(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	httpReq, err := http.NewRequest(http.MethodGet, req.URL, nil)
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid URL: "+err.Error(), r.Header.Get("X-Request-ID"))
+		return
+	}
+	httpReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(req.URL)
+	resp, err := client.Do(httpReq)
 	if err != nil {
 		slog.Error("handleImportURL fetch failed", "url", req.URL, "err", err)
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_IMPORT_FAILED", "failed to fetch URL: "+err.Error(), r.Header.Get("X-Request-ID"))
