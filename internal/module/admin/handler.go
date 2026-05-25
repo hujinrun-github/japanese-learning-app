@@ -107,56 +107,7 @@ func queryInt(r *http.Request, key string, defaultVal int) int {
 	return n
 }
 
-// ---- stub handlers (to be implemented in Tasks 6-8) ----
-
-
-func (h *Handler) listGrammar(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) createGrammar(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) updateGrammar(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) deleteGrammar(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) listSpeaking(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) createSpeaking(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) updateSpeaking(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) deleteSpeaking(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) listWriting(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) createWriting(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) updateWriting(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) deleteWriting(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
+// ---- stub handlers (to be implemented in Task 8) ----
 
 func (h *Handler) listTranslation(w http.ResponseWriter, r *http.Request) {
 	notImplemented(w)
