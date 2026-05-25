@@ -104,7 +104,8 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 	rows, err := s.db.Query(
 		`SELECT gp.id, gp.name, gp.meaning, gp.conjunction_rule, gp.usage_note,
 		        gp.examples_json, gp.quiz_questions_json, gp.jlpt_level,
-		        COALESCE(gr.status, 'unlearned') AS user_status
+		        COALESCE(gr.status, 'unlearned') AS user_status,
+		        gr.quiz_history_json
 		 FROM grammar_points gp
 		 LEFT JOIN grammar_records gr ON gr.grammar_point_id = gp.id AND gr.user_id = ?
 		 WHERE gp.jlpt_level = ?
@@ -122,8 +123,9 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 		var gp grammar.GrammarPoint
 		var examplesJSON, quizJSON string
 		var userStatus grammar.GrammarStatus
+			var quizHistoryJSON sql.NullString
 		if err := rows.Scan(&gp.ID, &gp.Name, &gp.Meaning, &gp.ConjunctionRule, &gp.UsageNote,
-			&examplesJSON, &quizJSON, &gp.JLPTLevel, &userStatus); err != nil {
+			&examplesJSON, &quizJSON, &gp.JLPTLevel, &userStatus, &quizHistoryJSON); err != nil {
 			slog.Error("failed to scan grammar_point+status row", "err", err)
 			return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus scan: %w", err)
 		}
@@ -136,7 +138,8 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 			return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus unmarshal quiz: %w", err)
 		}
 		items = append(items, grammar.GrammarPointWithStatus{
-			GrammarPoint: gp,
+			GrammarPoint:  gp,
+				LastQuizScore: lastQuizScore(quizHistoryJSON),
 			UserStatus:   userStatus,
 		})
 	}
@@ -146,6 +149,37 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 
 	slog.Debug("GrammarStore.ListByLevelWithStatus done", "user_id", userID, "level", level, "count", len(items))
 	return items, nil
+}
+
+// UpdatePoint updates all fields of an existing grammar point by ID.
+func (s *GrammarStore) UpdatePoint(gp grammar.GrammarPoint) error {
+	slog.Debug("GrammarStore.UpdatePoint called", "grammar_point_id", gp.ID)
+	examplesJSON, err := json.Marshal(gp.Examples)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.UpdatePoint marshal examples: %w", err)
+	}
+	quizJSON, err := json.Marshal(gp.QuizQuestions)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.UpdatePoint marshal quiz: %w", err)
+	}
+	_, err = s.db.Exec(
+		"UPDATE grammar_points SET name=?, meaning=?, conjunction_rule=?, usage_note=?, examples_json=?, quiz_questions_json=?, jlpt_level=? WHERE id=?",
+		gp.Name, gp.Meaning, gp.ConjunctionRule, gp.UsageNote, string(examplesJSON), string(quizJSON), gp.JLPTLevel, gp.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.UpdatePoint exec: %w", err)
+	}
+	return nil
+}
+
+// DeletePoint deletes a grammar point by ID.
+func (s *GrammarStore) DeletePoint(id int64) error {
+	slog.Debug("GrammarStore.DeletePoint called", "grammar_point_id", id)
+	_, err := s.db.Exec("DELETE FROM grammar_points WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.DeletePoint exec: %w", err)
+	}
+	return nil
 }
 
 // GetRecord 查询用户对某语法点的学习记录，不存在时返回 error。
@@ -252,4 +286,19 @@ func (s *GrammarStore) ListDueRecords(userID int64) ([]grammar.GrammarRecord, er
 
 	slog.Debug("GrammarStore.ListDueRecords done", "user_id", userID, "count", len(records))
 	return records, nil
+}
+
+// lastQuizScore 从 quiz_history_json 中提取最近一次测验得分，未测验返回 -1。
+func lastQuizScore(nullStr sql.NullString) int {
+	if !nullStr.Valid {
+		return -1
+	}
+	var history []grammar.QuizAttempt
+	if err := json.Unmarshal([]byte(nullStr.String), &history); err != nil {
+		return -1
+	}
+	if len(history) == 0 {
+		return -1
+	}
+	return history[len(history)-1].Score
 }
