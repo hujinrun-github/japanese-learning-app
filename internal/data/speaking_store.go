@@ -174,3 +174,28 @@ func (s *SpeakingStore) GetMaterialByID(id int64) (*speaking.SpeakingMaterial, e
 	slog.Debug("SpeakingStore.GetMaterialByID done", "id", id, "title", m.Title)
 	return &m, nil
 }
+
+// UpdateMaterial 更新口语练习素材。
+func (s *SpeakingStore) UpdateMaterial(m speaking.SpeakingMaterial) error {
+	slog.Debug("SpeakingStore.UpdateMaterial called", "id", m.ID)
+	_, err := s.db.Exec(
+		"UPDATE speaking_materials SET type=?, title=?, text=?, audio_url=?, jlpt_level=? WHERE id=?",
+		m.Type, m.Title, m.Text, m.AudioURL, m.JLPTLevel, m.ID,
+	)
+	if err != nil {
+		slog.Error("failed to update speaking_material", "err", err, "id", m.ID)
+		return fmt.Errorf("data.SpeakingStore.UpdateMaterial exec: %w", err)
+	}
+	return nil
+}
+
+// DeleteMaterial 按 ID 删除口语练习素材。
+func (s *SpeakingStore) DeleteMaterial(id int64) error {
+	slog.Debug("SpeakingStore.DeleteMaterial called", "id", id)
+	_, err := s.db.Exec("DELETE FROM speaking_materials WHERE id = ?", id)
+	if err != nil {
+		slog.Error("failed to delete speaking_material", "err", err, "id", id)
+		return fmt.Errorf("data.SpeakingStore.DeleteMaterial exec: %w", err)
+	}
+	return nil
+}
