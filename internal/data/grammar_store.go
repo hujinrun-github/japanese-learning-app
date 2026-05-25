@@ -288,6 +288,99 @@ func (s *GrammarStore) ListDueRecords(userID int64) ([]grammar.GrammarRecord, er
 	return records, nil
 }
 
+// ListAll 分页查询语法点，支持按 jlpt_level 和 search（匹配 name/meaning）过滤。
+func (s *GrammarStore) ListAll(level, search string, offset, limit int) ([]grammar.GrammarPoint, int, error) {
+	slog.Debug("GrammarStore.ListAll called", "level", level, "search", search, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if level != "" {
+		where += " AND jlpt_level = ?"
+		args = append(args, level)
+	}
+	if search != "" {
+		where += " AND (name LIKE ? OR meaning LIKE ?)"
+		s := "%" + search + "%"
+		args = append(args, s, s)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM grammar_points "+where, args...).Scan(&total); err != nil {
+		slog.Error("failed to count grammar_points", "err", err)
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAll count: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT id, name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level FROM grammar_points %s ORDER BY id LIMIT ? OFFSET ?",
+		where,
+	)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("failed to query grammar_points", "err", err)
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAll query: %w", err)
+	}
+	defer rows.Close()
+
+	var points []grammar.GrammarPoint
+	for rows.Next() {
+		var gp grammar.GrammarPoint
+		var examplesJSON, quizJSON string
+		if err := rows.Scan(&gp.ID, &gp.Name, &gp.Meaning, &gp.ConjunctionRule, &gp.UsageNote,
+			&examplesJSON, &quizJSON, &gp.JLPTLevel); err != nil {
+			slog.Error("failed to scan grammar_point row", "err", err)
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAll scan: %w", err)
+		}
+		if err := json.Unmarshal([]byte(examplesJSON), &gp.Examples); err != nil {
+			slog.Error("failed to unmarshal examples_json", "err", err, "grammar_point_id", gp.ID)
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAll unmarshal examples: %w", err)
+		}
+		if err := json.Unmarshal([]byte(quizJSON), &gp.QuizQuestions); err != nil {
+			slog.Error("failed to unmarshal quiz_questions_json", "err", err, "grammar_point_id", gp.ID)
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAll unmarshal quiz: %w", err)
+		}
+		points = append(points, gp)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("rows iteration error", "err", err)
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAll rows: %w", err)
+	}
+
+	slog.Debug("GrammarStore.ListAll done", "count", len(points), "total", total)
+	return points, total, nil
+}
+
+// InsertPoint 插入一条新的语法点，返回自动生成的 ID。
+func (s *GrammarStore) InsertPoint(gp grammar.GrammarPoint) (int64, error) {
+	slog.Debug("GrammarStore.InsertPoint called", "name", gp.Name)
+	examplesJSON, err := json.Marshal(gp.Examples)
+	if err != nil {
+		slog.Error("failed to marshal examples", "err", err)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint marshal examples: %w", err)
+	}
+	quizJSON, err := json.Marshal(gp.QuizQuestions)
+	if err != nil {
+		slog.Error("failed to marshal quiz_questions", "err", err)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint marshal quiz: %w", err)
+	}
+	result, err := s.db.Exec(
+		`INSERT INTO grammar_points (name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		gp.Name, gp.Meaning, gp.ConjunctionRule, gp.UsageNote, string(examplesJSON), string(quizJSON), gp.JLPTLevel,
+	)
+	if err != nil {
+		slog.Error("failed to insert grammar_point", "err", err, "name", gp.Name)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint exec: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		slog.Error("failed to get last insert id", "err", err)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint last insert id: %w", err)
+	}
+	slog.Debug("GrammarStore.InsertPoint done", "grammar_point_id", id, "name", gp.Name)
+	return id, nil
+}
+
 // lastQuizScore 从 quiz_history_json 中提取最近一次测验得分，未测验返回 -1。
 func lastQuizScore(nullStr sql.NullString) int {
 	if !nullStr.Valid {

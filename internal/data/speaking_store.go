@@ -189,6 +189,78 @@ func (s *SpeakingStore) UpdateMaterial(m speaking.SpeakingMaterial) error {
 	return nil
 }
 
+// ListAll 分页查询口语素材，支持按 type 和 jlpt_level 过滤。
+func (s *SpeakingStore) ListAll(practiceType, level string, offset, limit int) ([]speaking.SpeakingMaterial, int, error) {
+	slog.Debug("SpeakingStore.ListAll called", "type", practiceType, "level", level, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if practiceType != "" {
+		where += " AND type = ?"
+		args = append(args, practiceType)
+	}
+	if level != "" {
+		where += " AND jlpt_level = ?"
+		args = append(args, level)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM speaking_materials "+where, args...).Scan(&total); err != nil {
+		slog.Error("failed to count speaking_materials", "err", err)
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll count: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT id, type, title, text, audio_url, jlpt_level FROM speaking_materials %s ORDER BY id LIMIT ? OFFSET ?",
+		where,
+	)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("failed to query speaking_materials", "err", err)
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll query: %w", err)
+	}
+	defer rows.Close()
+
+	materials := make([]speaking.SpeakingMaterial, 0)
+	for rows.Next() {
+		var m speaking.SpeakingMaterial
+		if err := rows.Scan(&m.ID, &m.Type, &m.Title, &m.Text, &m.AudioURL, &m.JLPTLevel); err != nil {
+			slog.Error("failed to scan speaking_material row", "err", err)
+			return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll scan: %w", err)
+		}
+		materials = append(materials, m)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("rows iteration error", "err", err)
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll rows: %w", err)
+	}
+
+	slog.Debug("SpeakingStore.ListAll done", "count", len(materials), "total", total)
+	return materials, total, nil
+}
+
+// InsertMaterial 插入一条新的口语素材，返回自动生成的 ID。
+func (s *SpeakingStore) InsertMaterial(m speaking.SpeakingMaterial) (int64, error) {
+	slog.Debug("SpeakingStore.InsertMaterial called", "title", m.Title)
+	result, err := s.db.Exec(
+		`INSERT INTO speaking_materials (type, title, text, audio_url, jlpt_level)
+		 VALUES (?, ?, ?, ?, ?)`,
+		m.Type, m.Title, m.Text, m.AudioURL, m.JLPTLevel,
+	)
+	if err != nil {
+		slog.Error("failed to insert speaking_material", "err", err, "title", m.Title)
+		return 0, fmt.Errorf("data.SpeakingStore.InsertMaterial exec: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		slog.Error("failed to get last insert id", "err", err)
+		return 0, fmt.Errorf("data.SpeakingStore.InsertMaterial last insert id: %w", err)
+	}
+	slog.Debug("SpeakingStore.InsertMaterial done", "id", id, "title", m.Title)
+	return id, nil
+}
+
 // DeleteMaterial 按 ID 删除口语练习素材。
 func (s *SpeakingStore) DeleteMaterial(id int64) error {
 	slog.Debug("SpeakingStore.DeleteMaterial called", "id", id)

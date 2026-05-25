@@ -181,6 +181,27 @@ func (s *WritingStore) DeleteQuestion(id int64) error {
 	return nil
 }
 
+// InsertQuestion 插入一条新的写作题目，返回自动生成的 ID。
+func (s *WritingStore) InsertQuestion(q writing.WritingQuestion) (int64, error) {
+	slog.Debug("WritingStore.InsertQuestion called", "type", q.Type, "jlpt_level", q.JLPTLevel)
+	result, err := s.db.Exec(
+		`INSERT INTO writing_questions (type, prompt, expected_answer, grammar_point_id, jlpt_level)
+		 VALUES (?, ?, ?, ?, ?)`,
+		q.Type, q.Prompt, q.ExpectedAnswer, q.GrammarPointID, q.JLPTLevel,
+	)
+	if err != nil {
+		slog.Error("failed to insert writing_question", "err", err)
+		return 0, fmt.Errorf("data.WritingStore.InsertQuestion exec: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		slog.Error("failed to get last insert id", "err", err)
+		return 0, fmt.Errorf("data.WritingStore.InsertQuestion last insert id: %w", err)
+	}
+	slog.Debug("WritingStore.InsertQuestion done", "id", id)
+	return id, nil
+}
+
 // ListAllQuestions 分页查询写作题目，支持按 jlpt_level 和 type 过滤。
 func (s *WritingStore) ListAllQuestions(level, qtype string, offset, limit int) ([]writing.WritingQuestion, int, error) {
 	where := "WHERE 1=1"
