@@ -437,6 +437,44 @@ func isUniqueConstraintError(err error) bool {
 	return sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE
 }
 
+// ListAllUsers 分页查询所有用户，返回用户列表和总数。
+func (s *UserStore) ListAllUsers(offset, limit int) ([]user.User, int, error) {
+	slog.Debug("UserStore.ListAllUsers called", "offset", offset, "limit", limit)
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.UserStore.ListAllUsers count: %w", err)
+	}
+
+	rows, err := s.db.Query(
+		`SELECT id, name, email, jlpt_levels, streak_days, created_at FROM users ORDER BY id LIMIT ? OFFSET ?`,
+		limit, offset,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.UserStore.ListAllUsers query: %w", err)
+	}
+	defer rows.Close()
+
+	var users []user.User
+	for rows.Next() {
+		var u user.User
+		var createdAt string
+		var jlptLevelsJSON string
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &jlptLevelsJSON, &u.StreakDays, &createdAt); err != nil {
+			return nil, 0, fmt.Errorf("data.UserStore.ListAllUsers scan: %w", err)
+		}
+		u.JLPTLevels = parseJLPTLevels(jlptLevelsJSON)
+		u.CreatedAt, err = parseSQLiteTime(createdAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.UserStore.ListAllUsers parse created_at: %w", err)
+		}
+		users = append(users, u)
+	}
+
+	slog.Debug("UserStore.ListAllUsers done", "count", len(users), "total", total)
+	return users, total, rows.Err()
+}
+
 // parseJLPTLevels parses a JSON array string like '["N5","N4"]' into a []string.
 // Returns []string{"N5"} for empty or unparseable input.
 func parseJLPTLevels(jsonStr string) []string {

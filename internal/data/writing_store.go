@@ -24,7 +24,7 @@ func (s *WritingStore) GetDailyQueue(userID int64) ([]writing.WritingQuestion, e
 	slog.Debug("WritingStore.GetDailyQueue called", "user_id", userID)
 
 	rows, err := s.db.Query(
-		`SELECT id, type, prompt, grammar_point_id, expected_answer
+		`SELECT id, type, prompt, grammar_point_id, jlpt_level, expected_answer
 		 FROM writing_questions
 		 ORDER BY RANDOM()
 		 LIMIT 5`,
@@ -39,7 +39,7 @@ func (s *WritingStore) GetDailyQueue(userID int64) ([]writing.WritingQuestion, e
 	for rows.Next() {
 		var q writing.WritingQuestion
 		var grammarPointID sql.NullInt64
-		if err := rows.Scan(&q.ID, &q.Type, &q.Prompt, &grammarPointID, &q.ExpectedAnswer); err != nil {
+		if err := rows.Scan(&q.ID, &q.Type, &q.Prompt, &grammarPointID, &q.JLPTLevel, &q.ExpectedAnswer); err != nil {
 			slog.Error("failed to scan writing_question row", "err", err)
 			return nil, fmt.Errorf("data.WritingStore.GetDailyQueue scan: %w", err)
 		}
@@ -55,6 +55,26 @@ func (s *WritingStore) GetDailyQueue(userID int64) ([]writing.WritingQuestion, e
 
 	slog.Debug("WritingStore.GetDailyQueue done", "user_id", userID, "count", len(questions))
 	return questions, nil
+}
+
+// GetQuestionByID 按 ID 查询写作题目。
+func (s *WritingStore) GetQuestionByID(id int64) (*writing.WritingQuestion, error) {
+	var q writing.WritingQuestion
+	var grammarPointID sql.NullInt64
+	err := s.db.QueryRow(
+		`SELECT id, type, prompt, grammar_point_id, jlpt_level, expected_answer
+		 FROM writing_questions WHERE id = ?`, id,
+	).Scan(&q.ID, &q.Type, &q.Prompt, &grammarPointID, &q.JLPTLevel, &q.ExpectedAnswer)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("data.WritingStore.GetQuestionByID %d: %w", id, sql.ErrNoRows)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("data.WritingStore.GetQuestionByID: %w", err)
+	}
+	if grammarPointID.Valid {
+		q.GrammarPointID = grammarPointID.Int64
+	}
+	return &q, nil
 }
 
 // SaveRecord 保存一次写作练习记录。
@@ -134,4 +154,70 @@ func (s *WritingStore) ListRecords(userID int64) ([]writing.WritingRecord, error
 
 	slog.Debug("WritingStore.ListRecords done", "user_id", userID, "count", len(records))
 	return records, nil
+}
+
+// UpdateQuestion 更新写作题目。
+func (s *WritingStore) UpdateQuestion(q writing.WritingQuestion) error {
+	slog.Debug("WritingStore.UpdateQuestion called", "id", q.ID)
+	_, err := s.db.Exec(
+		"UPDATE writing_questions SET type=?, prompt=?, expected_answer=?, grammar_point_id=?, jlpt_level=? WHERE id=?",
+		q.Type, q.Prompt, q.ExpectedAnswer, q.GrammarPointID, q.JLPTLevel, q.ID,
+	)
+	if err != nil {
+		slog.Error("failed to update writing_question", "err", err, "id", q.ID)
+		return fmt.Errorf("data.WritingStore.UpdateQuestion exec: %w", err)
+	}
+	return nil
+}
+
+// DeleteQuestion 按 ID 删除写作题目。
+func (s *WritingStore) DeleteQuestion(id int64) error {
+	slog.Debug("WritingStore.DeleteQuestion called", "id", id)
+	_, err := s.db.Exec("DELETE FROM writing_questions WHERE id = ?", id)
+	if err != nil {
+		slog.Error("failed to delete writing_question", "err", err, "id", id)
+		return fmt.Errorf("data.WritingStore.DeleteQuestion exec: %w", err)
+	}
+	return nil
+}
+
+// ListAllQuestions 分页查询写作题目，支持按 jlpt_level 和 type 过滤。
+func (s *WritingStore) ListAllQuestions(level, qtype string, offset, limit int) ([]writing.WritingQuestion, int, error) {
+	where := "WHERE 1=1"
+	var args []any
+	if level != "" {
+		where += " AND jlpt_level = ?"
+		args = append(args, level)
+	}
+	if qtype != "" {
+		where += " AND type = ?"
+		args = append(args, qtype)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM writing_questions "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.WritingStore.ListAllQuestions count: %w", err)
+	}
+
+	query := fmt.Sprintf("SELECT id, type, prompt, grammar_point_id, jlpt_level, expected_answer FROM writing_questions %s ORDER BY id LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.WritingStore.ListAllQuestions query: %w", err)
+	}
+	defer rows.Close()
+
+	var questions []writing.WritingQuestion
+	for rows.Next() {
+		var q writing.WritingQuestion
+		var gpid sql.NullInt64
+		if err := rows.Scan(&q.ID, &q.Type, &q.Prompt, &gpid, &q.JLPTLevel, &q.ExpectedAnswer); err != nil {
+			return nil, 0, fmt.Errorf("data.WritingStore.ListAllQuestions scan: %w", err)
+		}
+		if gpid.Valid {
+			q.GrammarPointID = gpid.Int64
+		}
+		questions = append(questions, q)
+	}
+	return questions, total, rows.Err()
 }
