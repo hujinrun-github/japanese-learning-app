@@ -215,6 +215,98 @@ func (s *WordStore) UpsertRecord(r word.WordRecord) error {
 	return nil
 }
 
+// ListAll returns words with optional level filter, text search, and pagination.
+func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit int) ([]word.Word, int, error) {
+	slog.Debug("WordStore.ListAll called", "level", level, "search", search, "offset", offset, "limit", limit)
+
+	var args []any
+	where := "WHERE 1=1"
+	if level != "" {
+		where += " AND jlpt_level = ?"
+		args = append(args, level)
+	}
+	if search != "" {
+		where += " AND (kanji_form LIKE ? OR reading LIKE ? OR meaning LIKE ?)"
+		s := "%" + search + "%"
+		args = append(args, s, s, s)
+	}
+
+	var total int
+	countQuery := "SELECT COUNT(*) FROM words " + where
+	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		slog.Error("failed to count words", "err", err)
+		return nil, 0, fmt.Errorf("data.WordStore.ListAll count: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type FROM words %s ORDER BY id LIMIT ? OFFSET ?",
+		where,
+	)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("failed to query words", "err", err)
+		return nil, 0, fmt.Errorf("data.WordStore.ListAll query: %w", err)
+	}
+	defer rows.Close()
+
+	var words []word.Word
+	for rows.Next() {
+		var w word.Word
+		var examplesJSON string
+		if err := rows.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType); err != nil {
+			slog.Error("failed to scan word row", "err", err)
+			return nil, 0, fmt.Errorf("data.WordStore.ListAll scan: %w", err)
+		}
+		if err := json.Unmarshal([]byte(examplesJSON), &w.Examples); err != nil {
+			slog.Error("failed to unmarshal examples_json", "err", err, "word_id", w.ID)
+			return nil, 0, fmt.Errorf("data.WordStore.ListAll unmarshal examples: %w", err)
+		}
+		words = append(words, w)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("rows iteration error", "err", err)
+		return nil, 0, fmt.Errorf("data.WordStore.ListAll rows: %w", err)
+	}
+
+	slog.Debug("WordStore.ListAll done", "count", len(words), "total", total)
+	return words, total, nil
+}
+
+// UpdateWord updates all fields of an existing word by ID.
+func (s *WordStore) UpdateWord(w word.Word) error {
+	slog.Debug("WordStore.UpdateWord called", "word_id", w.ID)
+	examplesJSON, err := json.Marshal(w.Examples)
+	if err != nil {
+		slog.Error("failed to marshal examples", "err", err)
+		return fmt.Errorf("data.WordStore.UpdateWord marshal examples: %w", err)
+	}
+	_, err = s.db.Exec(
+		`UPDATE words SET kanji_form=?, reading=?, part_of_speech=?, meaning=?, jlpt_level=?, examples_json=?, reading_type=? WHERE id=?`,
+		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType, w.ID,
+	)
+	if err != nil {
+		slog.Error("failed to update word", "err", err, "word_id", w.ID)
+		return fmt.Errorf("data.WordStore.UpdateWord exec: %w", err)
+	}
+
+	slog.Debug("WordStore.UpdateWord done", "word_id", w.ID)
+	return nil
+}
+
+// DeleteWord deletes a word by ID.
+func (s *WordStore) DeleteWord(id int64) error {
+	slog.Debug("WordStore.DeleteWord called", "word_id", id)
+	_, err := s.db.Exec("DELETE FROM words WHERE id = ?", id)
+	if err != nil {
+		slog.Error("failed to delete word", "err", err, "word_id", id)
+		return fmt.Errorf("data.WordStore.DeleteWord exec: %w", err)
+	}
+
+	slog.Debug("WordStore.DeleteWord done", "word_id", id)
+	return nil
+}
+
 // BookmarkWord 收藏单词（幂等，已收藏则忽略）。
 func (s *WordStore) BookmarkWord(userID, wordID int64) error {
 	slog.Debug("WordStore.BookmarkWord called", "user_id", userID, "word_id", wordID)
