@@ -86,9 +86,9 @@ func runImportWords(args []string) int {
 		return 1
 	}
 
-	n, err := ImportWords(db, *filePath, *autoFill)
+	n, err := ImportWordsFromFile(db, *filePath, *autoFill)
 	if err != nil {
-		slog.Error("import-words: ImportWords failed", "file", *filePath, "err", err)
+		slog.Error("import-words: ImportWordsFromFile failed", "file", *filePath, "err", err)
 		fmt.Fprintf(os.Stderr, "import-words: %v\n", err)
 		return 1
 	}

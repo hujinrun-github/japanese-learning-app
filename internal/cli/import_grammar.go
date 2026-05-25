@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 )
@@ -19,6 +20,19 @@ type grammarImport struct {
 	JLPTLevel       string          `json:"jlpt_level"`
 }
 
+// ImportGrammar reads a JSON array of grammar points from r and inserts them into the
+// grammar_points table using INSERT OR IGNORE (idempotent – duplicate names per
+// jlpt_level are silently skipped).
+// It returns the number of rows actually inserted.
+func ImportGrammar(db *sql.DB, r io.Reader) (int, error) {
+	slog.Debug("ImportGrammar called")
+	var items []grammarImport
+	if err := json.NewDecoder(r).Decode(&items); err != nil {
+		return 0, fmt.Errorf("cli.ImportGrammar decode: %w", err)
+	}
+	return insertGrammarPoints(db, items)
+}
+
 // ImportGrammarFromFile reads a JSON array of grammar points from filePath and inserts them
 // into the grammar_points table using INSERT OR IGNORE (idempotent – duplicate names per
 // jlpt_level are silently skipped).
@@ -26,18 +40,13 @@ type grammarImport struct {
 func ImportGrammarFromFile(db *sql.DB, filePath string) (int, error) {
 	slog.Debug("ImportGrammarFromFile called", "file", filePath)
 
-	raw, err := os.ReadFile(filePath)
+	f, err := os.Open(filePath)
 	if err != nil {
-		return 0, fmt.Errorf("cli.ImportGrammarFromFile ReadFile: %w", err)
+		return 0, fmt.Errorf("cli.ImportGrammarFromFile open: %w", err)
 	}
+	defer f.Close()
 
-	var items []grammarImport
-	if err := json.Unmarshal(raw, &items); err != nil {
-		return 0, fmt.Errorf("cli.ImportGrammarFromFile Unmarshal: %w", err)
-	}
-
-	slog.Debug("ImportGrammarFromFile parsed items", "file", filePath, "count", len(items))
-	return insertGrammarPoints(db, items)
+	return ImportGrammar(db, f)
 }
 
 // ImportGrammarFromJSON parses a single JSON object string and inserts it into the
