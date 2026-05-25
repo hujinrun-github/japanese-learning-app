@@ -109,21 +109,6 @@ func queryInt(r *http.Request, key string, defaultVal int) int {
 
 // ---- stub handlers (to be implemented in Tasks 6-8) ----
 
-func (h *Handler) listWords(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) createWord(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) updateWord(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) deleteWord(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
 
 func (h *Handler) listGrammar(w http.ResponseWriter, r *http.Request) {
 	notImplemented(w)

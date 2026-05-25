@@ -273,6 +273,32 @@ func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit i
 	return words, total, nil
 }
 
+// InsertWord inserts a new word into the words table and returns the new ID.
+func (s *WordStore) InsertWord(w word.Word) (int64, error) {
+	slog.Debug("WordStore.InsertWord called", "kanji", w.KanjiForm)
+	examplesJSON, err := json.Marshal(w.Examples)
+	if err != nil {
+		slog.Error("failed to marshal examples", "err", err)
+		return 0, fmt.Errorf("data.WordStore.InsertWord marshal examples: %w", err)
+	}
+	result, err := s.db.Exec(
+		`INSERT INTO words (kanji_form, reading, part_of_speech, meaning, jlpt_level, examples_json, reading_type)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType,
+	)
+	if err != nil {
+		slog.Error("failed to insert word", "err", err, "kanji", w.KanjiForm)
+		return 0, fmt.Errorf("data.WordStore.InsertWord exec: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		slog.Error("failed to get last insert id", "err", err)
+		return 0, fmt.Errorf("data.WordStore.InsertWord last insert id: %w", err)
+	}
+	slog.Debug("WordStore.InsertWord done", "word_id", id, "kanji", w.KanjiForm)
+	return id, nil
+}
+
 // UpdateWord updates all fields of an existing word by ID.
 func (s *WordStore) UpdateWord(w word.Word) error {
 	slog.Debug("WordStore.UpdateWord called", "word_id", w.ID)
