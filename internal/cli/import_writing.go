@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 )
@@ -17,6 +18,19 @@ type writingImport struct {
 	JLPTLevel      string `json:"jlpt_level"`
 }
 
+// ImportWriting reads a JSON array of writing questions from r and inserts them
+// into the writing_questions table using INSERT OR IGNORE (idempotent – duplicate
+// (type, prompt) combinations are silently skipped).
+// It returns the number of rows actually inserted.
+func ImportWriting(db *sql.DB, r io.Reader) (int, error) {
+	slog.Debug("ImportWriting called")
+	var items []writingImport
+	if err := json.NewDecoder(r).Decode(&items); err != nil {
+		return 0, fmt.Errorf("cli.ImportWriting decode: %w", err)
+	}
+	return insertWritingQuestions(db, items)
+}
+
 // ImportWritingFromFile reads a JSON array of writing questions from filePath and inserts
 // them into the writing_questions table using INSERT OR IGNORE (idempotent – duplicate
 // (type, prompt) combinations are silently skipped).
@@ -24,18 +38,13 @@ type writingImport struct {
 func ImportWritingFromFile(db *sql.DB, filePath string) (int, error) {
 	slog.Debug("ImportWritingFromFile called", "file", filePath)
 
-	raw, err := os.ReadFile(filePath)
+	f, err := os.Open(filePath)
 	if err != nil {
-		return 0, fmt.Errorf("cli.ImportWritingFromFile ReadFile: %w", err)
+		return 0, fmt.Errorf("cli.ImportWritingFromFile open: %w", err)
 	}
+	defer f.Close()
 
-	var items []writingImport
-	if err := json.Unmarshal(raw, &items); err != nil {
-		return 0, fmt.Errorf("cli.ImportWritingFromFile Unmarshal: %w", err)
-	}
-
-	slog.Debug("ImportWritingFromFile parsed items", "file", filePath, "count", len(items))
-	return insertWritingQuestions(db, items)
+	return ImportWriting(db, f)
 }
 
 // ImportWritingFromJSON parses a single JSON object string and inserts it into the
