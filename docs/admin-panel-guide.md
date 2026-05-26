@@ -8,11 +8,41 @@
 - **前端**: React SPA，开发服务器 `:5174`
 - **认证**: 通过环境变量 `ADMIN_TOKEN` 设置 token，前端登录页输入相同 token
 
+### 环境变量
+
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `ADMIN_TOKEN` | ✅ | - | 管理后台登录 token |
+| `DB_PATH` | | `./data/app.db` | SQLite 数据库路径 |
+| `LISTEN_ADDR` | | `:8082` | 监听地址 |
+| `AI_API_KEY` | | - | LLM API 密钥（用于生成例句） |
+| `AI_API_ENDPOINT` | | `https://api.anthropic.com/v1/messages` | LLM API 地址 |
+| `AI_MODEL` | | 根据 endpoint 自动选择 | 模型名称 |
+
 ### 启动方式
 
 ```bash
-# 后端（二选一）
+# 最简启动（无 AI 功能）
 ADMIN_TOKEN=your-password go run ./backend/cmd/admin/
+
+# Anthropic Claude
+AI_API_KEY=xxx ADMIN_TOKEN=your-password go run ./backend/cmd/admin/
+
+# DeepSeek
+AI_API_KEY=sk-xxx \
+AI_API_ENDPOINT=https://api.deepseek.com/v1/chat/completions \
+AI_MODEL=deepseek-chat \
+ADMIN_TOKEN=your-password \
+go run ./backend/cmd/admin/
+
+# OpenAI
+AI_API_KEY=sk-xxx \
+AI_API_ENDPOINT=https://api.openai.com/v1/chat/completions \
+AI_MODEL=gpt-4o-mini \
+ADMIN_TOKEN=your-password \
+go run ./backend/cmd/admin/
+
+# 或使用 Makefile
 ADMIN_TOKEN=your-password make admin-run
 
 # 前端开发服务器
@@ -27,6 +57,18 @@ make admin-front-build
 ```
 
 启动后访问 `http://localhost:5174`，输入你设定的 token 登录。
+
+### AI 提供商说明
+
+代码根据 `AI_API_ENDPOINT` 自动切换 API 格式：
+
+| 提供商 | endpoint | 默认 model | 认证头 |
+|--------|----------|-----------|--------|
+| Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-haiku-20240307` | `x-api-key` |
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` | `Authorization: Bearer` |
+| OpenAI | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini` | `Authorization: Bearer` |
+
+判断逻辑：endpoint 中包含 `anthropic` → 用 Anthropic 格式，否则用 OpenAI 兼容格式。其他兼容 OpenAI 格式的 API（如 local LLM）也只需设 OpenAI 风格的 endpoint 即可。
 
 ---
 
@@ -47,6 +89,11 @@ make admin-front-build
 | JLPT Level | N5 / N4 / N3 / N2 / N1 | ✅ |
 | Reading Type | `1`=音読み, `2`=訓読み, `3`=音訓, `4`=訓音, `5`=熟字訓, `6`=その他 | |
 | Examples | JSON 数组，格式见下方 | |
+
+**功能开关（仅新增时）：**
+
+- **Auto-fill reading/POS (kagome)**: 默认勾选。使用日语形态素分析引擎（kagome）自动补全读音、词性和读音类型。只需填写 `kanji_form` 和 `meaning` 即可。
+- **Generate examples via AI**: 调用 LLM 大模型为单词生成 2-3 个例句，每个例句附带中文翻译和汉字振假名（furigana）。需要设置 `AI_API_KEY` 环境变量。
 
 **Examples 格式：**
 ```json
