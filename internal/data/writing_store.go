@@ -181,6 +181,57 @@ func (s *WritingStore) DeleteQuestion(id int64) error {
 	return nil
 }
 
+// ListAllRecords 分页查询写作练习记录，可选按 user_id 过滤。
+// userID == 0 表示不过滤，返回所有用户的记录。
+func (s *WritingStore) ListAllRecords(userID int64, offset, limit int) ([]writing.WritingRecord, int, error) {
+	slog.Debug("WritingStore.ListAllRecords called", "user_id", userID, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if userID > 0 {
+		where += " AND user_id = ?"
+		args = append(args, userID)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM writing_records "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.WritingStore.ListAllRecords count: %w", err)
+	}
+
+	var records []writing.WritingRecord
+	query := fmt.Sprintf("SELECT id, user_id, type, question, user_answer, ai_feedback_json, score, practiced_at FROM writing_records %s ORDER BY id DESC LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.WritingStore.ListAllRecords query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r writing.WritingRecord
+		var aiFeedbackJSON string
+		var practicedAt string
+		if err := rows.Scan(&r.ID, &r.UserID, &r.Type, &r.Question, &r.UserAnswer, &aiFeedbackJSON, &r.Score, &practicedAt); err != nil {
+			return nil, 0, fmt.Errorf("data.WritingStore.ListAllRecords scan: %w", err)
+		}
+		if aiFeedbackJSON != "" && aiFeedbackJSON != "null" {
+			var feedback writing.AIFeedback
+			if err := json.Unmarshal([]byte(aiFeedbackJSON), &feedback); err != nil {
+				return nil, 0, fmt.Errorf("data.WritingStore.ListAllRecords unmarshal ai_feedback: %w", err)
+			}
+			r.AIFeedback = &feedback
+		}
+		r.PracticedAt, err = parseSQLiteTime(practicedAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.WritingStore.ListAllRecords parse practiced_at: %w", err)
+		}
+		records = append(records, r)
+	}
+
+	slog.Debug("WritingStore.ListAllRecords done", "count", len(records), "total", total)
+	return records, total, rows.Err()
+}
+
 // InsertQuestion 插入一条新的写作题目，返回自动生成的 ID。
 func (s *WritingStore) InsertQuestion(q writing.WritingQuestion) (int64, error) {
 	slog.Debug("WritingStore.InsertQuestion called", "type", q.Type, "jlpt_level", q.JLPTLevel)

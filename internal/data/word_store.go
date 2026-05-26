@@ -333,6 +333,57 @@ func (s *WordStore) DeleteWord(id int64) error {
 	return nil
 }
 
+// ListAllRecords 分页查询单词学习记录，可选按 user_id 过滤。
+// userID == 0 表示不过滤，返回所有用户的记录。
+func (s *WordStore) ListAllRecords(userID int64, offset, limit int) ([]word.WordRecord, int, error) {
+	slog.Debug("WordStore.ListAllRecords called", "user_id", userID, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if userID > 0 {
+		where += " AND user_id = ?"
+		args = append(args, userID)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM word_records "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.WordStore.ListAllRecords count: %w", err)
+	}
+
+	var records []word.WordRecord
+	query := fmt.Sprintf("SELECT id, user_id, word_id, mastery_level, next_review_at, ease_factor, interval, review_history_json, updated_at FROM word_records %s ORDER BY id DESC LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.WordStore.ListAllRecords query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r word.WordRecord
+		var historyJSON string
+		var nextReviewAt, updatedAt string
+		if err := rows.Scan(&r.ID, &r.UserID, &r.WordID, &r.MasteryLevel, &nextReviewAt, &r.EaseFactor, &r.Interval, &historyJSON, &updatedAt); err != nil {
+			return nil, 0, fmt.Errorf("data.WordStore.ListAllRecords scan: %w", err)
+		}
+		r.NextReviewAt, err = parseSQLiteTime(nextReviewAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.WordStore.ListAllRecords parse next_review_at: %w", err)
+		}
+		r.UpdatedAt, err = parseSQLiteTime(updatedAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.WordStore.ListAllRecords parse updated_at: %w", err)
+		}
+		if err := json.Unmarshal([]byte(historyJSON), &r.ReviewHistory); err != nil {
+			return nil, 0, fmt.Errorf("data.WordStore.ListAllRecords unmarshal: %w", err)
+		}
+		records = append(records, r)
+	}
+
+	slog.Debug("WordStore.ListAllRecords done", "count", len(records), "total", total)
+	return records, total, rows.Err()
+}
+
 // BookmarkWord 收藏单词（幂等，已收藏则忽略）。
 func (s *WordStore) BookmarkWord(userID, wordID int64) error {
 	slog.Debug("WordStore.BookmarkWord called", "user_id", userID, "word_id", wordID)

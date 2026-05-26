@@ -261,6 +261,49 @@ func (s *SpeakingStore) InsertMaterial(m speaking.SpeakingMaterial) (int64, erro
 	return id, nil
 }
 
+// ListAllRecords 分页查询口语练习记录，可选按 user_id 过滤。
+// userID == 0 表示不过滤，返回所有用户的记录。
+func (s *SpeakingStore) ListAllRecords(userID int64, offset, limit int) ([]speaking.SpeakingRecord, int, error) {
+	slog.Debug("SpeakingStore.ListAllRecords called", "user_id", userID, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if userID > 0 {
+		where += " AND user_id = ?"
+		args = append(args, userID)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM speaking_records "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords count: %w", err)
+	}
+
+	var records []speaking.SpeakingRecord
+	query := fmt.Sprintf("SELECT id, user_id, type, material_id, score, audio_ref, practiced_at FROM speaking_records %s ORDER BY id DESC LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r speaking.SpeakingRecord
+		var practicedAt string
+		if err := rows.Scan(&r.ID, &r.UserID, &r.Type, &r.MaterialID, &r.Score, &r.AudioRef, &practicedAt); err != nil {
+			return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords scan: %w", err)
+		}
+		r.PracticedAt, err = parseSQLiteTime(practicedAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords parse practiced_at: %w", err)
+		}
+		records = append(records, r)
+	}
+
+	slog.Debug("SpeakingStore.ListAllRecords done", "count", len(records), "total", total)
+	return records, total, rows.Err()
+}
+
 // DeleteMaterial 按 ID 删除口语练习素材。
 func (s *SpeakingStore) DeleteMaterial(id int64) error {
 	slog.Debug("SpeakingStore.DeleteMaterial called", "id", id)
