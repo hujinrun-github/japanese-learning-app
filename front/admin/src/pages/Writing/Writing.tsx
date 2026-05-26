@@ -47,7 +47,7 @@ export default function WritingPage() {
       if (level) params.set('level', level)
       if (type) params.set('type', type)
       if (search) params.set('search', search)
-      const data = await adminFetch<{ items: WritingQuestion[]; total: number }>('GET', `/writing-questions?${params}`)
+      const data = await adminFetch<{ items: WritingQuestion[]; total: number }>('GET', `/writing?${params}`)
       setItems(data.items)
       setTotal(data.total)
     } catch (err) {
@@ -95,9 +95,9 @@ export default function WritingPage() {
         grammar_point_id,
       }
       if (editing) {
-        await adminFetch('PUT', `/writing-questions/${editing.id}`, body)
+        await adminFetch('PUT', `/writing/${editing.id}`, body)
       } else {
-        await adminFetch('POST', '/writing-questions', body)
+        await adminFetch('POST', '/writing', body)
       }
       setModalOpen(false)
       fetchItems()
@@ -110,7 +110,7 @@ export default function WritingPage() {
     if (!confirm('Delete this writing question?')) return
     setError('')
     try {
-      await adminFetch('DELETE', `/writing-questions/${id}`)
+      await adminFetch('DELETE', `/writing/${id}`)
       fetchItems()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed')

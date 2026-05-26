@@ -22,6 +22,7 @@ type HandlerConfig struct {
 	DB               *sql.DB
 	AIAPIKey         string
 	AIAPIEndpoint    string
+	AIModel          string
 }
 
 // Handler groups all admin HTTP handlers.

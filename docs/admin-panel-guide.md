@@ -15,9 +15,9 @@
 | `ADMIN_TOKEN` | ✅ | - | 管理后台登录 token |
 | `DB_PATH` | | `./data/app.db` | SQLite 数据库路径 |
 | `LISTEN_ADDR` | | `:8082` | 监听地址 |
-| `AI_API_KEY` | | - | LLM API 密钥（用于生成例句） |
-| `AI_API_ENDPOINT` | | `https://api.anthropic.com/v1/messages` | LLM API 地址 |
-| `AI_MODEL` | | 根据 endpoint 自动选择 | 模型名称 |
+| `AI_API_KEY` | | `sk-a235671815e6469c8c15e69f18494500` | LLM API 密钥（默认 DeepSeek） |
+| `AI_API_ENDPOINT` | | `https://api.deepseek.com/v1/chat/completions` | LLM API 地址 |
+| `AI_MODEL` | | `deepseek-chat` | 模型名称 |
 
 ### 启动方式
 

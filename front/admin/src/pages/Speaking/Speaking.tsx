@@ -47,7 +47,7 @@ export default function SpeakingPage() {
       if (level) params.set('level', level)
       if (type) params.set('type', type)
       if (search) params.set('search', search)
-      const data = await adminFetch<{ items: SpeakingQuestion[]; total: number }>('GET', `/speaking-questions?${params}`)
+      const data = await adminFetch<{ items: SpeakingQuestion[]; total: number }>('GET', `/speaking?${params}`)
       setItems(data.items)
       setTotal(data.total)
     } catch (err) {
@@ -88,9 +88,9 @@ export default function SpeakingPage() {
     try {
       const body = { ...form }
       if (editing) {
-        await adminFetch('PUT', `/speaking-questions/${editing.id}`, body)
+        await adminFetch('PUT', `/speaking/${editing.id}`, body)
       } else {
-        await adminFetch('POST', '/speaking-questions', body)
+        await adminFetch('POST', '/speaking', body)
       }
       setModalOpen(false)
       fetchItems()
@@ -103,7 +103,7 @@ export default function SpeakingPage() {
     if (!confirm('Delete this speaking question?')) return
     setError('')
     try {
-      await adminFetch('DELETE', `/speaking-questions/${id}`)
+      await adminFetch('DELETE', `/speaking/${id}`)
       fetchItems()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed')
