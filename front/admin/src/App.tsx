@@ -5,15 +5,9 @@ import WordsPage from './pages/Words/Words'
 import GrammarPage from './pages/Grammar/Grammar'
 import SpeakingPage from './pages/Speaking/Speaking'
 import WritingPage from './pages/Writing/Writing'
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div>
-      <h2>{title}</h2>
-      <p>This page is under construction.</p>
-    </div>
-  )
-}
+import TranslationPage from './pages/Translation/Translation'
+import UsersPage from './pages/Users/Users'
+import RecordsPage from './pages/Records/Records'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = sessionStorage.getItem('admin_token')
@@ -42,9 +36,9 @@ export default function App() {
         <Route path="grammar" element={<GrammarPage />} />
         <Route path="speaking" element={<SpeakingPage />} />
         <Route path="writing" element={<WritingPage />} />
-        <Route path="translation" element={<PlaceholderPage title="Translation" />} />
-        <Route path="users" element={<PlaceholderPage title="Users" />} />
-        <Route path="records" element={<PlaceholderPage title="Records" />} />
+        <Route path="translation" element={<TranslationPage />} />
+        <Route path="users" element={<UsersPage />} />
+        <Route path="records" element={<RecordsPage />} />
       </Route>
     </Routes>
   )
