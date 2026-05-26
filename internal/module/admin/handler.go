@@ -3,7 +3,6 @@ package admin
 import (
 	"database/sql"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -107,41 +106,3 @@ func queryInt(r *http.Request, key string, defaultVal int) int {
 	return n
 }
 
-// ---- stub handlers (to be implemented in Task 8) ----
-
-func (h *Handler) listTranslation(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) createTranslation(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) updateTranslation(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) deleteTranslation(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) listUsers(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) getUserStats(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) listRecords(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *Handler) bulkImport(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func notImplemented(w http.ResponseWriter) {
-	slog.Warn("admin handler not implemented")
-	writeJSON(w, http.StatusNotImplemented, map[string]string{"error": "not implemented"})
-}

@@ -381,6 +381,52 @@ func (s *GrammarStore) InsertPoint(gp grammar.GrammarPoint) (int64, error) {
 	return id, nil
 }
 
+// ListAllRecords 分页查询语法学习记录，可选按 user_id 过滤。
+// userID == 0 表示不过滤，返回所有用户的记录。
+func (s *GrammarStore) ListAllRecords(userID int64, offset, limit int) ([]grammar.GrammarRecord, int, error) {
+	slog.Debug("GrammarStore.ListAllRecords called", "user_id", userID, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if userID > 0 {
+		where += " AND user_id = ?"
+		args = append(args, userID)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM grammar_records "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords count: %w", err)
+	}
+
+	var records []grammar.GrammarRecord
+	query := fmt.Sprintf("SELECT id, user_id, grammar_point_id, status, next_review_at, quiz_history_json FROM grammar_records %s ORDER BY id DESC LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r grammar.GrammarRecord
+		var historyJSON, nextReviewAt string
+		if err := rows.Scan(&r.ID, &r.UserID, &r.GrammarPointID, &r.Status, &nextReviewAt, &historyJSON); err != nil {
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords scan: %w", err)
+		}
+		r.NextReviewAt, err = parseSQLiteTime(nextReviewAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords parse next_review_at: %w", err)
+		}
+		if err := json.Unmarshal([]byte(historyJSON), &r.QuizHistory); err != nil {
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords unmarshal: %w", err)
+		}
+		records = append(records, r)
+	}
+
+	slog.Debug("GrammarStore.ListAllRecords done", "count", len(records), "total", total)
+	return records, total, rows.Err()
+}
+
 // lastQuizScore 从 quiz_history_json 中提取最近一次测验得分，未测验返回 -1。
 func lastQuizScore(nullStr sql.NullString) int {
 	if !nullStr.Valid {
