@@ -25,6 +25,8 @@ const emptyForm = {
   jlpt_level: 'N5',
   examples: '[]',
   reading_type: '',
+  auto_fill: true,
+  generate_examples: false,
 }
 
 export default function WordsPage() {
@@ -82,6 +84,8 @@ export default function WordsPage() {
       jlpt_level: w.jlpt_level,
       examples: JSON.stringify(w.examples ?? []),
       reading_type: w.reading_type ?? '',
+      auto_fill: false,
+      generate_examples: false,
     })
     setModalOpen(true)
   }
@@ -262,6 +266,24 @@ export default function WordsPage() {
           <label>
             Examples (JSON)
             <textarea value={form.examples} onChange={(e) => setForm({ ...form, examples: e.target.value })} rows={4} />
+          </label>
+          {!editing && (
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={form.auto_fill}
+                onChange={(e) => setForm({ ...form, auto_fill: e.target.checked })}
+              />
+              Auto-fill reading/POS (kagome)
+            </label>
+          )}
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={form.generate_examples}
+              onChange={(e) => setForm({ ...form, generate_examples: e.target.checked })}
+            />
+            Generate examples via AI (requires AI_API_KEY)
           </label>
           <button className={styles.saveBtn} onClick={handleSave}>
             Save

@@ -20,6 +20,8 @@ type HandlerConfig struct {
 	TranslationStore *data.TranslationStore
 	UserStore        *data.UserStore
 	DB               *sql.DB
+	AIAPIKey         string
+	AIAPIEndpoint    string
 }
 
 // Handler groups all admin HTTP handlers.

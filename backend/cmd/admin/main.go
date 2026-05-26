@@ -16,6 +16,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	aiAPIKey := os.Getenv("AI_API_KEY")
+	aiEndpoint := envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages")
+
 	dbPath := envOrDefault("DB_PATH", "./data/app.db")
 	db, err := data.OpenDB(dbPath)
 	if err != nil {
@@ -46,6 +49,8 @@ func main() {
 		TranslationStore: translationStore,
 		UserStore:        userStore,
 		DB:               db,
+		AIAPIKey:         aiAPIKey,
+		AIAPIEndpoint:    aiEndpoint,
 	})
 
 	mux := h.RegisterRoutes()
