@@ -7,11 +7,13 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"japanese-learning-app/internal/module/word"
 )
 
 // ExampleGenerator generates example sentences for a Japanese word using an LLM.
+// Supports both Anthropic Messages API and OpenAI-compatible APIs (DeepSeek, etc.).
 type ExampleGenerator struct {
 	apiKey   string
 	endpoint string
@@ -19,16 +21,34 @@ type ExampleGenerator struct {
 }
 
 // NewExampleGenerator creates an ExampleGenerator.
-// If endpoint is empty, defaults to the Anthropic Messages API.
-func NewExampleGenerator(apiKey, endpoint string) *ExampleGenerator {
+// Defaults to DeepSeek API if endpoint/model not specified.
+func NewExampleGenerator(apiKey, endpoint, model string) *ExampleGenerator {
 	if endpoint == "" {
-		endpoint = "https://api.anthropic.com/v1/messages"
+		endpoint = "https://api.deepseek.com/v1/chat/completions"
+	}
+	if model == "" {
+		model = defaultModel(endpoint)
 	}
 	return &ExampleGenerator{
 		apiKey:   apiKey,
 		endpoint: endpoint,
-		model:    "claude-3-haiku-20240307",
+		model:    model,
 	}
+}
+
+func defaultModel(endpoint string) string {
+	if strings.Contains(endpoint, "deepseek") {
+		return "deepseek-chat"
+	}
+	if strings.Contains(endpoint, "openai") {
+		return "gpt-4o-mini"
+	}
+	return "claude-3-haiku-20240307"
+}
+
+// isAnthropic returns true if the endpoint is Anthropic's Messages API.
+func (g *ExampleGenerator) isAnthropic() bool {
+	return strings.Contains(g.endpoint, "anthropic")
 }
 
 type llmMessage struct {
@@ -42,10 +62,20 @@ type llmRequest struct {
 	Messages  []llmMessage `json:"messages"`
 }
 
-type llmResponse struct {
+// Anthropic response
+type anthropicResponse struct {
 	Content []struct {
 		Text string `json:"text"`
 	} `json:"content"`
+}
+
+// OpenAI-compatible response (DeepSeek, OpenAI, etc.)
+type openAIResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
 }
 
 type generatedExamples struct {
@@ -54,7 +84,7 @@ type generatedExamples struct {
 
 // GenerateExamples calls the LLM to generate 2-3 example sentences for the word.
 func (g *ExampleGenerator) GenerateExamples(w word.Word) ([]word.WordExample, error) {
-	slog.Debug("ExampleGenerator.GenerateExamples called", "kanji_form", w.KanjiForm)
+	slog.Debug("ExampleGenerator.GenerateExamples called", "kanji_form", w.KanjiForm, "endpoint", g.endpoint)
 
 	prompt := fmt.Sprintf(`You are a Japanese language teacher. Generate 2-3 natural example sentences for this word:
 
@@ -95,8 +125,13 @@ Reply ONLY with a valid JSON object (no markdown, no extra text):
 		return nil, fmt.Errorf("admin.ExampleGenerator new request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", g.apiKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
+
+	if g.isAnthropic() {
+		req.Header.Set("x-api-key", g.apiKey)
+		req.Header.Set("anthropic-version", "2023-06-01")
+	} else {
+		req.Header.Set("Authorization", "Bearer "+g.apiKey)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -111,19 +146,39 @@ Reply ONLY with a valid JSON object (no markdown, no extra text):
 		return nil, fmt.Errorf("admin.ExampleGenerator: status %d", resp.StatusCode)
 	}
 
-	var llmResp llmResponse
-	if err := json.NewDecoder(resp.Body).Decode(&llmResp); err != nil {
-		return nil, fmt.Errorf("admin.ExampleGenerator decode response: %w", err)
-	}
-	if len(llmResp.Content) == 0 {
-		return nil, fmt.Errorf("admin.ExampleGenerator: empty response")
+	content, err := g.parseResponse(resp.Body)
+	if err != nil {
+		return nil, err
 	}
 
 	var gen generatedExamples
-	if err := json.Unmarshal([]byte(llmResp.Content[0].Text), &gen); err != nil {
-		return nil, fmt.Errorf("admin.ExampleGenerator parse examples: %w", err)
+	if err := json.Unmarshal([]byte(content), &gen); err != nil {
+		return nil, fmt.Errorf("admin.ExampleGenerator parse examples: %w, raw: %s", err, content)
 	}
 
 	slog.Debug("ExampleGenerator.GenerateExamples done", "count", len(gen.Examples))
 	return gen.Examples, nil
+}
+
+func (g *ExampleGenerator) parseResponse(body io.Reader) (string, error) {
+	if g.isAnthropic() {
+		var resp anthropicResponse
+		if err := json.NewDecoder(body).Decode(&resp); err != nil {
+			return "", fmt.Errorf("admin.ExampleGenerator decode response: %w", err)
+		}
+		if len(resp.Content) == 0 {
+			return "", fmt.Errorf("admin.ExampleGenerator: empty response")
+		}
+		return resp.Content[0].Text, nil
+	}
+
+	// OpenAI-compatible
+	var resp openAIResponse
+	if err := json.NewDecoder(body).Decode(&resp); err != nil {
+		return "", fmt.Errorf("admin.ExampleGenerator decode response: %w", err)
+	}
+	if len(resp.Choices) == 0 {
+		return "", fmt.Errorf("admin.ExampleGenerator: empty response")
+	}
+	return resp.Choices[0].Message.Content, nil
 }

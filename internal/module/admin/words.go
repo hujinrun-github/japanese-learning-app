@@ -61,7 +61,7 @@ func (h *Handler) createWord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.GenerateExamples && h.cfg.AIAPIKey != "" {
-		gen := NewExampleGenerator(h.cfg.AIAPIKey, h.cfg.AIAPIEndpoint)
+		gen := NewExampleGenerator(h.cfg.AIAPIKey, h.cfg.AIAPIEndpoint, h.cfg.AIModel)
 		examples, err := gen.GenerateExamples(wd)
 		if err != nil {
 			slog.Warn("createWord: failed to generate examples, continuing without", "err", err)
@@ -107,7 +107,7 @@ func (h *Handler) updateWord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.GenerateExamples && h.cfg.AIAPIKey != "" {
-		gen := NewExampleGenerator(h.cfg.AIAPIKey, h.cfg.AIAPIEndpoint)
+		gen := NewExampleGenerator(h.cfg.AIAPIKey, h.cfg.AIAPIEndpoint, h.cfg.AIModel)
 		examples, err := gen.GenerateExamples(wd)
 		if err != nil {
 			slog.Warn("updateWord: failed to generate examples, continuing without", "err", err)

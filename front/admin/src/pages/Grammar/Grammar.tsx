@@ -48,7 +48,7 @@ export default function GrammarPage() {
       const params = new URLSearchParams({ page: String(page), size: String(PAGE_SIZE) })
       if (level) params.set('level', level)
       if (search) params.set('search', search)
-      const data = await adminFetch<{ items: GrammarPoint[]; total: number }>('GET', `/grammar-points?${params}`)
+      const data = await adminFetch<{ items: GrammarPoint[]; total: number }>('GET', `/grammar?${params}`)
       setItems(data.items)
       setTotal(data.total)
     } catch (err) {
@@ -103,9 +103,9 @@ export default function GrammarPage() {
       }
       const body = { ...form, examples, quiz_questions }
       if (editing) {
-        await adminFetch('PUT', `/grammar-points/${editing.id}`, body)
+        await adminFetch('PUT', `/grammar/${editing.id}`, body)
       } else {
-        await adminFetch('POST', '/grammar-points', body)
+        await adminFetch('POST', '/grammar', body)
       }
       setModalOpen(false)
       fetchItems()
@@ -118,7 +118,7 @@ export default function GrammarPage() {
     if (!confirm('Delete this grammar point?')) return
     setError('')
     try {
-      await adminFetch('DELETE', `/grammar-points/${id}`)
+      await adminFetch('DELETE', `/grammar/${id}`)
       fetchItems()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed')

@@ -16,8 +16,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	aiAPIKey := os.Getenv("AI_API_KEY")
-	aiEndpoint := envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages")
+	aiAPIKey := envOrDefault("AI_API_KEY", "sk-a235671815e6469c8c15e69f18494500")
+	aiEndpoint := envOrDefault("AI_API_ENDPOINT", "https://api.deepseek.com/v1/chat/completions")
+	aiModel := envOrDefault("AI_MODEL", "deepseek-chat")
 
 	dbPath := envOrDefault("DB_PATH", "./data/app.db")
 	db, err := data.OpenDB(dbPath)
@@ -51,6 +52,7 @@ func main() {
 		DB:               db,
 		AIAPIKey:         aiAPIKey,
 		AIAPIEndpoint:    aiEndpoint,
+		AIModel:          aiModel,
 	})
 
 	mux := h.RegisterRoutes()
