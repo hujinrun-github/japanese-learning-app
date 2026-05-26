@@ -36,5 +36,17 @@ seed-all: seed seed-grammar seed-lessons seed-speaking seed-writing ## 导入所
 front-build: ## 编译前端 TypeScript
 	npx esbuild front/web/static/js/*.ts --bundle --outdir=front/web/static/js/dist
 
+admin-run:     ## 启动管理后台
+	ADMIN_TOKEN=change-me go run ./backend/cmd/admin/
+
+admin-build:   ## 编译管理后台
+	go build -o bin/admin ./backend/cmd/admin/
+
+admin-front-build: ## 构建管理后台前端
+	cd front/admin && npm install && npm run build
+
+admin-front-dev: ## 启动管理后台前端开发服务器
+	cd front/admin && npm run dev
+
 clean:
 	rm -rf bin/ front/web/static/js/dist/
