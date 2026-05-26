@@ -5,16 +5,32 @@ import styles from './Login.module.css'
 export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!password.trim()) {
       setError('Password is required')
       return
     }
-    sessionStorage.setItem('admin_token', password)
-    navigate('/words')
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/words?size=1', {
+        headers: { 'Authorization': `Bearer ${password}` },
+      })
+      if (!res.ok) {
+        setError('Invalid token')
+        return
+      }
+      sessionStorage.setItem('admin_token', password)
+      navigate('/words')
+    } catch {
+      setError('Cannot connect to admin server')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -29,8 +45,8 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button className={styles.submitBtn} type="submit">
-          Login
+        <button className={styles.submitBtn} type="submit" disabled={loading}>
+          {loading ? 'Verifying...' : 'Login'}
         </button>
       </form>
     </div>

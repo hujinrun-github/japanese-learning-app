@@ -62,3 +62,8 @@
 .submitBtn:hover {
   background: #1d4ed8;
 }
+
+.submitBtn:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
