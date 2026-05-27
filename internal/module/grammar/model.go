@@ -79,7 +79,8 @@ type QuizAttempt struct {
 // GrammarPointWithStatus 语法点 + 当前用户学习状态（用于列表 API）
 type GrammarPointWithStatus struct {
 	GrammarPoint
-	UserStatus GrammarStatus `json:"user_status"` // "unlearned"|"learning"|"mastered"
+	UserStatus    GrammarStatus `json:"user_status"`     // "unlearned"|"learning"|"mastered"
+	LastQuizScore int           `json:"last_quiz_score"` // 最近一次测验得分（-1 表示未测验）
 }
 
 // QuizSubmission 用户提交的检验答案

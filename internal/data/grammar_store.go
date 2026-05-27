@@ -104,7 +104,8 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 	rows, err := s.db.Query(
 		`SELECT gp.id, gp.name, gp.meaning, gp.conjunction_rule, gp.usage_note,
 		        gp.examples_json, gp.quiz_questions_json, gp.jlpt_level,
-		        COALESCE(gr.status, 'unlearned') AS user_status
+		        COALESCE(gr.status, 'unlearned') AS user_status,
+		        gr.quiz_history_json
 		 FROM grammar_points gp
 		 LEFT JOIN grammar_records gr ON gr.grammar_point_id = gp.id AND gr.user_id = ?
 		 WHERE gp.jlpt_level = ?
@@ -122,8 +123,9 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 		var gp grammar.GrammarPoint
 		var examplesJSON, quizJSON string
 		var userStatus grammar.GrammarStatus
+			var quizHistoryJSON sql.NullString
 		if err := rows.Scan(&gp.ID, &gp.Name, &gp.Meaning, &gp.ConjunctionRule, &gp.UsageNote,
-			&examplesJSON, &quizJSON, &gp.JLPTLevel, &userStatus); err != nil {
+			&examplesJSON, &quizJSON, &gp.JLPTLevel, &userStatus, &quizHistoryJSON); err != nil {
 			slog.Error("failed to scan grammar_point+status row", "err", err)
 			return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus scan: %w", err)
 		}
@@ -136,7 +138,8 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 			return nil, fmt.Errorf("data.GrammarStore.ListByLevelWithStatus unmarshal quiz: %w", err)
 		}
 		items = append(items, grammar.GrammarPointWithStatus{
-			GrammarPoint: gp,
+			GrammarPoint:  gp,
+				LastQuizScore: lastQuizScore(quizHistoryJSON),
 			UserStatus:   userStatus,
 		})
 	}
@@ -146,6 +149,37 @@ func (s *GrammarStore) ListByLevelWithStatus(userID int64, level grammar.JLPTLev
 
 	slog.Debug("GrammarStore.ListByLevelWithStatus done", "user_id", userID, "level", level, "count", len(items))
 	return items, nil
+}
+
+// UpdatePoint updates all fields of an existing grammar point by ID.
+func (s *GrammarStore) UpdatePoint(gp grammar.GrammarPoint) error {
+	slog.Debug("GrammarStore.UpdatePoint called", "grammar_point_id", gp.ID)
+	examplesJSON, err := json.Marshal(gp.Examples)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.UpdatePoint marshal examples: %w", err)
+	}
+	quizJSON, err := json.Marshal(gp.QuizQuestions)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.UpdatePoint marshal quiz: %w", err)
+	}
+	_, err = s.db.Exec(
+		"UPDATE grammar_points SET name=?, meaning=?, conjunction_rule=?, usage_note=?, examples_json=?, quiz_questions_json=?, jlpt_level=? WHERE id=?",
+		gp.Name, gp.Meaning, gp.ConjunctionRule, gp.UsageNote, string(examplesJSON), string(quizJSON), gp.JLPTLevel, gp.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.UpdatePoint exec: %w", err)
+	}
+	return nil
+}
+
+// DeletePoint deletes a grammar point by ID.
+func (s *GrammarStore) DeletePoint(id int64) error {
+	slog.Debug("GrammarStore.DeletePoint called", "grammar_point_id", id)
+	_, err := s.db.Exec("DELETE FROM grammar_points WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("data.GrammarStore.DeletePoint exec: %w", err)
+	}
+	return nil
 }
 
 // GetRecord 查询用户对某语法点的学习记录，不存在时返回 error。
@@ -252,4 +286,158 @@ func (s *GrammarStore) ListDueRecords(userID int64) ([]grammar.GrammarRecord, er
 
 	slog.Debug("GrammarStore.ListDueRecords done", "user_id", userID, "count", len(records))
 	return records, nil
+}
+
+// ListAll 分页查询语法点，支持按 jlpt_level 和 search（匹配 name/meaning）过滤。
+func (s *GrammarStore) ListAll(level, search string, offset, limit int) ([]grammar.GrammarPoint, int, error) {
+	slog.Debug("GrammarStore.ListAll called", "level", level, "search", search, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if level != "" {
+		where += " AND jlpt_level = ?"
+		args = append(args, level)
+	}
+	if search != "" {
+		where += " AND (name LIKE ? OR meaning LIKE ?)"
+		s := "%" + search + "%"
+		args = append(args, s, s)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM grammar_points "+where, args...).Scan(&total); err != nil {
+		slog.Error("failed to count grammar_points", "err", err)
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAll count: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT id, name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level FROM grammar_points %s ORDER BY id LIMIT ? OFFSET ?",
+		where,
+	)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("failed to query grammar_points", "err", err)
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAll query: %w", err)
+	}
+	defer rows.Close()
+
+	var points []grammar.GrammarPoint
+	for rows.Next() {
+		var gp grammar.GrammarPoint
+		var examplesJSON, quizJSON string
+		if err := rows.Scan(&gp.ID, &gp.Name, &gp.Meaning, &gp.ConjunctionRule, &gp.UsageNote,
+			&examplesJSON, &quizJSON, &gp.JLPTLevel); err != nil {
+			slog.Error("failed to scan grammar_point row", "err", err)
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAll scan: %w", err)
+		}
+		if err := json.Unmarshal([]byte(examplesJSON), &gp.Examples); err != nil {
+			slog.Error("failed to unmarshal examples_json", "err", err, "grammar_point_id", gp.ID)
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAll unmarshal examples: %w", err)
+		}
+		if err := json.Unmarshal([]byte(quizJSON), &gp.QuizQuestions); err != nil {
+			slog.Error("failed to unmarshal quiz_questions_json", "err", err, "grammar_point_id", gp.ID)
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAll unmarshal quiz: %w", err)
+		}
+		points = append(points, gp)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("rows iteration error", "err", err)
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAll rows: %w", err)
+	}
+
+	slog.Debug("GrammarStore.ListAll done", "count", len(points), "total", total)
+	return points, total, nil
+}
+
+// InsertPoint 插入一条新的语法点，返回自动生成的 ID。
+func (s *GrammarStore) InsertPoint(gp grammar.GrammarPoint) (int64, error) {
+	slog.Debug("GrammarStore.InsertPoint called", "name", gp.Name)
+	examplesJSON, err := json.Marshal(gp.Examples)
+	if err != nil {
+		slog.Error("failed to marshal examples", "err", err)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint marshal examples: %w", err)
+	}
+	quizJSON, err := json.Marshal(gp.QuizQuestions)
+	if err != nil {
+		slog.Error("failed to marshal quiz_questions", "err", err)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint marshal quiz: %w", err)
+	}
+	result, err := s.db.Exec(
+		`INSERT INTO grammar_points (name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		gp.Name, gp.Meaning, gp.ConjunctionRule, gp.UsageNote, string(examplesJSON), string(quizJSON), gp.JLPTLevel,
+	)
+	if err != nil {
+		slog.Error("failed to insert grammar_point", "err", err, "name", gp.Name)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint exec: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		slog.Error("failed to get last insert id", "err", err)
+		return 0, fmt.Errorf("data.GrammarStore.InsertPoint last insert id: %w", err)
+	}
+	slog.Debug("GrammarStore.InsertPoint done", "grammar_point_id", id, "name", gp.Name)
+	return id, nil
+}
+
+// ListAllRecords 分页查询语法学习记录，可选按 user_id 过滤。
+// userID == 0 表示不过滤，返回所有用户的记录。
+func (s *GrammarStore) ListAllRecords(userID int64, offset, limit int) ([]grammar.GrammarRecord, int, error) {
+	slog.Debug("GrammarStore.ListAllRecords called", "user_id", userID, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if userID > 0 {
+		where += " AND user_id = ?"
+		args = append(args, userID)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM grammar_records "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords count: %w", err)
+	}
+
+	var records []grammar.GrammarRecord
+	query := fmt.Sprintf("SELECT id, user_id, grammar_point_id, status, next_review_at, quiz_history_json FROM grammar_records %s ORDER BY id DESC LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r grammar.GrammarRecord
+		var historyJSON, nextReviewAt string
+		if err := rows.Scan(&r.ID, &r.UserID, &r.GrammarPointID, &r.Status, &nextReviewAt, &historyJSON); err != nil {
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords scan: %w", err)
+		}
+		r.NextReviewAt, err = parseSQLiteTime(nextReviewAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords parse next_review_at: %w", err)
+		}
+		if err := json.Unmarshal([]byte(historyJSON), &r.QuizHistory); err != nil {
+			return nil, 0, fmt.Errorf("data.GrammarStore.ListAllRecords unmarshal: %w", err)
+		}
+		records = append(records, r)
+	}
+
+	slog.Debug("GrammarStore.ListAllRecords done", "count", len(records), "total", total)
+	return records, total, rows.Err()
+}
+
+// lastQuizScore 从 quiz_history_json 中提取最近一次测验得分，未测验返回 -1。
+func lastQuizScore(nullStr sql.NullString) int {
+	if !nullStr.Valid {
+		return -1
+	}
+	var history []grammar.QuizAttempt
+	if err := json.Unmarshal([]byte(nullStr.String), &history); err != nil {
+		return -1
+	}
+	if len(history) == 0 {
+		return -1
+	}
+	return history[len(history)-1].Score
 }

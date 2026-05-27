@@ -47,6 +47,32 @@
   color: #fff;
 }
 
+.filterBar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.filterBtn {
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filterBtnActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
 .list {
   display: flex;
   flex-direction: column;
@@ -99,6 +125,17 @@
   gap: var(--space-2);
   flex-shrink: 0;
   margin-left: var(--space-3);
+}
+
+.quizFailBadge {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background: #fff5f5;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  line-height: 1.2;
 }
 
 .arrow {
