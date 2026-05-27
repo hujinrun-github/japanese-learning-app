@@ -134,6 +134,12 @@ const en = {
     list: {
       title: 'Grammar',
       empty: 'No grammar points at this level',
+      filter: {
+        all: 'All',
+        learning: 'Learning',
+        mastered: 'Mastered',
+        unlearned: 'New',
+      },
     },
     detail: {
       conjunction: 'Conjugation',
@@ -199,11 +205,17 @@ const en = {
     doneDesc: "Today's writing practice is complete. See you tomorrow!",
     feedback: {
       score: 'Score',
+      yourAnswer: 'Your Answer',
       corrected: 'Corrected Sentence',
       issues: 'Issues',
       alternatives: 'Alternatives',
       reference: 'Reference Answer',
     },
+    records: {
+      title: 'Practice History',
+      empty: 'No practice records yet',
+    },
+    score: 'Score',
   },
   lesson: {
     title: 'Reading',

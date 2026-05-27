@@ -16,6 +16,7 @@ type WritingQuestion struct {
 	Type           WritingType `json:"type"`
 	Prompt         string      `json:"prompt"`                       // 题目提示（中文或假名）
 	GrammarPointID int64       `json:"grammar_point_id,omitempty"`   // 造句题关联的语法点
+	JLPTLevel      string      `json:"jlpt_level"`                   // 关联的 JLPT 等级
 	ExpectedAnswer string      `json:"-"`                            // 仅后端存储，不返回前端
 }
 

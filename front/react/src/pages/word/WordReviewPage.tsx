@@ -226,6 +226,14 @@ export function WordReviewPage() {
               {/* Back face */}
               <div className={`${styles.cardFace} ${styles.cardBack}`}>
                 <div className={styles.readingRow}>
+                  {card!.word.reading_type && (
+                    <span
+                      className={styles.readingTypeBadge}
+                      title={READING_TYPE_LABELS[card!.word.reading_type] ?? ''}
+                    >
+                      {card!.word.reading_type}
+                    </span>
+                  )}
                   <div className={styles.reading}>{card!.word.reading}</div>
                   <button
                     className={styles.speakBtn}
