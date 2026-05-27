@@ -106,6 +106,7 @@ export interface GrammarPoint {
 
 export interface GrammarPointWithStatus extends GrammarPoint {
   user_status: 'unlearned' | 'learning' | 'mastered'
+  last_quiz_score: number // -1 = never quizzed, 0-100 = last quiz score
 }
 
 export interface QuizSubmission {
@@ -198,6 +199,8 @@ export interface WritingQuestion {
   type: 'input' | 'sentence'
   prompt: string
   hint?: string
+  jlpt_level?: string
+  grammar_point_id?: number
 }
 
 export interface WritingRecord {

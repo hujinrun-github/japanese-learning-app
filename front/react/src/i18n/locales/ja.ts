@@ -126,6 +126,12 @@ const ja = {
     list: {
       title: '文法学習',
       empty: 'このレベルの文法はありません',
+      filter: {
+        all: '全部',
+        learning: '学習中',
+        mastered: 'マスター済み',
+        unlearned: '未学習',
+      },
     },
     detail: {
       conjunction: '接続方法',
@@ -191,11 +197,17 @@ const ja = {
     doneDesc: '今日の作文練習が完了しました。また明日！',
     feedback: {
       score: 'スコア',
+      yourAnswer: 'あなたの回答',
       corrected: '修正後の文',
       issues: '問題の説明',
       alternatives: '参考表現',
       reference: '参考回答',
     },
+    records: {
+      title: '練習記録',
+      empty: 'まだ練習記録がありません',
+    },
+    score: '得点',
   },
   lesson: {
     title: 'テキスト読解',

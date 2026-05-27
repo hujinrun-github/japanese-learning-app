@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { WritingQuestion, WritingRecord } from '@/types/api'
+import type { WritingQuestion, WritingRecord, JLPTLevel } from '@/types/api'
 import styles from './WritingQueuePage.module.css'
 
 export function WritingQueuePage() {
@@ -16,6 +17,9 @@ export function WritingQueuePage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState<WritingRecord | null>(null)
+  const [records, setRecords] = useState<WritingRecord[]>([])
+  const [recordsLoading, setRecordsLoading] = useState(false)
+  const [historyExpanded, setHistoryExpanded] = useState(false)
 
   useEffect(() => {
     loadQueue()
@@ -34,6 +38,18 @@ export function WritingQueuePage() {
     }
   }
 
+  async function fetchRecords() {
+    setRecordsLoading(true)
+    try {
+      const data = await apiFetch<WritingRecord[]>('GET', '/api/v1/writing/records')
+      setRecords(data ?? [])
+    } catch {
+      // silently fail
+    } finally {
+      setRecordsLoading(false)
+    }
+  }
+
   async function handleSubmit() {
     if (!answer.trim() || submitting) return
     const q = queue[currentIndex]
@@ -48,9 +64,9 @@ export function WritingQueuePage() {
         })
       } else {
         rec = await apiFetch<WritingRecord>('POST', '/api/v1/writing/input', {
+          question_id: q.id,
           question: q.prompt,
           user_answer: answer,
-          expected: '',
         })
       }
       setFeedback(rec)
@@ -65,6 +81,10 @@ export function WritingQueuePage() {
     setFeedback(null)
     setAnswer('')
     setCurrentIndex((i) => i + 1)
+  }
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString()
   }
 
   if (loading) {
@@ -97,7 +117,12 @@ export function WritingQueuePage() {
         <>
           {/* Question */}
           <div className={styles.questionCard}>
-            <span className={styles.typeBadge}>{q!.type}</span>
+            <div className={styles.questionHeader}>
+              <span className={styles.typeBadge}>{q!.type}</span>
+              {q!.jlpt_level && (
+                <Badge level={q!.jlpt_level as JLPTLevel} size="sm" />
+              )}
+            </div>
             <p className={styles.prompt}>{q!.prompt}</p>
 
             {!feedback && (
@@ -150,6 +175,15 @@ export function WritingQueuePage() {
                 )}
               </div>
 
+              {feedback.user_answer && (
+                <div className={styles.feedbackSection}>
+                  <div className={styles.feedbackSectionTitle}>{t('writing.feedback.yourAnswer')}</div>
+                  <div className={`${styles.feedbackText} ${feedback.score < 100 ? styles.answerWrong : ''}`}>
+                    {feedback.user_answer}
+                  </div>
+                </div>
+              )}
+
               {feedback.ai_feedback?.corrected_sentence && (
                 <div className={styles.feedbackSection}>
                   <div className={styles.feedbackSectionTitle}>{t('writing.feedback.corrected')}</div>
@@ -189,6 +223,53 @@ export function WritingQueuePage() {
           )}
         </>
       )}
+
+      {/* history */}
+      <div className={styles.historySection}>
+        <button
+          className={styles.historyToggle}
+          onClick={() => { setHistoryExpanded(!historyExpanded); if (!historyExpanded) fetchRecords() }}
+        >
+          {t('writing.records.title')} {historyExpanded ? '▲' : '▼'}
+        </button>
+
+        {historyExpanded && (
+          recordsLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '20px' }}>
+              <Spinner size="sm" />
+            </div>
+          ) : records.length === 0 ? (
+            <EmptyState icon="✍️" title={t('writing.records.empty')} description="" />
+          ) : (
+            <div className={styles.recordList}>
+              {records.map((rec) => (
+                <div key={rec.id} className={styles.recordItem}>
+                  <div className={styles.recordTop}>
+                    <span className={styles.recordType}>{rec.type}</span>
+                    <span className={styles.recordDate}>{formatDate(rec.practiced_at)}</span>
+                  </div>
+                  <div className={styles.recordPrompt}>{rec.question}</div>
+                  <div className={styles.recordAnswer}>{rec.user_answer}</div>
+                  <div className={styles.recordBottom}>
+                    <span className={styles.scoreBadge} style={{
+                      background: rec.score >= 80
+                        ? 'var(--color-success)'
+                        : rec.score >= 60
+                        ? 'var(--color-warning)'
+                        : 'var(--color-error)',
+                    }}>
+                      {t('writing.score')} {rec.score}
+                    </span>
+                    {rec.ai_feedback?.reference_answer && (
+                      <span className={styles.recordRef}>{rec.ai_feedback.reference_answer}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
     </div>
   )
 }

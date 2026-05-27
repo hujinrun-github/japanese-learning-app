@@ -53,9 +53,9 @@ func (h *WritingHandler) handleGetDailyQueue(w http.ResponseWriter, r *http.Requ
 
 // submitInputRequest is the request body for POST /api/v1/writing/input.
 type submitInputRequest struct {
+	QuestionID int64  `json:"question_id"`
 	Question   string `json:"question"`
 	UserAnswer string `json:"user_answer"`
-	Expected   string `json:"expected"`
 }
 
 // handleSubmitInput handles POST /api/v1/writing/input
@@ -71,12 +71,12 @@ func (h *WritingHandler) handleSubmitInput(w http.ResponseWriter, r *http.Reques
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
 		return
 	}
-	if req.Question == "" || req.UserAnswer == "" {
-		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "question and user_answer are required", "")
+	if req.QuestionID == 0 || req.Question == "" || req.UserAnswer == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "question_id, question and user_answer are required", "")
 		return
 	}
 
-	rec, err := h.svc.SubmitInput(userID, req.Question, req.UserAnswer, req.Expected)
+	rec, err := h.svc.SubmitInput(userID, req.QuestionID, req.Question, req.UserAnswer)
 	if err != nil {
 		slog.Error("handleSubmitInput failed", "err", err, "user_id", userID)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to submit input answer", "")

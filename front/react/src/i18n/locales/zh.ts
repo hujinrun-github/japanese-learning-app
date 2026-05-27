@@ -134,6 +134,12 @@ const zh = {
     list: {
       title: '语法学习',
       empty: '该等级暂无语法点',
+      filter: {
+        all: '全部',
+        learning: '学习中',
+        mastered: '已掌握',
+        unlearned: '未学习',
+      },
     },
     detail: {
       conjunction: '接续方式',
@@ -199,11 +205,17 @@ const zh = {
     doneDesc: '今日写作练习已完成，明天再来继续！',
     feedback: {
       score: '评分',
+      yourAnswer: '你的回答',
       corrected: '修正后的句子',
       issues: '问题说明',
       alternatives: '参考表达',
       reference: '参考答案',
     },
+    records: {
+      title: '练习记录',
+      empty: '还没有练习记录',
+    },
+    score: '得分',
   },
   lesson: {
     title: '课文阅读',
