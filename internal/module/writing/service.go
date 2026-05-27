@@ -9,6 +9,7 @@ import (
 // WritingStoreInterface defines data access methods required by WritingService.
 type WritingStoreInterface interface {
 	GetDailyQueue(userID int64) ([]WritingQuestion, error)
+	GetQuestionByID(id int64) (*WritingQuestion, error)
 	SaveRecord(r WritingRecord) error
 	ListRecords(userID int64) ([]WritingRecord, error)
 }
@@ -48,12 +49,25 @@ func (s *WritingService) GetDailyQueue(userID int64) ([]WritingQuestion, error) 
 
 // SubmitInput grades a keyboard-input practice answer (exact-match scoring)
 // and saves the record.
-func (s *WritingService) SubmitInput(userID int64, question, userAnswer, expected string) (WritingRecord, error) {
-	slog.Debug("WritingService.SubmitInput called", "user_id", userID, "question", question)
+func (s *WritingService) SubmitInput(userID int64, questionID int64, question, userAnswer string) (WritingRecord, error) {
+	slog.Debug("WritingService.SubmitInput called", "user_id", userID, "question_id", questionID)
+
+	q, err := s.store.GetQuestionByID(questionID)
+	if err != nil {
+		slog.Error("WritingService.SubmitInput: GetQuestionByID failed", "err", err, "question_id", questionID)
+		return WritingRecord{}, fmt.Errorf("writing.WritingService.SubmitInput GetQuestionByID: %w", err)
+	}
 
 	score := 0
-	if userAnswer == expected {
+	if userAnswer == q.ExpectedAnswer {
 		score = 100
+	}
+
+	var fb *AIFeedback
+	if score < 100 {
+		fb = &AIFeedback{
+			ReferenceAnswer: q.ExpectedAnswer,
+		}
 	}
 
 	rec := WritingRecord{
@@ -61,6 +75,7 @@ func (s *WritingService) SubmitInput(userID int64, question, userAnswer, expecte
 		Type:        WritingTypeInput,
 		Question:    question,
 		UserAnswer:  userAnswer,
+		AIFeedback:  fb,
 		Score:       score,
 		PracticedAt: time.Now(),
 	}

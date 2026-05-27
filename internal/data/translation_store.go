@@ -354,3 +354,91 @@ func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationR
 	slog.Debug("TranslationStore.ListRecords done", "user_id", userID, "count", len(records))
 	return records, rows.Err()
 }
+
+// UpdateSentence 更新翻译句子的所有字段。
+func (s *TranslationStore) UpdateSentence(sent translation.TranslationSentence) error {
+	slog.Debug("TranslationStore.UpdateSentence called", "id", sent.ID)
+	_, err := s.db.Exec(
+		`UPDATE translation_sentences SET source_id=?, direction=?, source_text=?, reference_translation=?, position=? WHERE id=?`,
+		sent.SourceID, sent.Direction, sent.SourceText, sent.ReferenceTranslation, sent.Position, sent.ID,
+	)
+	if err != nil {
+		slog.Error("TranslationStore.UpdateSentence failed", "err", err, "id", sent.ID)
+		return fmt.Errorf("data.TranslationStore.UpdateSentence: %w", err)
+	}
+	slog.Debug("TranslationStore.UpdateSentence done", "id", sent.ID)
+	return nil
+}
+
+// DeleteSentence 按 ID 删除翻译句子及其关联的练习记录。
+func (s *TranslationStore) DeleteSentence(id int64) error {
+	slog.Debug("TranslationStore.DeleteSentence called", "id", id)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		slog.Error("TranslationStore.DeleteSentence begin tx failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSentence: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	// 删除关联的练习记录
+	_, err = tx.Exec(`DELETE FROM translation_records WHERE sentence_id = ?`, id)
+	if err != nil {
+		slog.Error("TranslationStore.DeleteSentence delete records failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSentence: delete records: %w", err)
+	}
+
+	// 删除句子
+	_, err = tx.Exec(`DELETE FROM translation_sentences WHERE id = ?`, id)
+	if err != nil {
+		slog.Error("TranslationStore.DeleteSentence delete sentence failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSentence: delete sentence: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("TranslationStore.DeleteSentence commit failed", "err", err)
+		return fmt.Errorf("data.TranslationStore.DeleteSentence: commit: %w", err)
+	}
+
+	slog.Debug("TranslationStore.DeleteSentence done", "id", id)
+	return nil
+}
+
+// ListAllSentences 分页查询翻译句子，支持按 direction 和 source_id 过滤。
+func (s *TranslationStore) ListAllSentences(sourceID int64, direction string, offset, limit int) ([]translation.TranslationSentence, int, error) {
+	where := "WHERE 1=1"
+	var args []any
+	if sourceID > 0 {
+		where += " AND source_id = ?"
+		args = append(args, sourceID)
+	}
+	if direction != "" {
+		where += " AND direction = ?"
+		args = append(args, direction)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM translation_sentences "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.TranslationStore.ListAllSentences count: %w", err)
+	}
+
+	query := fmt.Sprintf("SELECT id, source_id, direction, source_text, reference_translation, position FROM translation_sentences %s ORDER BY id LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.TranslationStore.ListAllSentences query: %w", err)
+	}
+	defer rows.Close()
+
+	sentences := make([]translation.TranslationSentence, 0)
+	for rows.Next() {
+		var sent translation.TranslationSentence
+		if err := rows.Scan(&sent.ID, &sent.SourceID, &sent.Direction, &sent.SourceText, &sent.ReferenceTranslation, &sent.Position); err != nil {
+			return nil, 0, fmt.Errorf("data.TranslationStore.ListAllSentences scan: %w", err)
+		}
+		sentences = append(sentences, sent)
+	}
+
+	slog.Debug("TranslationStore.ListAllSentences done", "count", len(sentences), "total", total)
+	return sentences, total, rows.Err()
+}

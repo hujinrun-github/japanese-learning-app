@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 )
@@ -17,6 +18,19 @@ type speakingImport struct {
 	JLPTLevel string `json:"jlpt_level"`
 }
 
+// ImportSpeaking reads a JSON array of speaking materials from r and inserts them
+// into the speaking_materials table using INSERT OR IGNORE (idempotent – duplicate
+// (type, title, jlpt_level) combinations are silently skipped).
+// It returns the number of rows actually inserted.
+func ImportSpeaking(db *sql.DB, r io.Reader) (int, error) {
+	slog.Debug("ImportSpeaking called")
+	var items []speakingImport
+	if err := json.NewDecoder(r).Decode(&items); err != nil {
+		return 0, fmt.Errorf("cli.ImportSpeaking decode: %w", err)
+	}
+	return insertSpeakingMaterials(db, items)
+}
+
 // ImportSpeakingFromFile reads a JSON array of speaking materials from filePath and inserts
 // them into the speaking_materials table using INSERT OR IGNORE (idempotent – duplicate
 // (type, title, jlpt_level) combinations are silently skipped).
@@ -24,18 +38,13 @@ type speakingImport struct {
 func ImportSpeakingFromFile(db *sql.DB, filePath string) (int, error) {
 	slog.Debug("ImportSpeakingFromFile called", "file", filePath)
 
-	raw, err := os.ReadFile(filePath)
+	f, err := os.Open(filePath)
 	if err != nil {
-		return 0, fmt.Errorf("cli.ImportSpeakingFromFile ReadFile: %w", err)
+		return 0, fmt.Errorf("cli.ImportSpeakingFromFile open: %w", err)
 	}
+	defer f.Close()
 
-	var items []speakingImport
-	if err := json.Unmarshal(raw, &items); err != nil {
-		return 0, fmt.Errorf("cli.ImportSpeakingFromFile Unmarshal: %w", err)
-	}
-
-	slog.Debug("ImportSpeakingFromFile parsed items", "file", filePath, "count", len(items))
-	return insertSpeakingMaterials(db, items)
+	return ImportSpeaking(db, f)
 }
 
 // ImportSpeakingFromJSON parses a single JSON object string and inserts it into the

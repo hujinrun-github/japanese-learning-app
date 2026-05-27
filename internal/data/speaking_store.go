@@ -174,3 +174,143 @@ func (s *SpeakingStore) GetMaterialByID(id int64) (*speaking.SpeakingMaterial, e
 	slog.Debug("SpeakingStore.GetMaterialByID done", "id", id, "title", m.Title)
 	return &m, nil
 }
+
+// UpdateMaterial 更新口语练习素材。
+func (s *SpeakingStore) UpdateMaterial(m speaking.SpeakingMaterial) error {
+	slog.Debug("SpeakingStore.UpdateMaterial called", "id", m.ID)
+	_, err := s.db.Exec(
+		"UPDATE speaking_materials SET type=?, title=?, text=?, audio_url=?, jlpt_level=? WHERE id=?",
+		m.Type, m.Title, m.Text, m.AudioURL, m.JLPTLevel, m.ID,
+	)
+	if err != nil {
+		slog.Error("failed to update speaking_material", "err", err, "id", m.ID)
+		return fmt.Errorf("data.SpeakingStore.UpdateMaterial exec: %w", err)
+	}
+	return nil
+}
+
+// ListAll 分页查询口语素材，支持按 type 和 jlpt_level 过滤。
+func (s *SpeakingStore) ListAll(practiceType, level string, offset, limit int) ([]speaking.SpeakingMaterial, int, error) {
+	slog.Debug("SpeakingStore.ListAll called", "type", practiceType, "level", level, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if practiceType != "" {
+		where += " AND type = ?"
+		args = append(args, practiceType)
+	}
+	if level != "" {
+		where += " AND jlpt_level = ?"
+		args = append(args, level)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM speaking_materials "+where, args...).Scan(&total); err != nil {
+		slog.Error("failed to count speaking_materials", "err", err)
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll count: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT id, type, title, text, audio_url, jlpt_level FROM speaking_materials %s ORDER BY id LIMIT ? OFFSET ?",
+		where,
+	)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		slog.Error("failed to query speaking_materials", "err", err)
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll query: %w", err)
+	}
+	defer rows.Close()
+
+	materials := make([]speaking.SpeakingMaterial, 0)
+	for rows.Next() {
+		var m speaking.SpeakingMaterial
+		if err := rows.Scan(&m.ID, &m.Type, &m.Title, &m.Text, &m.AudioURL, &m.JLPTLevel); err != nil {
+			slog.Error("failed to scan speaking_material row", "err", err)
+			return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll scan: %w", err)
+		}
+		materials = append(materials, m)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("rows iteration error", "err", err)
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAll rows: %w", err)
+	}
+
+	slog.Debug("SpeakingStore.ListAll done", "count", len(materials), "total", total)
+	return materials, total, nil
+}
+
+// InsertMaterial 插入一条新的口语素材，返回自动生成的 ID。
+func (s *SpeakingStore) InsertMaterial(m speaking.SpeakingMaterial) (int64, error) {
+	slog.Debug("SpeakingStore.InsertMaterial called", "title", m.Title)
+	result, err := s.db.Exec(
+		`INSERT INTO speaking_materials (type, title, text, audio_url, jlpt_level)
+		 VALUES (?, ?, ?, ?, ?)`,
+		m.Type, m.Title, m.Text, m.AudioURL, m.JLPTLevel,
+	)
+	if err != nil {
+		slog.Error("failed to insert speaking_material", "err", err, "title", m.Title)
+		return 0, fmt.Errorf("data.SpeakingStore.InsertMaterial exec: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		slog.Error("failed to get last insert id", "err", err)
+		return 0, fmt.Errorf("data.SpeakingStore.InsertMaterial last insert id: %w", err)
+	}
+	slog.Debug("SpeakingStore.InsertMaterial done", "id", id, "title", m.Title)
+	return id, nil
+}
+
+// ListAllRecords 分页查询口语练习记录，可选按 user_id 过滤。
+// userID == 0 表示不过滤，返回所有用户的记录。
+func (s *SpeakingStore) ListAllRecords(userID int64, offset, limit int) ([]speaking.SpeakingRecord, int, error) {
+	slog.Debug("SpeakingStore.ListAllRecords called", "user_id", userID, "offset", offset, "limit", limit)
+
+	where := "WHERE 1=1"
+	var args []any
+	if userID > 0 {
+		where += " AND user_id = ?"
+		args = append(args, userID)
+	}
+
+	var total int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM speaking_records "+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords count: %w", err)
+	}
+
+	var records []speaking.SpeakingRecord
+	query := fmt.Sprintf("SELECT id, user_id, type, material_id, score, audio_ref, practiced_at FROM speaking_records %s ORDER BY id DESC LIMIT ? OFFSET ?", where)
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r speaking.SpeakingRecord
+		var practicedAt string
+		if err := rows.Scan(&r.ID, &r.UserID, &r.Type, &r.MaterialID, &r.Score, &r.AudioRef, &practicedAt); err != nil {
+			return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords scan: %w", err)
+		}
+		r.PracticedAt, err = parseSQLiteTime(practicedAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("data.SpeakingStore.ListAllRecords parse practiced_at: %w", err)
+		}
+		records = append(records, r)
+	}
+
+	slog.Debug("SpeakingStore.ListAllRecords done", "count", len(records), "total", total)
+	return records, total, rows.Err()
+}
+
+// DeleteMaterial 按 ID 删除口语练习素材。
+func (s *SpeakingStore) DeleteMaterial(id int64) error {
+	slog.Debug("SpeakingStore.DeleteMaterial called", "id", id)
+	_, err := s.db.Exec("DELETE FROM speaking_materials WHERE id = ?", id)
+	if err != nil {
+		slog.Error("failed to delete speaking_material", "err", err, "id", id)
+		return fmt.Errorf("data.SpeakingStore.DeleteMaterial exec: %w", err)
+	}
+	return nil
+}
