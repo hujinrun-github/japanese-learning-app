@@ -13,6 +13,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api/admin': 'http://localhost:8082',
+      '/audio': 'http://localhost:8081',
     },
   },
   build: {

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { speakExample } from '@/util/exampleAudio'
+import { speakExample, speakWord } from '@/util/exampleAudio'
 import type { WordCard, JLPTLevel } from '@/types/api'
 import styles from './WordReviewPage.module.css'
 
@@ -184,7 +184,7 @@ export function WordReviewPage() {
                   <button
                     className={styles.speakBtn}
                     aria-label={t('word.queue.speak')}
-                    onClick={(e) => { e.stopPropagation(); speakExample(card!.word.reading) }}
+                    onClick={(e) => { e.stopPropagation(); speakWord(card!.word.audio_url, card!.word.reading) }}
                   >
                     🔊
                   </button>
@@ -238,7 +238,7 @@ export function WordReviewPage() {
                   <button
                     className={styles.speakBtn}
                     aria-label={t('word.queue.speak')}
-                    onClick={(e) => { e.stopPropagation(); speakExample(card!.word.reading) }}
+                    onClick={(e) => { e.stopPropagation(); speakWord(card!.word.audio_url, card!.word.reading) }}
                   >
                     🔊
                   </button>
