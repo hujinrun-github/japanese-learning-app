@@ -11,6 +11,7 @@
 | 前端 | React 18 + TypeScript + Vite |
 | 认证 | JWT（HMAC-SHA256） |
 | AI | Anthropic Claude API（写作批改，可选） |
+| TTS | Qwen3-TTS (vLLM) / style-bert-vits2 (FastAPI) — 单词/例句日语语音合成 |
 | i18n | i18next + react-i18next（zh / ja / en） |
 
 ## 快速开始
@@ -48,10 +49,14 @@ go build -o ./server ./backend/cmd/server/
 # 导入单词
 ./server import-words --file ./data/seed/words_n5.json
 
+# 导入单词 + 自动生成语音
+./server import-words --file ./data/seed/words_n5.json --generate-audio=sbv
+./server import-words --file ./data/seed/words_n5.json --generate-audio=vllm --tts-url=http://localhost:8091/v1/audio/speech
+
 # 导入语法 / 课文 / 口语 / 写作
 ./server import-grammar --file ./data/seed/grammar_n5.json
 ./server import-lessons --file ./data/seed/lessons_n5.json
-./server import-speaking --file ./data/seed/speaking_materials.json
+./server import-speaking --file ./data/seed/speaking_materials.json --generate-audio=sbv
 ./server import-writing --file ./data/seed/writing_questions.json
 ```
 
@@ -62,6 +67,16 @@ go build -o ./server ./backend/cmd/server/
 | `--file` | (必填) | JSON 文件路径，文件内容为单词对象数组 |
 | `--db` | `./data/app.db` | SQLite 数据库路径 |
 | `--auto-fill` | `false` | 使用 kagome 形态分析自动填充缺失字段 |
+| `--generate-audio` | `""` | 导入后自动生成单词语音：`vllm` 或 `sbv` |
+| `--provider` | `vllm` | TTS provider（与 `--generate-audio` 配合使用） |
+| `--tts-url` | `http://...` | vLLM TTS 端点 |
+| `--tts-model` | `Qwen/...` | TTS 模型名 |
+| `--voice` | `ono_anna` | 语音名称 |
+| `--sbv-url` | `http://127.0.0.1:7862` | style-bert-vits2 服务地址 |
+| `--sbv-model` | `amitaro` | style-bert-vits2 模型名 |
+| `--sbv-speaker` | `あみたろ` | style-bert-vits2 说话人 |
+| `--sbv-style` | `Neutral` | style-bert-vits2 风格 |
+| `--out` | `./data/audio/words` | 音频输出目录 |
 
 **单词 JSON 格式:**
 
@@ -128,6 +143,113 @@ npm run dev      # http://localhost:5173，/api 代理至 :8080
 | `LOG_LEVEL` | `INFO` | DEBUG / INFO / WARN / ERROR |
 | `AI_API_KEY` | `""` | Claude API 密钥（空则使用 Stub 评分） |
 | `SMTP_HOST` | `""` | SMTP 服务器（密码重置邮件，空则使用 Stub） |
+
+### TTS 语音合成
+
+支持两种 TTS 后端，通过 `--provider` 参数切换。
+
+#### 方案 A：Qwen3-TTS（vLLM）
+
+适合通用中文/日语语音合成，部署后 API 即用，无需加载模型。
+
+**启动服务：**
+
+```bash
+docker run -d \
+  --name qwen-tts \
+  --gpus all \
+  --network=host \
+  --ipc=host \
+  -e HF_ENDPOINT=https://hf-mirror.com \
+  -e HF_HOME=/root/.cache/huggingface \
+  -e HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface \
+  -e TRANSFORMERS_VERBOSITY=debug \
+  -e HF_HUB_VERBOSITY=debug \
+  -v /home/tylerhu/.cache/huggingface:/root/.cache/huggingface \
+  vllm/vllm-omni:v0.20.0 \
+  vllm serve /root/.cache/huggingface/models--Qwen--Qwen3-TTS-12Hz-1.7B-CustomVoice/snapshots/0c0e3051f131929182e2c023b9537f8b1c68adfe \
+  --omni \
+  --port 8091 \
+  --trust-remote-code \
+  --enforce-eager \
+  --gpu-memory-utilization 0.85
+```
+
+**生成单词语音：**
+
+```bash
+go run ./backend/cmd/server/ generate-word-audio \
+  --provider=vllm \
+  --tts-url=http://localhost:8091/v1/audio/speech \
+  --tts-model="Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+
+# 仅 N5，强制覆盖
+go run ./backend/cmd/server/ generate-word-audio --provider=vllm --level N5 --force
+```
+
+#### 方案 B：style-bert-vits2（FastAPI）
+
+日语专精，支持情感风格控制（Neutral/Angry/Happy/Sad 等），发音更自然。
+
+**启动服务：**
+
+```bash
+cd /home/tylerhu/Style-Bert-VITS2
+nohup venv/bin/python server_fastapi.py --cpu > /tmp/tts_server.log 2>&1 &
+```
+
+> 如果 GPU 正常（PyTorch ≥ 2.5 + CUDA ≥ 12.5），去掉 `--cpu` 并将 `config.yml` 中 `server.device` 设为 `cuda` 可大幅提速。
+
+服务默认监听 `http://localhost:7862`，API 文档：`http://localhost:7862/docs`
+
+**生成单词语音：**
+
+```bash
+# 生成全部级别的单词
+go run ./backend/cmd/server/ generate-word-audio \
+  --provider=sbv \
+  --sbv-url=http://127.0.0.1:7862 \
+  --sbv-model=amitaro \
+  --sbv-speaker=あみたろ
+
+# 仅生成 N5，强制覆盖已有音频
+go run ./backend/cmd/server/ generate-word-audio \
+  --provider=sbv \
+  --sbv-url=http://127.0.0.1:7862 \
+  --sbv-model=amitaro \
+  --sbv-speaker=あみたろ \
+  --level=N5 --force
+
+# 换其他模型/风格（更多风格查看 http://localhost:7862/models/info）
+go run ./backend/cmd/server/ generate-word-audio \
+  --provider=sbv \
+  --sbv-url=http://127.0.0.1:7862 \
+  --sbv-model=jvnv-F1-jp \
+  --sbv-speaker=jvnv-F1-jp \
+  --sbv-style=Happy
+```
+
+**通用选项（两个 provider 都支持）：**
+
+| 选项 | 说明 |
+|---|---|
+| `--level` | 仅生成指定 JLPT 级别（N5/N4/N3/N2/N1） |
+| `--dry-run` | 预览将要生成的单词，不实际调用 TTS |
+| `--force` | 强制重新生成已存在的音频文件 |
+| `--out` | 音频输出目录（默认 `./data/audio/words`） |
+| `--db` | SQLite 数据库路径（默认 `./data/app.db`） |
+
+**生成例句/口语语音：**
+
+```bash
+# 为所有例句和口语材料生成语音
+go run ./scripts/generate_tts_examples/ \
+  --db ./data/app.db \
+  --tts-url http://localhost:8091/v1/audio/speech \
+  --out ./data/audio/examples
+```
+
+语音文件存储在 `data/audio/words/` 和 `data/audio/examples/`，数据库 `words.audio_url` 记录文件路径。
 
 ## 功能模块
 

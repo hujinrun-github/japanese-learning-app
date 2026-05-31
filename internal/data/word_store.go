@@ -24,13 +24,13 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 	slog.Debug("WordStore.GetByID called", "word_id", id)
 
 	row := s.db.QueryRow(
-		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type
+		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url
 		 FROM words WHERE id = ?`, id,
 	)
 
 	var w word.Word
 	var examplesJSON string
-	err := row.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType)
+	err := row.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType, &w.AudioURL)
 	if err == sql.ErrNoRows {
 		slog.Error("word not found", "word_id", id)
 		return nil, fmt.Errorf("data.WordStore.GetByID %d: %w", id, sql.ErrNoRows)
@@ -62,7 +62,7 @@ func (s *WordStore) ListByLevel(level word.JLPTLevel, page, size int) ([]word.Wo
 
 	offset := (page - 1) * size
 	rows, err := s.db.Query(
-		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type
+		`SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url
 		 FROM words WHERE jlpt_level = ? ORDER BY id LIMIT ? OFFSET ?`,
 		level, size, offset,
 	)
@@ -76,7 +76,7 @@ func (s *WordStore) ListByLevel(level word.JLPTLevel, page, size int) ([]word.Wo
 	for rows.Next() {
 		var w word.Word
 		var examplesJSON string
-		if err := rows.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType); err != nil {
+		if err := rows.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType, &w.AudioURL); err != nil {
 			slog.Error("failed to scan word row", "err", err)
 			return nil, 0, fmt.Errorf("data.WordStore.ListByLevel scan: %w", err)
 		}
@@ -239,7 +239,7 @@ func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit i
 	}
 
 	query := fmt.Sprintf(
-		"SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type FROM words %s ORDER BY id LIMIT ? OFFSET ?",
+		"SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url FROM words %s ORDER BY id LIMIT ? OFFSET ?",
 		where,
 	)
 	args = append(args, limit, offset)
@@ -254,7 +254,7 @@ func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit i
 	for rows.Next() {
 		var w word.Word
 		var examplesJSON string
-		if err := rows.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType); err != nil {
+		if err := rows.Scan(&w.ID, &w.KanjiForm, &w.Reading, &w.PartOfSpeech, &w.Meaning, &examplesJSON, &w.JLPTLevel, &w.ReadingType, &w.AudioURL); err != nil {
 			slog.Error("failed to scan word row", "err", err)
 			return nil, 0, fmt.Errorf("data.WordStore.ListAll scan: %w", err)
 		}
@@ -282,9 +282,9 @@ func (s *WordStore) InsertWord(w word.Word) (int64, error) {
 		return 0, fmt.Errorf("data.WordStore.InsertWord marshal examples: %w", err)
 	}
 	result, err := s.db.Exec(
-		`INSERT INTO words (kanji_form, reading, part_of_speech, meaning, jlpt_level, examples_json, reading_type)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType,
+		`INSERT INTO words (kanji_form, reading, part_of_speech, meaning, jlpt_level, examples_json, reading_type, audio_url)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType, w.AudioURL,
 	)
 	if err != nil {
 		slog.Error("failed to insert word", "err", err, "kanji", w.KanjiForm)
@@ -308,8 +308,8 @@ func (s *WordStore) UpdateWord(w word.Word) error {
 		return fmt.Errorf("data.WordStore.UpdateWord marshal examples: %w", err)
 	}
 	_, err = s.db.Exec(
-		`UPDATE words SET kanji_form=?, reading=?, part_of_speech=?, meaning=?, jlpt_level=?, examples_json=?, reading_type=? WHERE id=?`,
-		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType, w.ID,
+		`UPDATE words SET kanji_form=?, reading=?, part_of_speech=?, meaning=?, jlpt_level=?, examples_json=?, reading_type=?, audio_url=? WHERE id=?`,
+		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType, w.AudioURL, w.ID,
 	)
 	if err != nil {
 		slog.Error("failed to update word", "err", err, "word_id", w.ID)

@@ -43,12 +43,12 @@ func extractWordSentences(raw []byte) ([]string, error) {
 }
 
 // extractGrammarSentences parses a grammar JSON file and returns all example japanese sentences.
-func extractGrammarSentences(raw []byte) ([]string, error) {
+func ExtractGrammarSentences(raw []byte) ([]string, error) {
 	var items []struct {
 		Examples []ttsSentence `json:"examples"`
 	}
 	if err := json.Unmarshal(raw, &items); err != nil {
-		return nil, fmt.Errorf("cli.extractGrammarSentences Unmarshal: %w", err)
+		return nil, fmt.Errorf("cli.ExtractGrammarSentences Unmarshal: %w", err)
 	}
 	var out []string
 	for _, g := range items {
@@ -62,12 +62,12 @@ func extractGrammarSentences(raw []byte) ([]string, error) {
 }
 
 // extractSpeakingSentences parses a speaking materials JSON file and returns all text fields.
-func extractSpeakingSentences(raw []byte) ([]string, error) {
+func ExtractSpeakingSentences(raw []byte) ([]string, error) {
 	var items []struct {
 		Text string `json:"text"`
 	}
 	if err := json.Unmarshal(raw, &items); err != nil {
-		return nil, fmt.Errorf("cli.extractSpeakingSentences Unmarshal: %w", err)
+		return nil, fmt.Errorf("cli.ExtractSpeakingSentences Unmarshal: %w", err)
 	}
 	var out []string
 	for _, m := range items {
@@ -81,9 +81,9 @@ func extractSpeakingSentences(raw []byte) ([]string, error) {
 // generateTTSFiles generates audio files for each sentence using the TTS client.
 // Files are named <sha256(text)[:16]>.wav and saved to outDir. Already-existing files
 // are skipped. Returns the count of newly generated files.
-func generateTTSFiles(client speaking.TTSSynthesizer, outDir string, sentences []string) (int, error) {
+func GenerateTTSFiles(client speaking.TTSSynthesizer, outDir string, sentences []string) (int, error) {
 	if err := os.MkdirAll(outDir, 0755); err != nil {
-		return 0, fmt.Errorf("cli.generateTTSFiles mkdir %s: %w", outDir, err)
+		return 0, fmt.Errorf("cli.GenerateTTSFiles mkdir %s: %w", outDir, err)
 	}
 
 	ctx := context.Background()

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { adminFetch } from '@/api/client'
 import Modal from '@/components/Modal/Modal'
+import { TTSConfigFields, defaultTTSConfig, type TTSConfig } from '@/components/TTSConfigFields/TTSConfigFields'
+import { AudioRegenButton } from '@/components/AudioRegenButton/AudioRegenButton'
 import styles from './Words.module.css'
 
 interface Word {
@@ -12,6 +14,7 @@ interface Word {
   jlpt_level: string
   examples: { japanese: string; chinese: string }[]
   reading_type: string
+  audio_url: string
 }
 
 const LEVELS = ['', 'N5', 'N4', 'N3', 'N2', 'N1']
@@ -40,6 +43,8 @@ export default function WordsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Word | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [showTTSSettings, setShowTTSSettings] = useState(false)
+  const [ttsConfig, setTTSConfig] = useState<TTSConfig>(defaultTTSConfig)
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -130,8 +135,20 @@ export default function WordsPage() {
     try {
       const fd = new FormData()
       fd.append('file', file)
+      if (ttsConfig.provider) {
+        fd.append('tts_provider', ttsConfig.provider)
+        fd.append('tts_url', ttsConfig.tts_url)
+        fd.append('tts_model', ttsConfig.tts_model)
+        fd.append('voice', ttsConfig.voice)
+        fd.append('instructions', ttsConfig.instructions)
+        fd.append('sbv_url', ttsConfig.sbv_url)
+        fd.append('sbv_model', ttsConfig.sbv_model)
+        fd.append('sbv_speaker', ttsConfig.sbv_speaker)
+        fd.append('sbv_style', ttsConfig.sbv_style)
+        fd.append('tts_force', String(ttsConfig.tts_force))
+      }
       const data = await adminFetch<{ inserted: number }>('POST', '/import/words', fd)
-      alert(`Imported ${data.inserted} words`)
+      alert(`Imported ${data.inserted} words${ttsConfig.provider ? ' (audio generation started)' : ''}`)
       fetchItems()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
@@ -179,7 +196,22 @@ export default function WordsPage() {
           Import
           <input type="file" accept=".json" onChange={handleImport} hidden />
         </label>
+        <label className={styles.ttsToggle} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <input
+            type="checkbox"
+            checked={showTTSSettings}
+            onChange={(e) => {
+              setShowTTSSettings(e.target.checked)
+              if (!e.target.checked) setTTSConfig(defaultTTSConfig)
+            }}
+          />
+          Audio
+        </label>
       </div>
+
+      {showTTSSettings && (
+        <TTSConfigFields config={ttsConfig} onChange={setTTSConfig} showForce />
+      )}
 
       {error && <p className={styles.error}>{error}</p>}
 
@@ -209,6 +241,13 @@ export default function WordsPage() {
                     <td key={c.key}>{(w as Record<string, unknown>)[c.key] as React.ReactNode}</td>
                   ))}
                   <td className={styles.actions}>
+                    <AudioRegenButton
+                      text={w.reading}
+                      audioUrl={w.audio_url ? `/audio/words/${w.audio_url}` : undefined}
+                      module="word"
+                      wordId={w.id}
+                      onRegenerated={() => fetchItems()}
+                    />
                     <button onClick={() => openEdit(w)}>Edit</button>
                     <button onClick={() => handleDelete(w.id)}>Delete</button>
                   </td>

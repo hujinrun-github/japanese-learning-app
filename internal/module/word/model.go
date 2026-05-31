@@ -46,6 +46,7 @@ type Word struct {
 	Examples     []WordExample `json:"examples"`
 	JLPTLevel    JLPTLevel     `json:"jlpt_level"`
 	ReadingType  string        `json:"reading_type"` // 读音类型: "1"音读 "2"训读 "3"熟字训 "4"重箱读 "5"汤桶读 "6"其他
+	AudioURL     string        `json:"audio_url"`    // 单词读音音频文件路径
 }
 
 // WordRecord 用户与某个单词的学习关系（用户数据，读写）

@@ -1,0 +1,1 @@
+ALTER TABLE words ADD COLUMN audio_url TEXT NOT NULL DEFAULT '';

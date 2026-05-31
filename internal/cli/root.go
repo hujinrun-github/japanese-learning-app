@@ -37,6 +37,8 @@ func Run(args []string) int {
 		return runImportWriting(args[1:])
 	case "import-translation-api":
 		return runImportTranslationAPI(args[1:])
+	case "generate-word-audio":
+		return runGenerateWordAudio(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", args[0])
 		printUsage()
@@ -54,6 +56,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-speaking --file <path> | --json <json>  import speaking materials")
 	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")
 	fmt.Fprintln(os.Stderr, "  import-translation-api    --file <config.json>           import translation sentences from API")
+	fmt.Fprintln(os.Stderr, "  generate-word-audio --db <path> --level <N5-N1>  regenerate word audio via TTS")
 }
 
 func runImportWords(args []string) int {
@@ -61,6 +64,18 @@ func runImportWords(args []string) int {
 	filePath := fs.String("file", "", "path to the JSON file containing words to import")
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
 	autoFill := fs.Bool("auto-fill", false, "use kagome morphological analyzer to fill missing reading/part_of_speech/reading_type")
+
+	// TTS generation flags
+	genAudio := fs.String("generate-audio", "", "auto-generate audio after import: vllm, sbv")
+	ttsURL := fs.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
+	voice := fs.String("voice", "ono_anna", "TTS voice name")
+	instructions := fs.String("instructions", "標準語で、ゆっくり、はっきり発音してください。単語のあとに少し間を空けてください。", "TTS style instructions")
+	sbvURL := fs.String("sbv-url", "http://127.0.0.1:7862", "style-bert-vits2 FastAPI server URL")
+	sbvModel := fs.String("sbv-model", "amitaro", "style-bert-vits2 model name")
+	sbvSpeaker := fs.String("sbv-speaker", "あみたろ", "style-bert-vits2 speaker name")
+	sbvStyle := fs.String("sbv-style", "Neutral", "style-bert-vits2 style name")
+	outDir := fs.String("out", "./data/audio/words", "output directory for audio files")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "import-words: %v\n", err)
@@ -94,6 +109,27 @@ func runImportWords(args []string) int {
 	}
 
 	fmt.Printf("import-words: inserted %d word(s) from %s\n", n, *filePath)
+
+	// Auto-generate audio if requested
+	if *genAudio != "" {
+		cfg := TTSConfig{
+			Provider:     *genAudio,
+			TTSUrl:       *ttsURL,
+			TTSModel:     *ttsModel,
+			Voice:        *voice,
+			Instructions: *instructions,
+			SBVURL:       *sbvURL,
+			SBVModel:     *sbvModel,
+			SBVSpeaker:   *sbvSpeaker,
+			SBVStyle:     *sbvStyle,
+		}
+		client := NewTTSClient(cfg)
+		if _, genErr := GenerateWordAudio(db, client, *outDir, "", false, false); genErr != nil {
+			slog.Error("import-words: audio generation failed", "err", genErr)
+			fmt.Fprintf(os.Stderr, "import-words: audio generation failed: %v\n", genErr)
+		}
+	}
+
 	return 0
 }
 
@@ -102,6 +138,17 @@ func runImportGrammar(args []string) int {
 	filePath := fs.String("file", "", "path to the JSON file containing grammar points to import")
 	jsonStr := fs.String("json", "", "inline JSON string for a single grammar point")
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+
+	// TTS generation flags (shared with import-words)
+	genAudio := fs.String("generate-audio", "", "auto-generate audio for example sentences after import: vllm, sbv")
+	ttsURL := fs.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
+	voice := fs.String("voice", "ono_anna", "TTS voice name")
+	instructions := fs.String("instructions", "標準語で、ゆっくり、はっきり発音してください。", "TTS style instructions")
+	sbvURL := fs.String("sbv-url", "http://127.0.0.1:7862", "style-bert-vits2 FastAPI server URL")
+	sbvModel := fs.String("sbv-model", "amitaro", "style-bert-vits2 model name")
+	sbvSpeaker := fs.String("sbv-speaker", "あみたろ", "style-bert-vits2 speaker name")
+	sbvStyle := fs.String("sbv-style", "Neutral", "style-bert-vits2 style name")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "import-grammar: %v\n", err)
@@ -140,6 +187,31 @@ func runImportGrammar(args []string) int {
 			return 1
 		}
 		fmt.Printf("import-grammar: inserted %d grammar point(s) from %s\n", n, *filePath)
+
+		// Auto-generate example audio
+		if *genAudio != "" && *filePath != "" {
+			cfg := TTSConfig{
+				Provider:     *genAudio,
+				TTSUrl:       *ttsURL,
+				TTSModel:     *ttsModel,
+				Voice:        *voice,
+				Instructions: *instructions,
+				SBVURL:       *sbvURL,
+				SBVModel:     *sbvModel,
+				SBVSpeaker:   *sbvSpeaker,
+				SBVStyle:     *sbvStyle,
+			}
+			client := NewTTSClient(cfg)
+			raw, _ := os.ReadFile(*filePath)
+			sentences, _ := ExtractGrammarSentences(raw)
+			if len(sentences) > 0 {
+				if genCount, genErr := GenerateTTSFiles(client, "./data/audio/examples", sentences); genErr != nil {
+					fmt.Fprintf(os.Stderr, "import-grammar: audio generation failed: %v\n", genErr)
+				} else {
+					fmt.Printf("import-grammar: generated %d example audio file(s)\n", genCount)
+				}
+			}
+		}
 	} else {
 		n, err = ImportGrammarFromJSON(db, *jsonStr)
 		if err != nil {
@@ -213,6 +285,17 @@ func runImportSpeaking(args []string) int {
 	jsonStr := fs.String("json", "", "inline JSON string for a single speaking material")
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
 
+	// TTS generation flags (shared with other import commands)
+	genAudio := fs.String("generate-audio", "", "auto-generate audio for speaking text after import: vllm, sbv")
+	ttsURL := fs.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
+	voice := fs.String("voice", "ono_anna", "TTS voice name")
+	instructions := fs.String("instructions", "標準語で、ゆっくり、はっきり発音してください。", "TTS style instructions")
+	sbvURL := fs.String("sbv-url", "http://127.0.0.1:7862", "style-bert-vits2 FastAPI server URL")
+	sbvModel := fs.String("sbv-model", "amitaro", "style-bert-vits2 model name")
+	sbvSpeaker := fs.String("sbv-speaker", "あみたろ", "style-bert-vits2 speaker name")
+	sbvStyle := fs.String("sbv-style", "Neutral", "style-bert-vits2 style name")
+
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "import-speaking: %v\n", err)
 		return 1
@@ -250,6 +333,31 @@ func runImportSpeaking(args []string) int {
 			return 1
 		}
 		fmt.Printf("import-speaking: inserted %d speaking material(s) from %s\n", n, *filePath)
+
+		// Auto-generate speaking audio
+		if *genAudio != "" && *filePath != "" {
+			cfg := TTSConfig{
+				Provider:     *genAudio,
+				TTSUrl:       *ttsURL,
+				TTSModel:     *ttsModel,
+				Voice:        *voice,
+				Instructions: *instructions,
+				SBVURL:       *sbvURL,
+				SBVModel:     *sbvModel,
+				SBVSpeaker:   *sbvSpeaker,
+				SBVStyle:     *sbvStyle,
+			}
+			client := NewTTSClient(cfg)
+			raw, _ := os.ReadFile(*filePath)
+			sentences, _ := ExtractSpeakingSentences(raw)
+			if len(sentences) > 0 {
+				if genCount, genErr := GenerateTTSFiles(client, "./data/audio/examples", sentences); genErr != nil {
+					fmt.Fprintf(os.Stderr, "import-speaking: audio generation failed: %v\n", genErr)
+				} else {
+					fmt.Printf("import-speaking: generated %d speaking audio file(s)\n", genCount)
+				}
+			}
+		}
 	} else {
 		n, err = ImportSpeakingFromJSON(db, *jsonStr)
 		if err != nil {
