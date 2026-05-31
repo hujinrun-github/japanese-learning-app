@@ -1,0 +1,29 @@
+.btn {
+  padding: 4px 8px;
+  font-size: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+}
+
+.btn:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.playing {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.error {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}

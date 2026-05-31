@@ -70,6 +70,8 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /api/admin/records/{module}", h.auth(h.listRecords))
 	// Import
 	mux.HandleFunc("POST /api/admin/import/{module}", h.auth(h.bulkImport))
+	// Audio
+	mux.HandleFunc("POST /api/admin/audio/regen", h.auth(h.regenerateAudio))
 	return mux
 }
 

@@ -23,9 +23,35 @@ export function getExampleAudioURL(hash: string): string {
   return `/audio/examples/${hash}.wav`
 }
 
+export function getWordAudioURL(audioURL: string): string {
+  return `/audio/words/${audioURL}`
+}
+
 export interface SpeakOptions {
   onBoundary?: (charIndex: number) => void
   onEnd?: () => void
+}
+
+function fallbackTTS(text: string, opts?: SpeakOptions): Promise<void> {
+  return new Promise((resolve) => {
+    speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ja-JP'
+    u.rate = 0.9
+    u.volume = getVolume()
+    const voices = speechSynthesis.getVoices()
+    const jaVoice = voices.find(v => v.lang.startsWith('ja'))
+    if (jaVoice) u.voice = jaVoice
+    if (opts?.onBoundary) {
+      u.onboundary = (e) => opts.onBoundary!(e.charIndex)
+    }
+    u.onend = () => {
+      opts?.onEnd?.()
+      resolve()
+    }
+    u.onerror = () => resolve()
+    speechSynthesis.speak(u)
+  })
 }
 
 export async function speakExample(text: string, opts?: SpeakOptions): Promise<void> {
@@ -49,22 +75,7 @@ export async function speakExample(text: string, opts?: SpeakOptions): Promise<v
       // Fallback to browser SpeechSynthesis with boundary events
       audioEl = null
       speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(text)
-      u.lang = 'ja-JP'
-      u.rate = 0.9
-      u.volume = getVolume()
-      const voices = speechSynthesis.getVoices()
-      const jaVoice = voices.find(v => v.lang.startsWith('ja'))
-      if (jaVoice) u.voice = jaVoice
-      if (opts?.onBoundary) {
-        u.onboundary = (e) => opts.onBoundary!(e.charIndex)
-      }
-      u.onend = () => {
-        opts?.onEnd?.()
-        resolve()
-      }
-      u.onerror = () => resolve()
-      speechSynthesis.speak(u)
+      fallbackTTS(text, opts).then(resolve)
     }
 
     audio.play().catch(() => {
@@ -72,4 +83,36 @@ export async function speakExample(text: string, opts?: SpeakOptions): Promise<v
       resolve()
     })
   })
+}
+
+export async function speakWord(audioURL: string | undefined | null, text: string, opts?: SpeakOptions): Promise<void> {
+  stopCurrent()
+
+  if (audioURL) {
+    const url = getWordAudioURL(audioURL)
+    const vol = getVolume()
+
+    return new Promise((resolve) => {
+      const audio = new Audio(url)
+      audio.volume = vol
+      audioEl = audio
+
+      audio.onended = () => {
+        audioEl = null
+        opts?.onEnd?.()
+        resolve()
+      }
+      audio.onerror = () => {
+        audioEl = null
+        fallbackTTS(text, opts).then(resolve)
+      }
+
+      audio.play().catch(() => {
+        audioEl = null
+        fallbackTTS(text, opts).then(resolve)
+      })
+    })
+  }
+
+  return fallbackTTS(text, opts)
 }

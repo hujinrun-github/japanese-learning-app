@@ -21,8 +21,8 @@ type wordImport struct {
 }
 
 // ImportWords reads a JSON array of words from r and inserts them into the
-// words table using INSERT OR IGNORE (idempotent – duplicate (kanji_form, reading)
-// pairs are silently skipped).
+// words table using INSERT ... ON CONFLICT DO UPDATE. On conflict (kanji_form, reading),
+// content fields are updated but audio_url is preserved.
 // It returns the number of rows actually inserted.
 func ImportWords(db *sql.DB, r io.Reader) (int, error) {
 	slog.Debug("ImportWords called")
@@ -83,9 +83,15 @@ func insertWords(db *sql.DB, items []wordImport) (int, error) {
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR REPLACE INTO words
-			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO words
+			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (kanji_form, reading) DO UPDATE SET
+			part_of_speech = excluded.part_of_speech,
+			meaning = excluded.meaning,
+			examples_json = excluded.examples_json,
+			jlpt_level = excluded.jlpt_level,
+			reading_type = excluded.reading_type
 	`)
 	if err != nil {
 		return 0, fmt.Errorf("cli.insertWords Prepare: %w", err)
@@ -108,6 +114,7 @@ func insertWords(db *sql.DB, items []wordImport) (int, error) {
 			string(examplesJSON),
 			w.JLPTLevel,
 			w.ReadingType,
+				"", // audio_url — preserved on conflict via ON CONFLICT DO UPDATE
 		)
 		if execErr != nil {
 			err = fmt.Errorf("cli.insertWords Exec: %w", execErr)
