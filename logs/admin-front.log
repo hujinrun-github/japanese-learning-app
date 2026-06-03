@@ -1,0 +1,30 @@
+
+> japanese-learning-admin@0.1.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 423 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: use --host to expose
+12:27:57 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
+12:27:58 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:27:58 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx
+12:27:58 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
+12:27:58 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:27:58 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx
+12:33:47 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
+12:33:48 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh (new export)
+12:33:48 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx
+12:34:22 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx
+12:34:23 AM [vite] hmr update /src/pages/Grammar/Grammar.tsx
+12:34:24 AM [vite] hmr update /src/pages/Words/Words.tsx
+12:34:26 AM [vite] hmr update /src/components/AudioRegenButton/AudioRegenButton.tsx
+12:34:56 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx
+12:34:57 AM [vite] hmr update /src/pages/Grammar/Grammar.tsx
+12:34:57 AM [vite] hmr update /src/pages/Words/Words.tsx
+12:34:58 AM [vite] hmr update /src/components/AudioRegenButton/AudioRegenButton.tsx
+12:35:38 AM [vite] hmr update /src/components/AudioRegenButton/AudioRegenButton.tsx
+12:38:05 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
+12:38:05 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:38:05 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"japanese-learning-app/internal/data"
+	"japanese-learning-app/internal/module/speaking"
 )
 
 // HandlerConfig holds all dependencies for admin handlers.
@@ -72,6 +73,8 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /api/admin/import/{module}", h.auth(h.bulkImport))
 	// Audio
 	mux.HandleFunc("POST /api/admin/audio/regen", h.auth(h.regenerateAudio))
+	// TTS defaults
+	mux.HandleFunc("GET /api/admin/tts-defaults", h.auth(h.ttsDefaults))
 	return mux
 }
 
@@ -97,6 +100,12 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func pathID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("id"), 10, 64)
+}
+
+func (h *Handler) ttsDefaults(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{
+		"tts_url": speaking.DefaultVLLMTTSURL(),
+	})
 }
 
 func queryInt(r *http.Request, key string, defaultVal int) int {

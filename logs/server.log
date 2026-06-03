@@ -1,0 +1,20 @@
+time=2026-06-03T00:15:14.046+08:00 level=INFO msg="running migrations"
+time=2026-06-03T00:15:14.047+08:00 level=INFO msg="migration applied" file=001_init.sql
+time=2026-06-03T00:15:14.047+08:00 level=INFO msg="migration skipped (already applied)" file=001b_add_reading_type.sql
+time=2026-06-03T00:15:14.068+08:00 level=INFO msg="migration applied" file=002_seed.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration applied" file=003_fix_writing_questions.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration applied" file=004_words_unique_kanji_reading.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration applied" file=005_password_reset_tokens.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration applied" file=006_notes.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration skipped (already applied)" file=007_speaking_lines.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration skipped (already applied)" file=008_grammar_records_updated_at.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration applied" file=009_translation.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration skipped (already applied)" file=009_user_jlpt_levels.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration skipped (already applied)" file=010_daily_goals.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration skipped (already applied)" file=011_add_words_audio_url.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="migration skipped (already applied)" file=012_add_updated_at_content.sql
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="all migrations completed" count=14
+time=2026-06-03T00:15:14.075+08:00 level=WARN msg="AI_API_KEY not set — using StubReviewer (no real AI feedback)"
+time=2026-06-03T00:15:14.075+08:00 level=WARN msg="AI_API_KEY not set — using StubReviewer for translation (no real AI feedback)"
+time=2026-06-03T00:15:14.075+08:00 level=WARN msg="SMTP_HOST not set — using StubMailer (reset URLs logged only)"
+time=2026-06-03T00:15:14.075+08:00 level=INFO msg="server starting" addr=:8081

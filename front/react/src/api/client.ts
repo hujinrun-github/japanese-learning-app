@@ -70,6 +70,7 @@ export async function apiFetch<T>(
     return undefined as T
   }
 
-  const json = (await res.json()) as APIResponse<T>
+  let json: APIResponse<T> = {} as APIResponse<T>
+  try { json = (await res.json()) as APIResponse<T> } catch { /* empty body */ }
   return json.data
 }

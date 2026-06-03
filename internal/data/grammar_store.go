@@ -163,7 +163,7 @@ func (s *GrammarStore) UpdatePoint(gp grammar.GrammarPoint) error {
 		return fmt.Errorf("data.GrammarStore.UpdatePoint marshal quiz: %w", err)
 	}
 	_, err = s.db.Exec(
-		"UPDATE grammar_points SET name=?, meaning=?, conjunction_rule=?, usage_note=?, examples_json=?, quiz_questions_json=?, jlpt_level=? WHERE id=?",
+		"UPDATE grammar_points SET updated_at = datetime('now'), name=?, meaning=?, conjunction_rule=?, usage_note=?, examples_json=?, quiz_questions_json=?, jlpt_level=? WHERE id=?",
 		gp.Name, gp.Meaning, gp.ConjunctionRule, gp.UsageNote, string(examplesJSON), string(quizJSON), gp.JLPTLevel, gp.ID,
 	)
 	if err != nil {
@@ -311,7 +311,7 @@ func (s *GrammarStore) ListAll(level, search string, offset, limit int) ([]gramm
 	}
 
 	query := fmt.Sprintf(
-		"SELECT id, name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level FROM grammar_points %s ORDER BY id LIMIT ? OFFSET ?",
+		"SELECT id, name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level FROM grammar_points %s ORDER BY updated_at DESC LIMIT ? OFFSET ?",
 		where,
 	)
 	args = append(args, limit, offset)
@@ -364,8 +364,8 @@ func (s *GrammarStore) InsertPoint(gp grammar.GrammarPoint) (int64, error) {
 		return 0, fmt.Errorf("data.GrammarStore.InsertPoint marshal quiz: %w", err)
 	}
 	result, err := s.db.Exec(
-		`INSERT INTO grammar_points (name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO grammar_points (name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
 		gp.Name, gp.Meaning, gp.ConjunctionRule, gp.UsageNote, string(examplesJSON), string(quizJSON), gp.JLPTLevel,
 	)
 	if err != nil {
@@ -399,7 +399,7 @@ func (s *GrammarStore) ListAllRecords(userID int64, offset, limit int) ([]gramma
 	}
 
 	var records []grammar.GrammarRecord
-	query := fmt.Sprintf("SELECT id, user_id, grammar_point_id, status, next_review_at, quiz_history_json FROM grammar_records %s ORDER BY id DESC LIMIT ? OFFSET ?", where)
+	query := fmt.Sprintf("SELECT id, user_id, grammar_point_id, status, next_review_at, quiz_history_json FROM grammar_records %s ORDER BY updated_at DESC LIMIT ? OFFSET ?", where)
 	args = append(args, limit, offset)
 	rows, err := s.db.Query(query, args...)
 	if err != nil {

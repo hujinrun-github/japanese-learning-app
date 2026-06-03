@@ -1,0 +1,43 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]: Admin Panel
+    - navigation [ref=e6]:
+      - link "Words" [ref=e7] [cursor=pointer]:
+        - /url: /words
+      - link "Grammar" [ref=e8] [cursor=pointer]:
+        - /url: /grammar
+      - link "Speaking" [ref=e9] [cursor=pointer]:
+        - /url: /speaking
+      - link "Writing" [ref=e10] [cursor=pointer]:
+        - /url: /writing
+      - link "Translation" [ref=e11] [cursor=pointer]:
+        - /url: /translation
+      - link "Users" [ref=e12] [cursor=pointer]:
+        - /url: /users
+      - link "Records" [ref=e13] [cursor=pointer]:
+        - /url: /records
+  - generic [ref=e14]:
+    - banner [ref=e15]:
+      - heading "Admin Panel" [level=1] [ref=e16]
+      - button "Logout" [ref=e17] [cursor=pointer]
+    - main [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e21]:
+          - heading "単 Words" [level=2] [ref=e22]
+          - generic [ref=e23]: 0 words
+        - generic [ref=e24]:
+          - combobox [ref=e25] [cursor=pointer]:
+            - option "All Levels" [selected]
+            - option "JLPT N5"
+            - option "JLPT N4"
+            - option "JLPT N3"
+            - option "JLPT N2"
+            - option "JLPT N1"
+          - textbox "Search kanji, reading, meaning..." [ref=e26]
+          - button "Search" [ref=e27] [cursor=pointer]
+          - button "+ Add New" [ref=e28] [cursor=pointer]
+          - generic [ref=e29] [cursor=pointer]: 📥 Import
+          - generic [ref=e30] [cursor=pointer]:
+            - checkbox "🎙 Audio" [ref=e31]
+            - text: 🎙 Audio
+        - paragraph [ref=e32]: Loading words...
