@@ -12,9 +12,9 @@ import styles from './HomePage.module.css'
 
 const MODULE_CONFIG = [
   { key: 'word',     labelKey: 'home.modules.word',     icon: '📖', to: '/words/review' },
-  { key: 'grammar',  labelKey: 'home.modules.grammar',  icon: '📝', to: '/grammar' },
-  { key: 'speaking', labelKey: 'home.modules.speaking', icon: '🎙️', to: '/speaking' },
-  { key: 'writing',  labelKey: 'home.modules.writing',  icon: '✏️', to: '/writing' },
+  { key: 'grammar',  labelKey: 'home.modules.grammar',  icon: '📐', to: '/grammar' },
+  { key: 'speaking', labelKey: 'home.modules.speaking', icon: '🎙', to: '/speaking' },
+  { key: 'writing',  labelKey: 'home.modules.writing',  icon: '✍️', to: '/writing' },
 ]
 
 const EMPTY_STATS: UserStats = {
@@ -32,38 +32,45 @@ export function HomePage() {
 
   useEffect(() => {
     let cancelled = false
-    apiFetch<UserStats>('GET', '/api/v1/users/stats').then((s) => {
-      if (!cancelled) setStats(s ?? EMPTY_STATS)
-    }).catch(() => {}).finally(() => {
-      if (!cancelled) setLoading(false)
-    })
+    apiFetch<UserStats>('GET', '/api/v1/users/stats')
+      .then(s => { if (!cancelled) setStats(s ?? EMPTY_STATS) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [])
 
   return (
     <div className={styles.page}>
-      {/* Header */}
+      {/* Hero */}
       <section className={styles.hero}>
         <div className={styles.heroLeft}>
           <p className={styles.greeting}>{t('home.greeting')}</p>
           <h1 className={styles.heroName}>{user?.name ?? t('home.guest')} さん</h1>
+          <p className={styles.heroSub}>今日も一緒に日本語を勉強しましょう ✨</p>
           <div className={styles.heroBadges}>
             <Badge level={jlptLevel} size="md" />
-            <span className={styles.streak}>🔥 {t('home.streakDays', { count: stats.streak_days })}</span>
+            {stats.streak_days > 0 && (
+              <span className={styles.streak}>
+                🔥 {t('home.streakDays', { count: stats.streak_days })}
+              </span>
+            )}
           </div>
         </div>
       </section>
 
       {/* Today's tasks */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{t('home.todaysTasks')}</h2>
+      <section>
+        <h2 className={styles.sectionTitle}>
+          <span className={styles.sectionIcon}>📋</span>
+          {t('home.todaysTasks')}
+        </h2>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-8) 0' }}>
             <Spinner size="md" />
           </div>
         ) : (
           <div className={styles.moduleGrid}>
-            {MODULE_CONFIG.map((mod) => {
+            {MODULE_CONFIG.map(mod => {
               const s = stats.modules[mod.key] ?? { due_count: 0, mastered_count: 0, total_count: 0, today_completed: 0, daily_goal: 0 }
               return (
                 <Link key={mod.key} to={mod.to} className={styles.moduleLink}>
@@ -76,13 +83,20 @@ export function HomePage() {
                       )}
                     </div>
                     <div className={styles.todayRow}>
-                      <span className={styles.todayLabel}>{t('home.todayProgress', { completed: s.today_completed, goal: s.daily_goal })}</span>
+                      <span className={styles.todayLabel}>
+                        {t('home.todayProgress', { completed: s.today_completed, goal: s.daily_goal })}
+                      </span>
                       {s.today_completed >= s.daily_goal && s.daily_goal > 0 && (
                         <span className={styles.todayDone}>✓</span>
                       )}
                     </div>
-                    <ProgressBar value={s.daily_goal > 0 ? Math.min(100, Math.round((s.today_completed / s.daily_goal) * 100)) : 0} />
-                    <ProgressBar value={s.total_count > 0 ? Math.round((s.mastered_count / s.total_count) * 100) : 0} label={t('home.mastered', { mastered: s.mastered_count, total: s.total_count })} />
+                    <ProgressBar
+                      value={s.daily_goal > 0 ? Math.min(100, Math.round((s.today_completed / s.daily_goal) * 100)) : 0}
+                    />
+                    <ProgressBar
+                      value={s.total_count > 0 ? Math.round((s.mastered_count / s.total_count) * 100) : 0}
+                      label={t('home.mastered', { mastered: s.mastered_count, total: s.total_count })}
+                    />
                   </Card>
                 </Link>
               )
@@ -91,14 +105,15 @@ export function HomePage() {
         )}
       </section>
 
-      {/* Quick tips */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{t('home.tips')}</h2>
-        <Card padding="md" className={styles.tipCard}>
-          <p className={styles.tipText}>
-            {t('home.tipText')}
-          </p>
-        </Card>
+      {/* Quick tip */}
+      <section>
+        <h2 className={styles.sectionTitle}>
+          <span className={styles.sectionIcon}>💡</span>
+          {t('home.tips')}
+        </h2>
+        <div className={styles.tipCard}>
+          <p className={styles.tipText}>{t('home.tipText')}</p>
+        </div>
       </section>
     </div>
   )

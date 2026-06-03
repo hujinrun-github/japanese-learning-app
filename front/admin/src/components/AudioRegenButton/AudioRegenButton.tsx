@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Modal from '@/components/Modal/Modal'
-import { TTSConfigFields, defaultTTSConfig, type TTSConfig } from '@/components/TTSConfigFields/TTSConfigFields'
+import { TTSConfigFields, defaultTTSConfig, getDefaultTTSConfig, type TTSConfig } from '@/components/TTSConfigFields/TTSConfigFields'
 import { sha256Hex, exampleAudioUrl } from '@/util/audioHash'
 import styles from './AudioRegenButton.module.css'
 
@@ -10,6 +10,28 @@ interface Props {
   module: 'word' | 'example'
   wordId?: number
   onRegenerated?: (newAudioUrl: string) => void
+}
+
+function speakWithBrowserTTS(text: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const synth = window.speechSynthesis
+    if (!synth) {
+      resolve(false)
+      return
+    }
+    synth.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ja-JP'
+    u.rate = 0.85
+    u.volume = 1
+    // Try to pick a Japanese voice
+    const voices = synth.getVoices()
+    const jaVoice = voices.find(v => v.lang.startsWith('ja'))
+    if (jaVoice) u.voice = jaVoice
+    u.onend = () => resolve(true)
+    u.onerror = () => resolve(false)
+    synth.speak(u)
+  })
 }
 
 export function AudioRegenButton({ text, audioUrl, module, wordId, onRegenerated }: Props) {
@@ -23,6 +45,12 @@ export function AudioRegenButton({ text, audioUrl, module, wordId, onRegenerated
   const [computedUrl, setComputedUrl] = useState<string>('')
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const errorTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const defaultConfigRef = useRef<TTSConfig>(defaultTTSConfig)
+
+  useEffect(() => { getDefaultTTSConfig().then(c => {
+    defaultConfigRef.current = c
+    setTTSConfig(c)
+  }) }, [])
 
   // Compute audio URL from text when no explicit audioUrl is provided
   useEffect(() => {
@@ -37,43 +65,69 @@ export function AudioRegenButton({ text, audioUrl, module, wordId, onRegenerated
     }
   }, [text, audioUrl, module])
 
-  function play() {
-    const url = regenResult || audioUrl || computedUrl
-    if (!url) return
-
-    // Stop current playback
+  async function play() {
+    // Stop current playback (both audio element and browser TTS)
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
     }
+    window.speechSynthesis?.cancel()
 
     if (playing) {
       setPlaying(false)
       return
     }
 
+    // If no text, nothing to play
+    if (!text) return
+
     setPlayError(false)
-    const audio = new Audio(url)
-    audio.volume = 1
-    audio.onended = () => setPlaying(false)
-    audio.onerror = () => {
+    let url = regenResult || audioUrl || computedUrl
+
+    if (url) {
+      // Try pre-generated audio file first (cache-bust to avoid stale browser cache)
+      const audio = new Audio(url + '?t=' + Date.now())
+      audio.volume = 1
+      audio.onended = () => setPlaying(false)
+      audio.onerror = async () => {
+        // Fallback to browser TTS
+        audioRef.current = null
+        const ok = await speakWithBrowserTTS(text)
+        if (!ok) {
+          setPlayError(true)
+          if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+          errorTimerRef.current = setTimeout(() => setPlayError(false), 2000)
+        }
+        setPlaying(false)
+      }
+      audio.play().catch(async () => {
+        // Fallback to browser TTS
+        audioRef.current = null
+        const ok = await speakWithBrowserTTS(text)
+        if (!ok) {
+          setPlayError(true)
+          if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+          errorTimerRef.current = setTimeout(() => setPlayError(false), 2000)
+        }
+        setPlaying(false)
+      })
+      audioRef.current = audio
+      setPlaying(true)
+    } else {
+      // No URL computed — use browser TTS directly
+      setPlaying(true)
+      const ok = await speakWithBrowserTTS(text)
+      if (!ok) {
+        setPlayError(true)
+        if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+        errorTimerRef.current = setTimeout(() => setPlayError(false), 2000)
+      }
       setPlaying(false)
-      setPlayError(true)
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
-      errorTimerRef.current = setTimeout(() => setPlayError(false), 2000)
     }
-    audio.play().catch(() => {
-      setPlaying(false)
-      setPlayError(true)
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
-      errorTimerRef.current = setTimeout(() => setPlayError(false), 2000)
-    })
-    audioRef.current = audio
-    setPlaying(true)
   }
 
   function openModal() {
-    setTTSConfig({ ...defaultTTSConfig, provider: 'sbv' })
+    setTTSConfig({ ...defaultConfigRef.current, provider: 'vllm' })
     setRegenError('')
     setRegenResult(null)
     setModalOpen(true)
@@ -84,6 +138,7 @@ export function AudioRegenButton({ text, audioUrl, module, wordId, onRegenerated
     setRegenError('')
     try {
       const token = sessionStorage.getItem('admin_token') || ''
+      console.log('[AudioRegen] Starting regen:', { text, module, wordId, provider: ttsConfig.provider })
       const res = await fetch('/api/admin/audio/regen', {
         method: 'POST',
         headers: {
@@ -105,19 +160,25 @@ export function AudioRegenButton({ text, audioUrl, module, wordId, onRegenerated
           sbv_style: ttsConfig.sbv_style,
         }),
       })
+      console.log('[AudioRegen] Response status:', res.status)
       const data = await res.json()
+      console.log('[AudioRegen] Response data:', data)
       if (!res.ok) throw new Error(data.error || 'Regenerate failed')
       const newUrl = data.audio_url
+      console.log('[AudioRegen] New audio URL:', newUrl)
       setRegenResult(newUrl)
       setPlayError(false)
       onRegenerated?.(data.filename)
       // Auto-play the new audio
       setTimeout(() => {
-        const audio = new Audio(newUrl)
-        audio.onerror = () => {}
-        audio.play().catch(() => {})
+        console.log('[AudioRegen] Auto-playing:', newUrl)
+        const audio = new Audio(newUrl + '?t=' + Date.now())
+        audio.onerror = (e) => console.error('[AudioRegen] Playback error:', e)
+        audio.onloadeddata = () => console.log('[AudioRegen] Audio loaded')
+        audio.play().then(() => console.log('[AudioRegen] Playing')).catch(e => console.error('[AudioRegen] Play failed:', e))
       }, 400)
     } catch (err) {
+      console.error('[AudioRegen] Error:', err)
       setRegenError(err instanceof Error ? err.message : 'Regenerate failed')
     } finally {
       setRegenerating(false)
@@ -125,21 +186,27 @@ export function AudioRegenButton({ text, audioUrl, module, wordId, onRegenerated
   }
 
   const effectiveUrl = regenResult || audioUrl || computedUrl
+  // Determine audio quality: DB audio > regenerated > browser TTS fallback
+  const hasDB = !!audioUrl
+  const hasRegen = !!regenResult && !hasDB // regenerated but DB not yet refreshed
+  const audioClass = hasDB ? styles.hasAudio : hasRegen ? styles.regenOk : ''
+  const playIcon = hasDB ? '🔔' : '🔊'
+  const playTitle = !text ? 'No text to speak'
+    : playing ? 'Stop'
+    : playError ? 'Playback failed'
+    : hasDB ? 'Play (HQ audio)'
+    : hasRegen ? 'Play (regenerated)'
+    : 'Play (browser TTS)'
 
   return (
     <>
       <button
-        className={`${styles.btn} ${playing ? styles.playing : ''} ${playError ? styles.error : ''}`}
+        className={`${styles.btn} ${audioClass} ${playing ? styles.playing : ''} ${playError ? styles.error : ''}`}
         onClick={play}
-        disabled={!effectiveUrl}
-        title={
-          !effectiveUrl ? 'No audio — use 🔄 to generate'
-          : playing ? 'Stop'
-          : playError ? 'Playback failed — file may not exist'
-          : 'Play'
-        }
+        disabled={!text}
+        title={playTitle}
       >
-        {playError ? '⚠️' : playing ? '⏹' : '🔊'}
+        {playError ? '⚠️' : playing ? '⏹' : playIcon}
       </button>
       <button
         className={styles.btn}

@@ -76,8 +76,8 @@ func insertGrammarPoints(db *sql.DB, items []grammarImport) (int, error) {
 
 	stmt, err := tx.Prepare(`
 		INSERT OR IGNORE INTO grammar_points
-			(name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+			(name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
 	`)
 	if err != nil {
 		return 0, fmt.Errorf("cli.insertGrammarPoints Prepare: %w", err)

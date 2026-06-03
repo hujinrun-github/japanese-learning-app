@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
@@ -255,4 +256,30 @@ func (c *StyleBertVITSClient) Synthesize(ctx context.Context, text string) ([]by
 
 	slog.Debug("StyleBertVITSClient.Synthesize done", "audio_bytes", len(audio))
 	return audio, nil
+}
+
+// DefaultVLLMTTSURL returns the default vLLM TTS endpoint URL using the eth0 IP.
+func DefaultVLLMTTSURL() string {
+	ip := getEth0IP()
+	if ip == "" {
+		ip = "127.0.0.1"
+	}
+	return fmt.Sprintf("http://%s:8091/v1/audio/speech", ip)
+}
+
+func getEth0IP() string {
+	iface, err := net.InterfaceByName("eth0")
+	if err != nil {
+		return ""
+	}
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return ""
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.To4() != nil {
+			return ipnet.IP.String()
+		}
+	}
+	return ""
 }

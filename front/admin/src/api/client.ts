@@ -17,7 +17,8 @@ export async function adminFetch<T>(method: string, path: string, body?: unknown
   }
   const res = await fetch(BASE + path, { method, headers, body: bodyInit })
   if (res.status === 204) return undefined as T
-  const json = await res.json()
-  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
+  let json: Record<string, unknown> = {}
+  try { json = await res.json() } catch { /* empty body */ }
+  if (!res.ok) throw new Error((json.error as string) || `HTTP ${res.status}`)
   return json as T
 }

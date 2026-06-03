@@ -1,0 +1,641 @@
+/* ===== Admin Panel — Shared Design System ===== */
+/* Japanese Ink aesthetic: warm paper tones, indigo accents, refined spacing */
+
+/* ---- Page shell ---- */
+.adm-page {
+  padding: 28px 32px;
+  max-width: 1280px;
+  min-height: 100%;
+  background: #fafaf7;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(79, 70, 229, 0.025) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(180, 130, 80, 0.03) 0%, transparent 60%);
+}
+
+.adm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.adm-titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.adm-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.02em;
+}
+
+.adm-count {
+  font-size: 14px;
+  color: #8b8682;
+  font-weight: 500;
+  background: #f0ede8;
+  padding: 3px 12px;
+  border-radius: 20px;
+}
+
+/* ---- Toolbar ---- */
+.adm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e8e4e0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.adm-toolbar select {
+  padding: 9px 34px 9px 14px;
+  border: 1px solid #d9d3cb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  background: #fafaf7 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b8682'/%3E%3C/svg%3E") no-repeat right 12px center;
+  appearance: none;
+  cursor: pointer;
+  color: #3d3833;
+  min-width: 120px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.adm-toolbar select:hover {
+  border-color: #b8b0a8;
+}
+
+.adm-toolbar select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.adm-toolbar input[type="text"],
+.adm-toolbar input:not([type]) {
+  padding: 9px 14px;
+  border: 1px solid #d9d3cb;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background: #fafaf7;
+  color: #3d3833;
+  flex: 1;
+  min-width: 160px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.adm-toolbar input::placeholder {
+  color: #b8b0a8;
+}
+
+.adm-toolbar input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.adm-toolbar input[type="number"] {
+  padding: 9px 14px;
+  border: 1px solid #d9d3cb;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background: #fafaf7;
+  color: #3d3833;
+  width: 140px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.adm-toolbar input[type="number"]:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.adm-btn {
+  padding: 9px 18px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  letter-spacing: 0.01em;
+}
+
+.adm-btn:hover {
+  background: #4338ca;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+.adm-btn:active {
+  transform: scale(0.97);
+}
+
+.adm-btnOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 18px;
+  background: #fff;
+  color: #4f46e5;
+  border: 1.5px solid #4f46e5;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.adm-btnOutline:hover {
+  background: #eef2ff;
+  border-color: #4338ca;
+  color: #4338ca;
+}
+
+.adm-ttsToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8b8682;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px dashed #d9d3cb;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.adm-ttsToggle:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+  background: #fafaf9;
+}
+
+.adm-ttsToggle input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+/* ---- Error & Loading ---- */
+.adm-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 0 0 14px;
+  padding: 10px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+
+.adm-loading {
+  text-align: center;
+  color: #8b8682;
+  font-size: 14px;
+  padding: 60px 0;
+  animation: admPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes admPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ---- Table ---- */
+.adm-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e8e4e0;
+}
+
+.adm-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b6560;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: #f8f6f3;
+  border-bottom: 2px solid #e8e4e0;
+  white-space: nowrap;
+}
+
+.adm-table thead th:first-child {
+  padding-left: 20px;
+}
+
+.adm-table tbody td {
+  padding: 14px 16px;
+  font-size: 13.5px;
+  color: #3d3833;
+  border-bottom: 1px solid #f0ede8;
+  vertical-align: middle;
+}
+
+.adm-table tbody td:first-child {
+  padding-left: 20px;
+}
+
+.adm-table tbody tr {
+  transition: background 0.15s;
+}
+
+.adm-table tbody tr:hover {
+  background: #fafaf8;
+}
+
+.adm-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.adm-table .adm-clickableRow {
+  cursor: pointer;
+}
+
+.adm-table .adm-clickableRow:hover {
+  background: #f0f7ff;
+}
+
+.adm-empty {
+  text-align: center;
+  color: #b8b0a8;
+  padding: 40px 24px !important;
+  font-size: 14px;
+}
+
+/* ---- Cell styles ---- */
+.adm-id {
+  font-size: 11px;
+  color: #b8b0a8;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.adm-kanji {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 0.02em;
+}
+
+.adm-reading {
+  font-size: 13px;
+  color: #5c5650;
+  font-weight: 400;
+}
+
+.adm-meaning {
+  font-size: 13px;
+  color: #4d4842;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-textCell {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #3d3833;
+}
+
+/* ---- Level Badge ---- */
+.adm-levelBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.adm-levelBadge::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.adm-lvlN5 { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.adm-lvlN5::before { background: #10b981; }
+.adm-lvlN4 { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.adm-lvlN4::before { background: #3b82f6; }
+.adm-lvlN3 { background: #fefce8; color: #854d0e; border: 1px solid #fde68a; }
+.adm-lvlN3::before { background: #eab308; }
+.adm-lvlN2 { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+.adm-lvlN2::before { background: #f97316; }
+.adm-lvlN1 { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.adm-lvlN1::before { background: #ef4444; }
+
+/* ---- Tags ---- */
+.adm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: #f4f1ec;
+  color: #6b6560;
+  letter-spacing: 0.03em;
+}
+
+.adm-tagVerb { background: #fef2f2; color: #991b1b; }
+.adm-tagNoun { background: #eff6ff; color: #1e40af; }
+.adm-tagAdj  { background: #fefce8; color: #854d0e; }
+.adm-tagAdv  { background: #f5f3ff; color: #5b21b6; }
+.adm-tagOther { background: #f4f1ec; color: #6b6560; }
+
+/* ---- Type badges ---- */
+.adm-typeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: #f4f1ec;
+  color: #6b6560;
+  letter-spacing: 0.03em;
+}
+
+/* ---- Direction badge ---- */
+.adm-dirC2J { background: #fef2f2; color: #991b1b; }
+.adm-dirJ2C { background: #eff6ff; color: #1e40af; }
+
+/* ---- Actions ---- */
+.adm-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.adm-actions > button {
+  padding: 5px 12px;
+  font-size: 12px;
+  border: 1px solid #d9d3cb;
+  border-radius: 5px;
+  background: #fff;
+  color: #5c5650;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.adm-actions > button:hover {
+  background: #f5f3f0;
+  border-color: #b8b0a8;
+  color: #3d3833;
+}
+
+.adm-btnDanger {
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}
+
+.adm-btnDanger:hover {
+  background: #fef2f2 !important;
+  border-color: #f87171 !important;
+  color: #dc2626 !important;
+}
+
+/* ---- Pagination ---- */
+.adm-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #6b6560;
+}
+
+.adm-pagination button {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #d9d3cb;
+  border-radius: 6px;
+  background: #fff;
+  color: #4f46e5;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.adm-pagination button:hover:not(:disabled) {
+  background: #eef2ff;
+  border-color: #4f46e5;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.12);
+}
+
+.adm-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: #8b8682;
+}
+
+.adm-pageInfo {
+  font-weight: 500;
+  color: #6b6560;
+}
+
+.adm-pageInfo strong {
+  color: #3d3833;
+  font-weight: 700;
+}
+
+/* ---- Form ---- */
+.adm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adm-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4d4842;
+}
+
+.adm-form input,
+.adm-form select,
+.adm-form textarea {
+  padding: 9px 14px;
+  border: 1px solid #d9d3cb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background: #fafaf7;
+  color: #3d3833;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.adm-form input:focus,
+.adm-form select:focus,
+.adm-form textarea:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.adm-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.adm-form input[type="number"] {
+  font-family: 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.adm-saveBtn {
+  align-self: flex-end;
+  padding: 10px 28px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.adm-saveBtn:hover {
+  background: #4338ca;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.adm-checkLabel {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  font-size: 13px;
+  font-weight: 400 !important;
+  color: #8b8682 !important;
+  cursor: pointer;
+}
+
+.adm-checkLabel input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+/* ---- Expanded row ---- */
+.adm-expandedRow td {
+  padding: 20px 24px !important;
+  background: #fafaf8;
+  border-bottom: 2px solid #e8e4e0;
+}
+
+.adm-statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.adm-statCard {
+  background: #fff;
+  border: 1px solid #e8e4e0;
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.adm-statCard h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4d4842;
+}
+
+.adm-statRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #8b8682;
+  margin-bottom: 4px;
+}
+
+.adm-statRow span:last-child {
+  font-weight: 600;
+  color: #3d3833;
+}
+
+.adm-streakBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+/* ---- User info pills ---- */
+.adm-userName {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.adm-userEmail {
+  font-size: 12px;
+  color: #8b8682;
+}
+
+/* ---- Level list in Users ---- */
+.adm-levelList {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ---- Date cell ---- */
+.adm-dateCell {
+  font-size: 12px;
+  color: #8b8682;
+  font-family: 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
+}

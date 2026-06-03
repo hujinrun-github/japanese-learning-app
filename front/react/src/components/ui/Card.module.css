@@ -2,7 +2,7 @@
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 
 .sm  { padding: var(--space-3); }
@@ -11,12 +11,13 @@
 
 .hoverable {
   cursor: pointer;
-  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
 .hoverable:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
 }
 
 .hoverable:active {

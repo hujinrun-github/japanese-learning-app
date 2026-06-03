@@ -1,0 +1,4 @@
+- generic [ref=e4]:
+  - heading "Admin Login" [level=1] [ref=e5]
+  - textbox "Enter admin token" [ref=e6]
+  - button "Login" [ref=e7] [cursor=pointer]

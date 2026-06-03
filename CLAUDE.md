@@ -65,3 +65,36 @@
   - 导航入口完整：桌面 TopNavBar + 移动 BottomTabBar 都有对应入口
   - 用户区域有可点击的个人/首页入口（TopNavBar 右侧）
   - 每个可操作元素有可见的图标或文字标签
+
+---
+## 7. 经验教训：可避免的问题（开发前必读）
+
+### 7.1 SQLite 操作铁律
+- **`ALTER TABLE ADD COLUMN` 不支持函数表达式作为 DEFAULT**。如 `DEFAULT (datetime('now'))` 会报错 `non-constant default`。正确做法：加可空列 `ALTER TABLE t ADD COLUMN c DATETIME`，再 `UPDATE t SET c = datetime('now') WHERE c IS NULL`
+- **多进程共享 SQLite 必须加 `PRAGMA busy_timeout = 5000`**，否则同时启动会报 `SQLITE_BUSY`。在 `OpenDB()` 中 Ping 之后、WAL 之前设置
+- `db.Exec()` 支持多语句（用 `;` 分隔），但迁移文件按文件为单位执行，一个文件内的多语句可以正常工作
+
+### 7.2 音频/文件缓存
+- **文件名 = `sha256(text)[:16].wav`**，相同文本产生相同文件名
+- **重新生成后必须绕过浏览器缓存**：播放 URL 加 `?t=Date.now()`，否则浏览器命中缓存播放旧文件
+- 前端 `crypto.subtle.digest('SHA-256')` 和 Go `sha256.Sum256()` 的 hex 编码前 16 位完全一致（前提是输入相同的 UTF-8 文本）
+
+### 7.3 TTS 配置
+- **不确定的值用文本框 + datalist，不要用下拉框**。只有 Provider（vllm/sbv）是真正的固定值。Model、Voice、Speaker、Style 都因服务器而异
+- `language="Japanese"` 已在 `NewTTSClient` 中硬编码，但 Qwen TTS 对单词输入仍会产生呼吸声 → 用 `TrimWAVSilence` 后处理裁剪
+- 默认 TTS Provider 应是 `vllm`（Qwen TTS），不要设 `sbv`（style-bert-vits2 需要额外部署），在 `openModal()` 中设置
+
+### 7.4 前端状态管理
+- React 的 `<>...</>` fragment 不支持 key，遍历时用 `<Fragment key={id}>...</Fragment>`
+- 操作有状态的按钮（如播放/停止）需要在事件中 `e.stopPropagation()`，避免触发父级行点击
+- 重新生成后先 setState 再 `onRegenerated()` 刷新列表，保证 `regenResult` 在重渲染前已设置
+
+### 7.5 用 sed 修改 Go 代码
+- Go 用 tab 缩进，sed 插入的行也需要用 tab
+- 改完后必须 `grep` 或 `cat -A` 验证：代码是否在函数内、缩进是否正确
+- **改完立即用 `go build` 验证编译**，不要等用户报错
+
+### 7.6 后端迁移/重启流程
+- 修改 Go 代码后需要重启对应服务（`make start-backend` / `make start-admin`）
+- 两个服务同时启动可能抢迁移锁 → `busy_timeout` 能解决，但最好分开启动间隔 3 秒
+- 前端代码修改无需重启，Vite HMR 自动生效

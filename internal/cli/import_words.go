@@ -84,14 +84,15 @@ func insertWords(db *sql.DB, items []wordImport) (int, error) {
 
 	stmt, err := tx.Prepare(`
 		INSERT INTO words
-			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
 		ON CONFLICT (kanji_form, reading) DO UPDATE SET
 			part_of_speech = excluded.part_of_speech,
 			meaning = excluded.meaning,
 			examples_json = excluded.examples_json,
 			jlpt_level = excluded.jlpt_level,
-			reading_type = excluded.reading_type
+			reading_type = excluded.reading_type,
+				updated_at = datetime('now')
 	`)
 	if err != nil {
 		return 0, fmt.Errorf("cli.insertWords Prepare: %w", err)

@@ -1,144 +1,32 @@
-.page {
-  padding: var(--space-4);
-  max-width: 700px;
-  margin: 0 auto;
-}
+.page { padding: var(--space-4); max-width: 700px; margin: 0 auto; }
+.header { margin-bottom: var(--space-4); }
+.title { font-size: var(--font-size-2xl); font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: var(--letter-spacing-tight); }
 
-.header {
-  margin-bottom: var(--space-4);
-}
+/* Level tabs */
+.tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); overflow-x: auto; padding-bottom: var(--space-1); }
+.tab { padding: var(--space-1) var(--space-4); border-radius: var(--radius-full); border: 1.5px solid var(--color-border); background: var(--color-bg-surface); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 600; cursor: pointer; white-space: nowrap; transition: all var(--transition-fast); }
+.tab:hover { border-color: var(--color-brand); color: var(--color-brand); }
+.tabActive { background: var(--color-n5); border-color: var(--color-n5); color: #fff; }
+.tabs .tab:nth-child(2).tabActive { background: var(--color-n4); border-color: var(--color-n4); }
+.tabs .tab:nth-child(3).tabActive { background: var(--color-n3); border-color: var(--color-n3); color: #713f12; }
+.tabs .tab:nth-child(4).tabActive { background: var(--color-n2); border-color: var(--color-n2); }
+.tabs .tab:nth-child(5).tabActive { background: var(--color-n1); border-color: var(--color-n1); }
 
-.title {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
+/* Filter */
+.filterBar { display: flex; gap: var(--space-2); margin-bottom: var(--space-5); }
+.filterBtn { flex: 1; padding: var(--space-1) var(--space-2); border: 1.5px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-surface); font-size: var(--font-size-xs); font-weight: 600; color: var(--color-text-secondary); cursor: pointer; transition: all var(--transition-fast); white-space: nowrap; }
+.filterBtn:hover { border-color: var(--color-brand); }
+.filterBtnActive { background: var(--color-brand); border-color: var(--color-brand); color: #fff; }
 
-.tabs {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
-  overflow-x: auto;
-  padding-bottom: var(--space-1);
-}
-
-.tab {
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-surface);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all var(--transition-fast);
-}
-
-.tab:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.tabActive {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
-.filterBar {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-}
-
-.filterBtn {
-  flex: 1;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-bg-surface);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.filterBtnActive {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4);
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-  width: 100%;
-}
-
-.item:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-
-.itemLeft {
-  flex: 1;
-  min-width: 0;
-}
-
-.itemName {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-1);
-}
-
-.itemMeaning {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.itemRight {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-  margin-left: var(--space-3);
-}
-
-.quizFailBadge {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
-  background: #fff5f5;
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-  line-height: 1.2;
-}
-
-.arrow {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-lg);
-}
+/* List */
+.list { display: flex; flex-direction: column; gap: var(--space-3); }
+.item { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); cursor: pointer; transition: all var(--transition-base); text-align: left; width: 100%; }
+.item:hover { border-color: var(--color-brand); box-shadow: var(--shadow-md); transform: translateX(3px); }
+.item:active { transform: translateX(0); }
+.itemLeft { flex: 1; min-width: 0; }
+.itemName { font-size: var(--font-size-lg); font-weight: 700; color: var(--color-text); margin-bottom: var(--space-1); }
+.itemMeaning { font-size: var(--font-size-sm); color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.itemRight { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; margin-left: var(--space-3); }
+.quizFailBadge { font-size: var(--font-size-xs); font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); background: var(--color-error-light); color: var(--color-error); border: 1px solid rgba(220,38,38,0.2); }
+.arrow { color: var(--color-text-muted); font-size: var(--font-size-xl); transition: transform var(--transition-fast); }
+.item:hover .arrow { transform: translateX(3px); color: var(--color-brand); }
