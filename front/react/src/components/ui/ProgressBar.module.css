@@ -7,7 +7,7 @@
 
 .label {
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .track {
@@ -21,9 +21,24 @@
 .fill {
   height: 100%;
   border-radius: var(--radius-full);
-  transition: width var(--transition-slow);
+  transition: width 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
 }
 
-.high { background-color: var(--color-success); }
-.mid  { background-color: var(--color-warning); }
-.low  { background-color: var(--color-error); }
+/* Shine effect */
+.fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shine 2s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.high { background: var(--color-success); }
+.mid  { background: var(--color-warning); }
+.low  { background: var(--color-error); }

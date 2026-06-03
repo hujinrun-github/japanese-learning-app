@@ -10,9 +10,14 @@
   width: 100%;
   margin: 0 auto;
   padding: var(--space-6) var(--space-4);
+  animation: fadeSlideIn var(--transition-base) ease-out both;
 }
 
-/* Mobile: leave room for bottom tab bar */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 767px) {
   .main {
     padding-bottom: calc(var(--height-bottomtab) + var(--space-4));

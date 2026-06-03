@@ -1,0 +1,19 @@
+2026/06/03 00:43:37 INFO running migrations
+2026/06/03 00:43:37 INFO migration applied file=001_init.sql
+2026/06/03 00:43:37 INFO migration skipped (already applied) file=001b_add_reading_type.sql
+2026/06/03 00:43:37 INFO migration applied file=002_seed.sql
+2026/06/03 00:43:37 INFO migration applied file=003_fix_writing_questions.sql
+2026/06/03 00:43:37 INFO migration applied file=004_words_unique_kanji_reading.sql
+2026/06/03 00:43:37 INFO migration applied file=005_password_reset_tokens.sql
+2026/06/03 00:43:37 INFO migration applied file=006_notes.sql
+2026/06/03 00:43:37 INFO migration skipped (already applied) file=007_speaking_lines.sql
+2026/06/03 00:43:37 INFO migration skipped (already applied) file=008_grammar_records_updated_at.sql
+2026/06/03 00:43:37 INFO migration applied file=009_translation.sql
+2026/06/03 00:43:37 INFO migration skipped (already applied) file=009_user_jlpt_levels.sql
+2026/06/03 00:43:37 INFO migration skipped (already applied) file=010_daily_goals.sql
+2026/06/03 00:43:37 INFO migration skipped (already applied) file=011_add_words_audio_url.sql
+2026/06/03 00:43:37 INFO migration skipped (already applied) file=012_add_updated_at_content.sql
+2026/06/03 00:43:37 INFO all migrations completed count=14
+2026/06/03 00:43:37 INFO admin server starting addr=:8082
+2026/06/03 00:43:37 ERROR server error err="listen tcp :8082: bind: address already in use"
+exit status 1

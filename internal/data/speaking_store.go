@@ -179,7 +179,7 @@ func (s *SpeakingStore) GetMaterialByID(id int64) (*speaking.SpeakingMaterial, e
 func (s *SpeakingStore) UpdateMaterial(m speaking.SpeakingMaterial) error {
 	slog.Debug("SpeakingStore.UpdateMaterial called", "id", m.ID)
 	_, err := s.db.Exec(
-		"UPDATE speaking_materials SET type=?, title=?, text=?, audio_url=?, jlpt_level=? WHERE id=?",
+		"UPDATE speaking_materials SET type=?, title=?, text=?, audio_url=?, jlpt_level=?, updated_at=datetime('now') WHERE id=?",
 		m.Type, m.Title, m.Text, m.AudioURL, m.JLPTLevel, m.ID,
 	)
 	if err != nil {
@@ -211,7 +211,7 @@ func (s *SpeakingStore) ListAll(practiceType, level string, offset, limit int) (
 	}
 
 	query := fmt.Sprintf(
-		"SELECT id, type, title, text, audio_url, jlpt_level FROM speaking_materials %s ORDER BY id LIMIT ? OFFSET ?",
+		"SELECT id, type, title, text, audio_url, jlpt_level FROM speaking_materials %s ORDER BY updated_at DESC LIMIT ? OFFSET ?",
 		where,
 	)
 	args = append(args, limit, offset)
@@ -244,8 +244,8 @@ func (s *SpeakingStore) ListAll(practiceType, level string, offset, limit int) (
 func (s *SpeakingStore) InsertMaterial(m speaking.SpeakingMaterial) (int64, error) {
 	slog.Debug("SpeakingStore.InsertMaterial called", "title", m.Title)
 	result, err := s.db.Exec(
-		`INSERT INTO speaking_materials (type, title, text, audio_url, jlpt_level)
-		 VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO speaking_materials (type, title, text, audio_url, jlpt_level, updated_at)
+		 VALUES (?, ?, ?, ?, ?, datetime('now'))`,
 		m.Type, m.Title, m.Text, m.AudioURL, m.JLPTLevel,
 	)
 	if err != nil {

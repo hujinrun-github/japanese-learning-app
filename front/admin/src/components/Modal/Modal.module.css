@@ -11,8 +11,8 @@
 .card {
   background: #fff;
   border-radius: 8px;
-  min-width: 400px;
-  max-width: 90vw;
+  min-width: 420px;
+  max-width: 560px;
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);

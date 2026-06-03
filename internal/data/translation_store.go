@@ -24,7 +24,7 @@ func (s *TranslationStore) SaveSource(src translation.TranslationSource) (int64,
 
 	result, err := s.db.Exec(
 		`INSERT INTO translation_sources (title, source_type, source_url, api_endpoint, raw_content)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?, ?, datetime('now'))`,
 		src.Title, src.SourceType, src.SourceURL, src.APIEndpoint, src.RawContent,
 	)
 	if err != nil {
@@ -44,8 +44,8 @@ func (s *TranslationStore) SaveSentence(sent translation.TranslationSentence) (i
 	slog.Debug("TranslationStore.SaveSentence called", "source_id", sent.SourceID, "direction", sent.Direction)
 
 	result, err := s.db.Exec(
-		`INSERT INTO translation_sentences (source_id, direction, source_text, reference_translation, position)
-		 VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO translation_sentences (source_id, direction, source_text, reference_translation, position, updated_at)
+		 VALUES (?, ?, ?, ?, ?, datetime('now'))`,
 		sent.SourceID, sent.Direction, sent.SourceText, sent.ReferenceTranslation, sent.Position,
 	)
 	if err != nil {
@@ -359,7 +359,7 @@ func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationR
 func (s *TranslationStore) UpdateSentence(sent translation.TranslationSentence) error {
 	slog.Debug("TranslationStore.UpdateSentence called", "id", sent.ID)
 	_, err := s.db.Exec(
-		`UPDATE translation_sentences SET source_id=?, direction=?, source_text=?, reference_translation=?, position=? WHERE id=?`,
+		`UPDATE translation_sentences SET source_id=?, direction=?, source_text=?, reference_translation=?, position=?, updated_at = datetime('now') WHERE id=?`,
 		sent.SourceID, sent.Direction, sent.SourceText, sent.ReferenceTranslation, sent.Position, sent.ID,
 	)
 	if err != nil {
@@ -422,7 +422,7 @@ func (s *TranslationStore) ListAllSentences(sourceID int64, direction string, of
 		return nil, 0, fmt.Errorf("data.TranslationStore.ListAllSentences count: %w", err)
 	}
 
-	query := fmt.Sprintf("SELECT id, source_id, direction, source_text, reference_translation, position FROM translation_sentences %s ORDER BY id LIMIT ? OFFSET ?", where)
+	query := fmt.Sprintf("SELECT id, source_id, direction, source_text, reference_translation, position FROM translation_sentences %s ORDER BY updated_at DESC LIMIT ? OFFSET ?", where)
 	args = append(args, limit, offset)
 	rows, err := s.db.Query(query, args...)
 	if err != nil {

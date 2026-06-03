@@ -239,7 +239,7 @@ func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit i
 	}
 
 	query := fmt.Sprintf(
-		"SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url FROM words %s ORDER BY id LIMIT ? OFFSET ?",
+		"SELECT id, kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url FROM words %s ORDER BY updated_at DESC LIMIT ? OFFSET ?",
 		where,
 	)
 	args = append(args, limit, offset)
@@ -282,8 +282,8 @@ func (s *WordStore) InsertWord(w word.Word) (int64, error) {
 		return 0, fmt.Errorf("data.WordStore.InsertWord marshal examples: %w", err)
 	}
 	result, err := s.db.Exec(
-		`INSERT INTO words (kanji_form, reading, part_of_speech, meaning, jlpt_level, examples_json, reading_type, audio_url)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO words (kanji_form, reading, part_of_speech, meaning, jlpt_level, examples_json, reading_type, audio_url, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
 		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType, w.AudioURL,
 	)
 	if err != nil {
@@ -308,7 +308,7 @@ func (s *WordStore) UpdateWord(w word.Word) error {
 		return fmt.Errorf("data.WordStore.UpdateWord marshal examples: %w", err)
 	}
 	_, err = s.db.Exec(
-		`UPDATE words SET kanji_form=?, reading=?, part_of_speech=?, meaning=?, jlpt_level=?, examples_json=?, reading_type=?, audio_url=? WHERE id=?`,
+		`UPDATE words SET kanji_form=?, reading=?, part_of_speech=?, meaning=?, jlpt_level=?, examples_json=?, reading_type=?, audio_url=?, updated_at=datetime('now') WHERE id=?`,
 		w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, string(examplesJSON), w.ReadingType, w.AudioURL, w.ID,
 	)
 	if err != nil {

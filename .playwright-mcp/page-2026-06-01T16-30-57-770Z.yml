@@ -1,0 +1,64 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: 🎌
+      - generic [ref=e7]: Admin Panel
+      - generic [ref=e8]: 日本語学習
+    - navigation [ref=e9]:
+      - link "📝 Words" [ref=e10] [cursor=pointer]:
+        - /url: /words
+        - generic [ref=e11]: 📝
+        - generic [ref=e12]: Words
+      - link "📐 Grammar" [ref=e13] [cursor=pointer]:
+        - /url: /grammar
+        - generic [ref=e14]: 📐
+        - generic [ref=e15]: Grammar
+      - link "🎙 Speaking" [ref=e16] [cursor=pointer]:
+        - /url: /speaking
+        - generic [ref=e17]: 🎙
+        - generic [ref=e18]: Speaking
+      - link "✍️ Writing" [ref=e19] [cursor=pointer]:
+        - /url: /writing
+        - generic [ref=e20]: ✍️
+        - generic [ref=e21]: Writing
+      - link "🔄 Translation" [ref=e22] [cursor=pointer]:
+        - /url: /translation
+        - generic [ref=e23]: 🔄
+        - generic [ref=e24]: Translation
+      - link "👥 Users" [ref=e25] [cursor=pointer]:
+        - /url: /users
+        - generic [ref=e26]: 👥
+        - generic [ref=e27]: Users
+      - link "📋 Records" [ref=e28] [cursor=pointer]:
+        - /url: /records
+        - generic [ref=e29]: 📋
+        - generic [ref=e30]: Records
+    - generic [ref=e31]: v0.1 · admin
+  - generic [ref=e32]:
+    - banner [ref=e33]:
+      - generic [ref=e34]:
+        - button "◁" [ref=e35] [cursor=pointer]
+        - heading "Admin Panel" [level=1] [ref=e36]
+        - generic [ref=e37]: / Japanese Learning
+      - button "Logout" [ref=e38] [cursor=pointer]
+    - main [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e42]:
+          - heading "単 Words" [level=2] [ref=e43]
+          - generic [ref=e44]: 0 words
+        - generic [ref=e45]:
+          - combobox [ref=e46] [cursor=pointer]:
+            - option "All Levels" [selected]
+            - option "JLPT N5"
+            - option "JLPT N4"
+            - option "JLPT N3"
+            - option "JLPT N2"
+            - option "JLPT N1"
+          - textbox "Search kanji, reading, meaning..." [ref=e47]
+          - button "Search" [ref=e48] [cursor=pointer]
+          - button "+ Add New" [ref=e49] [cursor=pointer]
+          - generic [ref=e50] [cursor=pointer]: 📥 Import
+          - generic [ref=e51] [cursor=pointer]:
+            - checkbox "🎙 Audio" [ref=e52]
+            - text: 🎙 Audio
+        - paragraph [ref=e53]: Loading words...

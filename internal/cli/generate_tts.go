@@ -94,6 +94,8 @@ func GenerateWordAudio(db *sql.DB, client speaking.TTSSynthesizer, outDir, level
 			continue
 		}
 
+			audio = TrimWAVSilence(audio, 0.06)
+
 		if writeErr := os.WriteFile(path, audio, 0644); writeErr != nil {
 			slog.Error("failed to write audio file", "path", path, "err", writeErr)
 			continue
@@ -113,14 +115,14 @@ func GenerateWordAudio(db *sql.DB, client speaking.TTSSynthesizer, outDir, level
 func runGenerateWordAudio(args []string) int {
 	fs := flag.NewFlagSet("generate-word-audio", flag.ContinueOnError)
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
-	ttsURL := fs.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	outDir := fs.String("out", "./data/audio/words", "output directory for audio files")
 	dryRun := fs.Bool("dry-run", false, "only print what would be generated, don't generate")
 	level := fs.String("level", "", "only generate for specified JLPT level (N5/N4/N3/N2/N1)")
 	force := fs.Bool("force", false, "regenerate even if audio file already exists")
 	voice := fs.String("voice", "ono_anna", "TTS voice name")
-	instructions := fs.String("instructions", "標準語で、ゆっくり、はっきり発音してください。単語のあとに少し間を空けてください。", "TTS style instructions (e.g. emotion, speed, tone)")
+	instructions := fs.String("instructions", "Pronounce only the exact given word, in isolation. No extra sounds, no prefix, no suffix. Clean single-word pronunciation.", "TTS style instructions (e.g. emotion, speed, tone)")
 
 	// style-bert-vits2 flags
 	sbvBaseURL := fs.String("sbv-url", "http://127.0.0.1:7862", "style-bert-vits2 FastAPI server URL")
