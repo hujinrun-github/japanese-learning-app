@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"japanese-learning-app/internal/data"
+	"japanese-learning-app/internal/module/speaking"
 )
 
 // Run is the entry point for the CLI. It parses os.Args and dispatches to the
@@ -67,7 +68,7 @@ func runImportWords(args []string) int {
 
 	// TTS generation flags
 	genAudio := fs.String("generate-audio", "", "auto-generate audio after import: vllm, sbv")
-	ttsURL := fs.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	voice := fs.String("voice", "ono_anna", "TTS voice name")
 	instructions := fs.String("instructions", "標準語で、ゆっくり、はっきり発音してください。単語のあとに少し間を空けてください。", "TTS style instructions")
@@ -141,7 +142,7 @@ func runImportGrammar(args []string) int {
 
 	// TTS generation flags (shared with import-words)
 	genAudio := fs.String("generate-audio", "", "auto-generate audio for example sentences after import: vllm, sbv")
-	ttsURL := fs.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	voice := fs.String("voice", "ono_anna", "TTS voice name")
 	instructions := fs.String("instructions", "標準語で、ゆっくり、はっきり発音してください。", "TTS style instructions")
@@ -287,7 +288,7 @@ func runImportSpeaking(args []string) int {
 
 	// TTS generation flags (shared with other import commands)
 	genAudio := fs.String("generate-audio", "", "auto-generate audio for speaking text after import: vllm, sbv")
-	ttsURL := fs.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	voice := fs.String("voice", "ono_anna", "TTS voice name")
 	instructions := fs.String("instructions", "標準語で、ゆっくり、はっきり発音してください。", "TTS style instructions")

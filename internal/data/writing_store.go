@@ -160,7 +160,7 @@ func (s *WritingStore) ListRecords(userID int64) ([]writing.WritingRecord, error
 func (s *WritingStore) UpdateQuestion(q writing.WritingQuestion) error {
 	slog.Debug("WritingStore.UpdateQuestion called", "id", q.ID)
 	_, err := s.db.Exec(
-		"UPDATE writing_questions SET type=?, prompt=?, expected_answer=?, grammar_point_id=?, jlpt_level=? WHERE id=?",
+		"UPDATE writing_questions SET type=?, prompt=?, expected_answer=?, grammar_point_id=?, jlpt_level=?, updated_at = datetime('now') WHERE id=?",
 		q.Type, q.Prompt, q.ExpectedAnswer, q.GrammarPointID, q.JLPTLevel, q.ID,
 	)
 	if err != nil {
@@ -236,8 +236,8 @@ func (s *WritingStore) ListAllRecords(userID int64, offset, limit int) ([]writin
 func (s *WritingStore) InsertQuestion(q writing.WritingQuestion) (int64, error) {
 	slog.Debug("WritingStore.InsertQuestion called", "type", q.Type, "jlpt_level", q.JLPTLevel)
 	result, err := s.db.Exec(
-		`INSERT INTO writing_questions (type, prompt, expected_answer, grammar_point_id, jlpt_level)
-		 VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO writing_questions (type, prompt, expected_answer, grammar_point_id, jlpt_level, updated_at)
+		 VALUES (?, ?, ?, ?, ?, datetime('now'))`,
 		q.Type, q.Prompt, q.ExpectedAnswer, q.GrammarPointID, q.JLPTLevel,
 	)
 	if err != nil {
@@ -271,7 +271,7 @@ func (s *WritingStore) ListAllQuestions(level, qtype string, offset, limit int) 
 		return nil, 0, fmt.Errorf("data.WritingStore.ListAllQuestions count: %w", err)
 	}
 
-	query := fmt.Sprintf("SELECT id, type, prompt, grammar_point_id, jlpt_level, expected_answer FROM writing_questions %s ORDER BY id LIMIT ? OFFSET ?", where)
+	query := fmt.Sprintf("SELECT id, type, prompt, grammar_point_id, jlpt_level, expected_answer FROM writing_questions %s ORDER BY updated_at DESC LIMIT ? OFFSET ?", where)
 	args = append(args, limit, offset)
 	rows, err := s.db.Query(query, args...)
 	if err != nil {

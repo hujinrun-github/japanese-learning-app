@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"net"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -30,7 +31,7 @@ type ttsItem struct {
 
 func main() {
 	dbPath := flag.String("db", "./data/app.db", "path to SQLite database")
-	ttsURL := flag.String("tts-url", "http://192.168.1.16:8091/v1/audio/speech", "vLLM TTS endpoint URL")
+	ttsURL := flag.String("tts-url", defaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := flag.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	outDir := flag.String("out", "./data/audio/examples", "output directory for audio files")
 	dryRun := flag.Bool("dry-run", false, "only print sentences, don't generate audio")
@@ -196,6 +197,31 @@ func synthesize(client *http.Client, url, model, text string) ([]byte, error) {
 		return nil, fmt.Errorf("empty response")
 	}
 	return audio, nil
+}
+
+func defaultVLLMTTSURL() string {
+	ip := getEth0IP()
+	if ip == "" {
+		ip = "127.0.0.1"
+	}
+	return fmt.Sprintf("http://%s:8091/v1/audio/speech", ip)
+}
+
+func getEth0IP() string {
+	iface, err := net.InterfaceByName("eth0")
+	if err != nil {
+		return ""
+	}
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return ""
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.To4() != nil {
+			return ipnet.IP.String()
+		}
+	}
+	return ""
 }
 
 func truncate(s string, n int) string {

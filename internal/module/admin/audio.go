@@ -80,6 +80,10 @@ func (h *Handler) regenerateAudio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := filepath.Join(outDir, filename)
+		// Trim leading/trailing silence for word audio
+		if req.Module == "word" {
+			audio = cli.TrimWAVSilence(audio, 0.06)
+		}
 	if err := os.WriteFile(path, audio, 0644); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "write file failed: " + err.Error()})
 		return

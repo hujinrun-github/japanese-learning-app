@@ -1,0 +1,25 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: 🇯🇵
+    - heading "日本语学习" [level=1] [ref=e7]
+    - paragraph [ref=e8]: 登录
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]: 邮箱地址
+      - textbox "邮箱地址" [ref=e12]:
+        - /placeholder: example@mail.com
+    - generic [ref=e13]:
+      - generic [ref=e14]: 密码
+      - generic [ref=e15]:
+        - textbox "密码" [ref=e16]:
+          - /placeholder: ••••••••
+        - button "显示密码" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+    - button "登录" [ref=e21] [cursor=pointer]
+    - paragraph [ref=e22]:
+      - link "忘记密码？" [ref=e23] [cursor=pointer]:
+        - /url: /forgot-password
+  - paragraph [ref=e24]:
+    - text: 没有账号？
+    - link "新规注册" [ref=e25] [cursor=pointer]:
+      - /url: /register

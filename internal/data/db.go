@@ -16,6 +16,7 @@ import (
 //go:embed migrations/*.sql
 var migrationFS embed.FS
 
+
 // OpenDB 打开（或创建）SQLite 数据库，并启用 WAL 模式和外键约束。
 // path 可以是磁盘文件路径，也可以是 ":memory:" 用于测试。
 func OpenDB(path string) (*sql.DB, error) {
@@ -31,6 +32,12 @@ func OpenDB(path string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		slog.Error("failed to ping database", "err", err, "path", path)
 		return nil, fmt.Errorf("data.OpenDB ping: %w", err)
+	}
+
+	// Set busy_timeout to wait for locks instead of failing with SQLITE_BUSY
+	if _, err := db.Exec(`PRAGMA busy_timeout = 5000`); err != nil {
+		slog.Error("failed to set busy_timeout", "err", err)
+		return nil, fmt.Errorf("data.OpenDB busy_timeout: %w", err)
 	}
 
 	// 启用 WAL 模式（提升并发读性能）
@@ -65,7 +72,7 @@ func RunMigrations(db *sql.DB) error {
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
 			names = append(names, e.Name())
-		}
+	}
 	}
 	sort.Strings(names)
 
@@ -75,7 +82,7 @@ func RunMigrations(db *sql.DB) error {
 		if err != nil {
 			slog.Error("failed to read migration file", "err", err, "file", name)
 			return fmt.Errorf("data.RunMigrations read %s: %w", name, err)
-		}
+	}
 
 		slog.Debug("applying migration", "file", name)
 		if _, err := db.Exec(string(content)); err != nil {
@@ -87,7 +94,7 @@ func RunMigrations(db *sql.DB) error {
 			}
 			slog.Error("failed to apply migration", "err", err, "file", name)
 			return fmt.Errorf("data.RunMigrations exec %s: %w", name, err)
-		}
+	}
 		slog.Info("migration applied", "file", name)
 	}
 

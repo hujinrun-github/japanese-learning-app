@@ -447,7 +447,7 @@ func (s *UserStore) ListAllUsers(offset, limit int) ([]user.User, int, error) {
 	}
 
 	rows, err := s.db.Query(
-		`SELECT id, name, email, jlpt_levels, streak_days, created_at FROM users ORDER BY id LIMIT ? OFFSET ?`,
+		`SELECT id, name, email, jlpt_levels, streak_days, created_at FROM users ORDER BY id DESC LIMIT ? OFFSET ?`,
 		limit, offset,
 	)
 	if err != nil {
