@@ -24,7 +24,7 @@ func (s *TranslationStore) SaveSource(src translation.TranslationSource) (int64,
 
 	result, err := s.db.Exec(
 		`INSERT INTO translation_sources (title, source_type, source_url, api_endpoint, raw_content)
-		 VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+		 VALUES (?, ?, ?, ?, ?)`,
 		src.Title, src.SourceType, src.SourceURL, src.APIEndpoint, src.RawContent,
 	)
 	if err != nil {

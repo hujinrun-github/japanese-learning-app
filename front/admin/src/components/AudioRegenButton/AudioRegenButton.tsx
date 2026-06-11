@@ -185,7 +185,6 @@ export function AudioRegenButton({ text, audioUrl, module, wordId, onRegenerated
     }
   }
 
-  const effectiveUrl = regenResult || audioUrl || computedUrl
   // Determine audio quality: DB audio > regenerated > browser TTS fallback
   const hasDB = !!audioUrl
   const hasRegen = !!regenResult && !hasDB // regenerated but DB not yet refreshed

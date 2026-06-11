@@ -1,0 +1,10 @@
+Re-optimizing dependencies because lockfile has changed
+
+  VITE v5.4.21  ready in 361 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+01:59:25 [vite] hmr update /src/pages/home/HomePage.tsx
+23:58:28 [vite] hmr update /src/pages/home/HomePage.tsx
+23:58:36 [vite] hmr update /src/pages/home/HomePage.tsx
+10:22:33 [vite] hmr update /src/App.tsx
+10:28:24 [vite] hmr update /src/App.tsx

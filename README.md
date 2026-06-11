@@ -67,9 +67,9 @@ go build -o ./server ./backend/cmd/server/
 | `--file` | (必填) | JSON 文件路径，文件内容为单词对象数组 |
 | `--db` | `./data/app.db` | SQLite 数据库路径 |
 | `--auto-fill` | `false` | 使用 kagome 形态分析自动填充缺失字段 |
-| `--generate-audio` | `""` | 导入后自动生成单词语音：`vllm` 或 `sbv` |
+| `--generate-audio` | `""` | 导入后自动生成单词语音：`vllm`、`sbv` 或 `gradio` |
 | `--provider` | `vllm` | TTS provider（与 `--generate-audio` 配合使用） |
-| `--tts-url` | `http://...` | vLLM TTS 端点 |
+| `--tts-url` | `http://...` | vLLM TTS 端点；`gradio` 时填写 Gradio 根地址 |
 | `--tts-model` | `Qwen/...` | TTS 模型名 |
 | `--voice` | `ono_anna` | 语音名称 |
 | `--sbv-url` | `http://127.0.0.1:7862` | style-bert-vits2 服务地址 |
@@ -142,11 +142,33 @@ npm run dev      # http://localhost:5173，/api 代理至 :8080
 | `JWT_SECRET` | `change-me-in-production` | 生产环境必须修改 |
 | `LOG_LEVEL` | `INFO` | DEBUG / INFO / WARN / ERROR |
 | `AI_API_KEY` | `""` | Claude API 密钥（空则使用 Stub 评分） |
+| `RESEND_API_KEY` | `""` | Resend API Key；设置后密码重置邮件优先通过 Resend SMTP 发送 |
+| `RESEND_FROM` | `""` | Resend 发件地址，如 `noreply@example.com`；为空时使用 `SMTP_FROM` |
 | `SMTP_HOST` | `""` | SMTP 服务器（密码重置邮件，空则使用 Stub） |
+| `SMTP_PORT` | `587` | SMTP 端口 |
+| `SMTP_USER` | `""` | SMTP 用户名 |
+| `SMTP_PASS` | `""` | SMTP 密码 |
+| `SMTP_FROM` | `noreply@japanese-learning.app` | SMTP 发件地址 |
+| `APP_BASE_URL` | `http://localhost:5173` | 密码重置链接前缀 |
+
+#### Resend 密码重置邮件
+
+本项目支持用 Resend 的免费额度发送真实密码重置邮件。先在 Resend 验证你的域名，并把 `RESEND_FROM` 设置为已验证域名下的发件地址。
+
+PowerShell 示例：
+
+```powershell
+$env:RESEND_API_KEY="re_xxx"
+$env:RESEND_FROM="noreply@your-domain.com"
+$env:APP_BASE_URL="http://localhost:5173"
+make run
+```
+
+设置 `RESEND_API_KEY` 后会优先使用 Resend SMTP；如果没有设置 Resend，但设置了 `SMTP_HOST`，则使用通用 SMTP；两者都没有设置时，后端会使用 `StubMailer`，只把重置链接打印到日志。
 
 ### TTS 语音合成
 
-支持两种 TTS 后端，通过 `--provider` 参数切换。
+支持三种 TTS 后端，通过 `--provider` 参数切换。
 
 #### 方案 A：Qwen3-TTS（vLLM）
 
@@ -229,7 +251,21 @@ go run ./backend/cmd/server/ generate-word-audio \
   --sbv-style=Happy
 ```
 
-**通用选项（两个 provider 都支持）：**
+#### 方案 C：Gradio `/run_instruct`
+
+适合接入暴露了 `http://127.0.0.1:8000/gradio_api/info` 的 Gradio TTS 模型。当前适配 `/run_instruct`，字段为 `text`、`lang_disp`、`spk_disp`、`instruct`。
+
+**生成单词语音：**
+
+```bash
+go run ./backend/cmd/server/ generate-word-audio \
+  --provider=gradio \
+  --tts-url=http://127.0.0.1:8000 \
+  --voice=Vivian \
+  --instructions="標準語で、自然にはっきり発音してください。"
+```
+
+**通用选项（三个 provider 都支持）：**
 
 | 选项 | 说明 |
 |---|---|

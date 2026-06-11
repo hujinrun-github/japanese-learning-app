@@ -67,7 +67,7 @@ func runImportWords(args []string) int {
 	autoFill := fs.Bool("auto-fill", false, "use kagome morphological analyzer to fill missing reading/part_of_speech/reading_type")
 
 	// TTS generation flags
-	genAudio := fs.String("generate-audio", "", "auto-generate audio after import: vllm, sbv")
+	genAudio := fs.String("generate-audio", "", "auto-generate audio after import: vllm, sbv, gradio")
 	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	voice := fs.String("voice", "ono_anna", "TTS voice name")
@@ -141,7 +141,7 @@ func runImportGrammar(args []string) int {
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
 
 	// TTS generation flags (shared with import-words)
-	genAudio := fs.String("generate-audio", "", "auto-generate audio for example sentences after import: vllm, sbv")
+	genAudio := fs.String("generate-audio", "", "auto-generate audio for example sentences after import: vllm, sbv, gradio")
 	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	voice := fs.String("voice", "ono_anna", "TTS voice name")
@@ -287,7 +287,7 @@ func runImportSpeaking(args []string) int {
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
 
 	// TTS generation flags (shared with other import commands)
-	genAudio := fs.String("generate-audio", "", "auto-generate audio for speaking text after import: vllm, sbv")
+	genAudio := fs.String("generate-audio", "", "auto-generate audio for speaking text after import: vllm, sbv, gradio")
 	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	voice := fs.String("voice", "ono_anna", "TTS voice name")

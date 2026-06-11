@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
-	"path/filepath"
+	"path"
 	"sort"
 	"strings"
 
@@ -15,7 +15,6 @@ import (
 
 //go:embed migrations/*.sql
 var migrationFS embed.FS
-
 
 // OpenDB 打开（或创建）SQLite 数据库，并启用 WAL 模式和外键约束。
 // path 可以是磁盘文件路径，也可以是 ":memory:" 用于测试。
@@ -72,32 +71,67 @@ func RunMigrations(db *sql.DB) error {
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
 			names = append(names, e.Name())
-	}
+		}
 	}
 	sort.Strings(names)
 
 	for _, name := range names {
-		fpath := filepath.Join("migrations", name)
+		fpath := path.Join("migrations", name)
 		content, err := migrationFS.ReadFile(fpath)
 		if err != nil {
 			slog.Error("failed to read migration file", "err", err, "file", name)
 			return fmt.Errorf("data.RunMigrations read %s: %w", name, err)
-	}
+		}
 
 		slog.Debug("applying migration", "file", name)
 		if _, err := db.Exec(string(content)); err != nil {
 			// ALTER TABLE ADD COLUMN is not idempotent in SQLite;
-			// treat "duplicate column name" as a no-op success.
+			// treat a duplicate column statement as a no-op, but still
+			// continue later statements in the same migration file.
 			if strings.Contains(err.Error(), "duplicate column name") {
-				slog.Info("migration skipped (already applied)", "file", name)
-				continue
+				if err := runDuplicateTolerantMigration(db, string(content), name); err != nil {
+					return err
+				}
+				slog.Info("migration applied with duplicate columns skipped", "file", name)
+			} else {
+				slog.Error("failed to apply migration", "err", err, "file", name)
+				return fmt.Errorf("data.RunMigrations exec %s: %w", name, err)
 			}
-			slog.Error("failed to apply migration", "err", err, "file", name)
-			return fmt.Errorf("data.RunMigrations exec %s: %w", name, err)
-	}
-		slog.Info("migration applied", "file", name)
+		} else {
+			slog.Info("migration applied", "file", name)
+		}
 	}
 
 	slog.Info("all migrations completed", "count", len(names))
 	return nil
+}
+
+func runDuplicateTolerantMigration(db *sql.DB, content, name string) error {
+	for _, stmt := range strings.Split(stripSQLLineComments(content), ";") {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := db.Exec(stmt); err != nil {
+			if strings.Contains(err.Error(), "duplicate column name") {
+				slog.Info("migration statement skipped (already applied)", "file", name)
+				continue
+			}
+			slog.Error("failed to apply migration statement", "err", err, "file", name)
+			return fmt.Errorf("data.RunMigrations exec statement in %s: %w", name, err)
+		}
+	}
+	return nil
+}
+
+func stripSQLLineComments(content string) string {
+	var sb strings.Builder
+	for _, line := range strings.Split(content, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "--") {
+			continue
+		}
+		sb.WriteString(line)
+		sb.WriteByte('\n')
+	}
+	return sb.String()
 }
