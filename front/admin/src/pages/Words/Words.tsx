@@ -3,6 +3,7 @@ import { adminFetch } from '@/api/client'
 import Modal from '@/components/Modal/Modal'
 import { TTSConfigFields, defaultTTSConfig, getDefaultTTSConfig, type TTSConfig } from '@/components/TTSConfigFields/TTSConfigFields'
 import { AudioRegenButton } from '@/components/AudioRegenButton/AudioRegenButton'
+import { buildBatchAudioPayload, formatBatchAudioResult, type BatchAudioResponse } from '@/util/ttsBatch'
 import styles from './Words.module.css'
 
 interface Word {
@@ -33,6 +34,8 @@ export default function WordsPage() {
   const [form, setForm] = useState(emptyForm)
   const [showTTSSettings, setShowTTSSettings] = useState(false)
   const [ttsConfig, setTTSConfig] = useState<TTSConfig>(defaultTTSConfig)
+  const [batchingAudio, setBatchingAudio] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set())
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
   useEffect(() => { getDefaultTTSConfig().then(setTTSConfig) }, [])
@@ -52,7 +55,7 @@ export default function WordsPage() {
   }, [page, level, search])
 
   useEffect(() => { fetchItems() }, [fetchItems])
-  function handleSearch() { setPage(1) }
+  function handleSearch() { setPage(1); setSelectedIds(new Set()) }
   function openCreate() { setEditing(null); setForm(emptyForm); setModalOpen(true) }
   function openEdit(w: Word) {
     setEditing(w)
@@ -98,8 +101,55 @@ export default function WordsPage() {
     e.target.value = ''
   }
 
+  async function handleBatchAudio() {
+    if (!ttsConfig.provider) {
+      setShowTTSSettings(true)
+      setError('Select a TTS provider first')
+      return
+    }
+    const wordIds = selectedVisibleIds
+    if (wordIds.length === 0) {
+      setError('Select at least one visible word with reading')
+      return
+    }
+    if (!confirm(`Regenerate audio for ${wordIds.length} selected words? Existing files will be ${ttsConfig.tts_force ? 'overwritten' : 'skipped'}.`)) return
+
+    setBatchingAudio(true)
+    setError('')
+    try {
+      const data = await adminFetch<BatchAudioResponse>('POST', '/audio/batch', buildBatchAudioPayload('words', ttsConfig, { wordIds }))
+      alert(formatBatchAudioResult('Words', data))
+      fetchItems()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Batch audio failed')
+    } finally {
+      setBatchingAudio(false)
+    }
+  }
+
   function toggleExpand(id: number) {
     setExpandedId(prev => prev === id ? null : id)
+  }
+
+  const selectableIds = items.filter(w => w.reading).map(w => w.id)
+  const selectedVisibleIds = selectableIds.filter(id => selectedIds.has(id))
+  const allVisibleSelected = selectableIds.length > 0 && selectedVisibleIds.length === selectableIds.length
+
+  function toggleSelectAllVisible(checked: boolean) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      selectableIds.forEach(id => checked ? next.add(id) : next.delete(id))
+      return next
+    })
+  }
+
+  function toggleSelected(id: number, checked: boolean) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
   }
 
   return (
@@ -111,7 +161,7 @@ export default function WordsPage() {
         </div>
       </div>
       <div className="adm-toolbar">
-        <select value={level} onChange={e => { setLevel(e.target.value); setPage(1) }}>
+        <select value={level} onChange={e => { setLevel(e.target.value); setPage(1); setSelectedIds(new Set()) }}>
           <option value="">All Levels</option>
           {LEVELS.filter(l => l).map(l => <option key={l} value={l}>JLPT {l}</option>)}
         </select>
@@ -120,18 +170,28 @@ export default function WordsPage() {
         <button className="adm-btn" onClick={openCreate}>+ Add New</button>
         <label className="adm-btnOutline">📥 Import<input type="file" accept=".json" onChange={handleImport} hidden /></label>
         <label className="adm-ttsToggle"><input type="checkbox" checked={showTTSSettings} onChange={e => { setShowTTSSettings(e.target.checked); if (!e.target.checked) setTTSConfig(defaultTTSConfig) }} />🎙 Audio</label>
+        {(showTTSSettings || selectedVisibleIds.length > 0) && <button className="adm-btnOutline" onClick={handleBatchAudio} disabled={batchingAudio || selectedVisibleIds.length === 0}>{batchingAudio ? 'Generating...' : `Regenerate Selected Audio (${selectedVisibleIds.length})`}</button>}
       </div>
       {showTTSSettings && <TTSConfigFields config={ttsConfig} onChange={setTTSConfig} showForce />}
       {error && <p className="adm-error">{error}</p>}
       {loading ? <p className="adm-loading">Loading words...</p> : (
         <>
           <table className="adm-table">
-            <thead><tr><th style={{width:'36px'}}></th><th style={{width:'50px'}}>ID</th><th>Kanji</th><th>Reading</th><th>Meaning</th><th>POS</th><th>Level</th><th style={{width:'90px'}}>Audio</th><th style={{width:'140px'}}>Actions</th></tr></thead>
+            <thead><tr><th style={{width:'36px'}}><input type="checkbox" checked={allVisibleSelected} disabled={selectableIds.length === 0} onChange={e => toggleSelectAllVisible(e.target.checked)} aria-label="Select visible words" /></th><th style={{width:'36px'}}></th><th style={{width:'50px'}}>ID</th><th>Kanji</th><th>Reading</th><th>Meaning</th><th>POS</th><th>Level</th><th style={{width:'90px'}}>Audio</th><th style={{width:'140px'}}>Actions</th></tr></thead>
             <tbody>
-              {items.length === 0 ? <tr><td colSpan={9} className="adm-empty">No words found</td></tr> :
+              {items.length === 0 ? <tr><td colSpan={10} className="adm-empty">No words found</td></tr> :
                 items.map(w => (
                   <Fragment key={w.id}>
                     <tr className="adm-clickableRow" onClick={() => toggleExpand(w.id)} style={{ cursor: 'pointer' }}>
+                      <td onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(w.id)}
+                          disabled={!w.reading}
+                          onChange={e => toggleSelected(w.id, e.target.checked)}
+                          aria-label={`Select word ${w.kanji_form}`}
+                        />
+                      </td>
                       <td style={{ textAlign: 'center', fontSize: '11px', color: '#b8b0a8', transition: 'transform 0.2s', transform: expandedId === w.id ? 'rotate(90deg)' : 'none' }}>
                         ▶
                       </td>
@@ -152,7 +212,7 @@ export default function WordsPage() {
                     {/* Expandable examples row */}
                     {expandedId === w.id && (
                       <tr key={`${w.id}-ex`} className="adm-expandedRow">
-                        <td colSpan={9}>
+                        <td colSpan={10}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                             <strong style={{ fontSize: '13px', color: '#4d4842' }}>📝 Examples</strong>
                             <span style={{ fontSize: '11px', color: '#b8b0a8' }}>({w.examples?.length ?? 0} sentences)</span>
@@ -197,9 +257,9 @@ export default function WordsPage() {
             </tbody>
           </table>
           <div className="adm-pagination">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
+            <button disabled={page <= 1} onClick={() => { setPage(p => p - 1); setSelectedIds(new Set()) }}>← Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong> <span style={{marginLeft:8,color:'#b8b0a8'}}>·</span> Total <strong>{total}</strong></span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
+            <button disabled={page >= totalPages} onClick={() => { setPage(p => p + 1); setSelectedIds(new Set()) }}>Next →</button>
           </div>
         </>
       )}

@@ -28,6 +28,10 @@ const staticDefaults: TTSConfig = {
 
 export const defaultTTSConfig: TTSConfig = { ...staticDefaults }
 
+const GRADIO_URL_DEFAULT = 'http://127.0.0.1:8000'
+const GRADIO_SPEAKER_DEFAULT = 'Vivian'
+const GRADIO_INSTRUCTIONS_DEFAULT = '標準語で、自然にはっきり発音してください。'
+
 // fetchedDefaults caches the server-provided defaults (e.g. eth0-based tts_url).
 let fetchedDefaults: Partial<TTSConfig> | null = null
 
@@ -52,6 +56,7 @@ const MODEL_SUGGESTIONS = ['Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice', 'Qwen/Qwen3-T
 const SBV_MODEL_SUGGESTIONS = ['amitaro']
 const SBV_SPEAKER_SUGGESTIONS = ['あみたろ']
 const SBV_STYLE_SUGGESTIONS = ['Neutral']
+const GRADIO_SPEAKER_SUGGESTIONS = ['Serena', 'Vivian', 'Uncle Fu', 'Ryan', 'Aiden', 'Ono Anna', 'Sohee', 'Eric', 'Dylan']
 
 // ---- 可复用的输入组件 ----
 
@@ -112,6 +117,30 @@ interface Props {
 export function TTSConfigFields({ config, onChange, showForce }: Props) {
   const isVLLM = config.provider === 'vllm'
   const isSBV = config.provider === 'sbv'
+  const isGradio = config.provider === 'gradio'
+
+  function changeProvider(provider: string) {
+    if (provider === 'gradio') {
+      onChange({
+        ...config,
+        provider,
+        tts_url: GRADIO_URL_DEFAULT,
+        voice: GRADIO_SPEAKER_DEFAULT,
+        instructions: GRADIO_INSTRUCTIONS_DEFAULT,
+      })
+      return
+    }
+    if (provider === 'vllm') {
+      onChange({
+        ...config,
+        provider,
+        tts_url: config.tts_url === GRADIO_URL_DEFAULT ? `http://${window.location.hostname}:8091/v1/audio/speech` : config.tts_url,
+        voice: VOICE_SUGGESTIONS.includes(config.voice) ? config.voice : 'ono_anna',
+      })
+      return
+    }
+    onChange({ ...config, provider })
+  }
 
   return (
     <div style={{
@@ -125,10 +154,11 @@ export function TTSConfigFields({ config, onChange, showForce }: Props) {
       <SelectField
         label="🎛 TTS Provider"
         value={config.provider}
-        onChange={(v) => onChange({ ...config, provider: v })}
+        onChange={changeProvider}
         options={[
           { value: 'vllm', label: 'vLLM (Qwen3-TTS)' },
           { value: 'sbv', label: 'style-bert-vits2' },
+          { value: 'gradio', label: 'Gradio (/run_instruct)' },
         ]}
         placeholder="-- No TTS --"
       />
@@ -194,6 +224,30 @@ export function TTSConfigFields({ config, onChange, showForce }: Props) {
               datalist={SBV_STYLE_SUGGESTIONS}
             />
           </div>
+        </>
+      )}
+
+      {/* Gradio fields */}
+      {isGradio && (
+        <>
+          <TextField
+            label="🔗 Gradio API URL"
+            value={config.tts_url}
+            onChange={(v) => onChange({ ...config, tts_url: v })}
+            placeholder={GRADIO_URL_DEFAULT}
+          />
+          <SelectField
+            label="🎤 Speaker"
+            value={config.voice}
+            onChange={(v) => onChange({ ...config, voice: v })}
+            options={GRADIO_SPEAKER_SUGGESTIONS.map(v => ({ value: v, label: v }))}
+          />
+          <TextField
+            label="📝 Instructions"
+            value={config.instructions}
+            onChange={(v) => onChange({ ...config, instructions: v })}
+            placeholder={GRADIO_INSTRUCTIONS_DEFAULT}
+          />
         </>
       )}
 

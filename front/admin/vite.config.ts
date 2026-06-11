@@ -11,6 +11,7 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    allowedHosts: ['tylerhu-1.tail5cec87.ts.net'],
     proxy: {
       '/api/admin': 'http://localhost:8082',
       '/audio': 'http://localhost:8081',

@@ -55,11 +55,15 @@ func (s *UserService) Register(req RegisterReq) (*User, error) {
 	slog.Debug("UserService.Register called", "email", req.Email)
 
 	hash := hashPassword(req.Password)
+	goalLevel := req.GoalLevel
+	if goalLevel == "" {
+		goalLevel = LevelN5
+	}
 
 	u := User{
 		Name:       req.Name,
 		Email:      req.Email,
-		JLPTLevels: []string{string(req.GoalLevel)},
+		JLPTLevels: []string{string(goalLevel)},
 		CreatedAt:  time.Now(),
 	}
 
