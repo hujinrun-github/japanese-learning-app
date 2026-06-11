@@ -17,7 +17,7 @@ import (
 
 // TTSConfig holds TTS provider configuration shared across commands.
 type TTSConfig struct {
-	Provider     string // "vllm" or "sbv"
+	Provider     string // "vllm", "sbv", or "gradio"
 	TTSUrl       string
 	TTSModel     string
 	Voice        string
@@ -37,6 +37,12 @@ func NewTTSClient(cfg TTSConfig) speaking.TTSSynthesizer {
 			speaking.WithSBVSpeaker(cfg.SBVSpeaker),
 			speaking.WithSBVStyle(cfg.SBVStyle),
 		)
+	case "gradio":
+		return speaking.NewGradioTTSClient(cfg.TTSUrl, 5*time.Minute,
+			speaking.WithGradioLanguage("Japanese"),
+			speaking.WithGradioSpeaker(cfg.Voice),
+			speaking.WithGradioInstructions(cfg.Instructions),
+		)
 	default:
 		return speaking.NewVLLMTTSClient(cfg.TTSUrl, cfg.TTSModel, 30*time.Second,
 			speaking.WithVoice(cfg.Voice),
@@ -46,20 +52,60 @@ func NewTTSClient(cfg TTSConfig) speaking.TTSSynthesizer {
 	}
 }
 
+// WordAudioStats reports the result of generating word pronunciation audio.
+type WordAudioStats struct {
+	Total     int `json:"total"`
+	Generated int `json:"generated"`
+	Existing  int `json:"existing"`
+	Failed    int `json:"failed"`
+	DryRun    int `json:"dry_run,omitempty"`
+}
+
+func (s WordAudioStats) Processed() int {
+	return s.Generated + s.Existing + s.DryRun
+}
+
 // GenerateWordAudio generates TTS audio for all words matching the given level,
 // saves to outDir, and updates audio_url in the database.
 func GenerateWordAudio(db *sql.DB, client speaking.TTSSynthesizer, outDir, level string, force, dryRun bool) (int, error) {
+	stats, err := GenerateWordAudioWithStats(db, client, outDir, level, force, dryRun)
+	if err != nil {
+		return 0, err
+	}
+	return stats.Processed(), nil
+}
+
+// GenerateWordAudioWithStats generates word audio and returns detailed counts.
+func GenerateWordAudioWithStats(db *sql.DB, client speaking.TTSSynthesizer, outDir, level string, force, dryRun bool) (WordAudioStats, error) {
 	if err := os.MkdirAll(outDir, 0755); err != nil {
-		return 0, fmt.Errorf("mkdir %s: %w", outDir, err)
+		return WordAudioStats{}, fmt.Errorf("mkdir %s: %w", outDir, err)
 	}
 
 	rows, err := queryWords(db, level)
 	if err != nil {
-		return 0, fmt.Errorf("query words: %w", err)
+		return WordAudioStats{}, fmt.Errorf("query words: %w", err)
 	}
 
+	return generateWordAudioRows(db, client, outDir, rows, force, dryRun)
+}
+
+// GenerateWordAudioByIDsWithStats generates word audio only for the provided word IDs.
+func GenerateWordAudioByIDsWithStats(db *sql.DB, client speaking.TTSSynthesizer, outDir string, ids []int64, force, dryRun bool) (WordAudioStats, error) {
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return WordAudioStats{}, fmt.Errorf("mkdir %s: %w", outDir, err)
+	}
+
+	rows, err := queryWordsByIDs(db, ids)
+	if err != nil {
+		return WordAudioStats{}, fmt.Errorf("query words by ids: %w", err)
+	}
+
+	return generateWordAudioRows(db, client, outDir, rows, force, dryRun)
+}
+
+func generateWordAudioRows(db *sql.DB, client speaking.TTSSynthesizer, outDir string, rows []wordRow, force, dryRun bool) (WordAudioStats, error) {
 	slog.Info("generate-word-audio: loaded words", "count", len(rows))
-	generated := 0
+	stats := WordAudioStats{Total: len(rows)}
 
 	for i, r := range rows {
 		if r.Reading == "" {
@@ -75,7 +121,7 @@ func GenerateWordAudio(db *sql.DB, client speaking.TTSSynthesizer, outDir, level
 				if r.AudioURL != filename {
 					updateWordAudio(db, r.ID, filename)
 				}
-				generated++
+				stats.Existing++
 				continue
 			}
 			os.Remove(path)
@@ -84,31 +130,33 @@ func GenerateWordAudio(db *sql.DB, client speaking.TTSSynthesizer, outDir, level
 		fmt.Printf("[%d/%d] %s (%s) → %s\n", i+1, len(rows), r.KanjiForm, r.Reading, filename)
 
 		if dryRun {
-			generated++
+			stats.DryRun++
 			continue
 		}
 
 		audio, synthErr := client.Synthesize(context.Background(), r.Reading)
 		if synthErr != nil {
 			slog.Error("TTS failed for word", "kanji", r.KanjiForm, "reading", r.Reading, "err", synthErr)
+			stats.Failed++
 			continue
 		}
 
-			audio = TrimWAVSilence(audio, 0.06)
+		audio = TrimWAVSilence(audio, 0.06)
 
 		if writeErr := os.WriteFile(path, audio, 0644); writeErr != nil {
 			slog.Error("failed to write audio file", "path", path, "err", writeErr)
+			stats.Failed++
 			continue
 		}
 
 		updateWordAudio(db, r.ID, filename)
-		generated++
+		stats.Generated++
 
 		time.Sleep(200 * time.Millisecond)
 	}
 
-	fmt.Printf("generate-word-audio: done, %d words processed\n", generated)
-	return generated, nil
+	fmt.Printf("generate-word-audio: done, %d words processed\n", stats.Processed())
+	return stats, nil
 }
 
 // runGenerateWordAudio regenerates TTS audio for all words in the database.
@@ -129,7 +177,7 @@ func runGenerateWordAudio(args []string) int {
 	sbvModel := fs.String("sbv-model", "amitaro", "style-bert-vits2 model name")
 	sbvSpeaker := fs.String("sbv-speaker", "あみたろ", "style-bert-vits2 speaker name")
 	sbvStyle := fs.String("sbv-style", "Neutral", "style-bert-vits2 style name")
-	provider := fs.String("provider", "vllm", "TTS provider: vllm or sbv (style-bert-vits)")
+	provider := fs.String("provider", "vllm", "TTS provider: vllm, sbv (style-bert-vits), or gradio")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "generate-word-audio: %v\n", err)
@@ -199,6 +247,29 @@ func queryWords(db *sql.DB, level string) ([]wordRow, error) {
 		rows = append(rows, wr)
 	}
 	return rows, r.Err()
+}
+
+func queryWordsByIDs(db *sql.DB, ids []int64) ([]wordRow, error) {
+	seen := make(map[int64]bool, len(ids))
+	rows := make([]wordRow, 0, len(ids))
+	for _, id := range ids {
+		if id <= 0 || seen[id] {
+			continue
+		}
+		seen[id] = true
+
+		var wr wordRow
+		err := db.QueryRow("SELECT id, kanji_form, reading, audio_url FROM words WHERE id = ? AND reading != ''", id).
+			Scan(&wr.ID, &wr.KanjiForm, &wr.Reading, &wr.AudioURL)
+		if err == sql.ErrNoRows {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, wr)
+	}
+	return rows, nil
 }
 
 func updateWordAudio(db *sql.DB, id int64, filename string) {

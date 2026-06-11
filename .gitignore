@@ -5,3 +5,4 @@ node_modules/
 .mcp.json
 /data
 front/admin/dist/
+.worktrees/

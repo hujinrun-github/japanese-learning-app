@@ -3,6 +3,7 @@ import { adminFetch } from '@/api/client'
 import Modal from '@/components/Modal/Modal'
 import { TTSConfigFields, defaultTTSConfig, getDefaultTTSConfig, type TTSConfig } from '@/components/TTSConfigFields/TTSConfigFields'
 import { AudioRegenButton } from '@/components/AudioRegenButton/AudioRegenButton'
+import { buildBatchAudioPayload, formatBatchAudioResult, type BatchAudioResponse } from '@/util/ttsBatch'
 import styles from './Grammar.module.css'
 
 interface GrammarPoint {
@@ -43,6 +44,8 @@ export default function GrammarPage() {
   const [form, setForm] = useState(emptyForm)
   const [showTTSSettings, setShowTTSSettings] = useState(false)
   const [ttsConfig, setTTSConfig] = useState<TTSConfig>(defaultTTSConfig)
+  const [batchingAudio, setBatchingAudio] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set())
 
   useEffect(() => { getDefaultTTSConfig().then(setTTSConfig) }, [])
 
@@ -67,7 +70,7 @@ export default function GrammarPage() {
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
-  function handleSearch() { setPage(1) }
+  function handleSearch() { setPage(1); setSelectedIds(new Set()) }
 
   function openCreate() { setEditing(null); setForm(emptyForm); setModalOpen(true) }
 
@@ -113,6 +116,7 @@ export default function GrammarPage() {
         fd.append('tts_model', ttsConfig.tts_model)
         fd.append('voice', ttsConfig.voice)
         fd.append('instructions', ttsConfig.instructions)
+        fd.append('tts_force', String(ttsConfig.tts_force))
         fd.append('sbv_url', ttsConfig.sbv_url)
         fd.append('sbv_model', ttsConfig.sbv_model)
         fd.append('sbv_speaker', ttsConfig.sbv_speaker)
@@ -125,6 +129,53 @@ export default function GrammarPage() {
     e.target.value = ''
   }
 
+  async function handleBatchAudio() {
+    if (!ttsConfig.provider) {
+      setShowTTSSettings(true)
+      setError('Select a TTS provider first')
+      return
+    }
+    const texts = selectedVisibleItems.map(g => g.examples?.[0]?.japanese || g.name).filter(Boolean)
+    if (texts.length === 0) {
+      setError('Select at least one visible grammar row with text')
+      return
+    }
+    if (!confirm(`Regenerate audio for ${texts.length} selected grammar rows? Existing files will be ${ttsConfig.tts_force ? 'overwritten' : 'skipped'}.`)) return
+
+    setBatchingAudio(true)
+    setError('')
+    try {
+      const data = await adminFetch<BatchAudioResponse>('POST', '/audio/batch', buildBatchAudioPayload('grammar', ttsConfig, { texts }))
+      alert(formatBatchAudioResult('Grammar', data))
+      fetchItems()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Batch audio failed')
+    } finally {
+      setBatchingAudio(false)
+    }
+  }
+
+  const selectableIds = items.map(g => g.id)
+  const selectedVisibleItems = items.filter(g => selectedIds.has(g.id))
+  const allVisibleSelected = selectableIds.length > 0 && selectedVisibleItems.length === selectableIds.length
+
+  function toggleSelectAllVisible(checked: boolean) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      selectableIds.forEach(id => checked ? next.add(id) : next.delete(id))
+      return next
+    })
+  }
+
+  function toggleSelected(id: number, checked: boolean) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
   return (
     <div className="adm-page">
       <div className="adm-header">
@@ -135,7 +186,7 @@ export default function GrammarPage() {
       </div>
 
       <div className="adm-toolbar">
-        <select value={level} onChange={(e) => { setLevel(e.target.value); setPage(1) }}>
+        <select value={level} onChange={(e) => { setLevel(e.target.value); setPage(1); setSelectedIds(new Set()) }}>
           {LEVELS.map(l => <option key={l} value={l}>{l || 'All Levels'}</option>)}
         </select>
         <input placeholder="Search name, meaning..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
@@ -149,20 +200,29 @@ export default function GrammarPage() {
           <input type="checkbox" checked={showTTSSettings} onChange={e => { setShowTTSSettings(e.target.checked); if (!e.target.checked) setTTSConfig(defaultTTSConfig) }} />
           🎙 Audio
         </label>
+        {(showTTSSettings || selectedVisibleItems.length > 0) && <button className="adm-btnOutline" onClick={handleBatchAudio} disabled={batchingAudio || selectedVisibleItems.length === 0}>{batchingAudio ? 'Generating...' : `Regenerate Selected Audio (${selectedVisibleItems.length})`}</button>}
       </div>
 
-      {showTTSSettings && <TTSConfigFields config={ttsConfig} onChange={setTTSConfig} />}
+      {showTTSSettings && <TTSConfigFields config={ttsConfig} onChange={setTTSConfig} showForce />}
       {error && <p className="adm-error">{error}</p>}
 
       {loading ? <p className="adm-loading">Loading grammar points...</p> : (
         <>
           <table className="adm-table">
-            <thead><tr><th>ID</th><th>Name</th><th>Meaning</th><th>Level</th><th>Conjunction</th><th>Audio</th><th>Actions</th></tr></thead>
+            <thead><tr><th style={{width:'36px'}}><input type="checkbox" checked={allVisibleSelected} disabled={selectableIds.length === 0} onChange={e => toggleSelectAllVisible(e.target.checked)} aria-label="Select visible grammar rows" /></th><th>ID</th><th>Name</th><th>Meaning</th><th>Level</th><th>Conjunction</th><th>Audio</th><th>Actions</th></tr></thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={7} className="adm-empty">No grammar points found</td></tr>
+                <tr><td colSpan={8} className="adm-empty">No grammar points found</td></tr>
               ) : items.map(g => (
                 <tr key={g.id}>
+                  <td style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(g.id)}
+                      onChange={e => toggleSelected(g.id, e.target.checked)}
+                      aria-label={`Select grammar ${g.name}`}
+                    />
+                  </td>
                   <td className="adm-id">{g.id}</td>
                   <td className="adm-kanji">{g.name}</td>
                   <td className="adm-meaning" title={g.meaning}>{g.meaning}</td>
@@ -180,9 +240,9 @@ export default function GrammarPage() {
             </tbody>
           </table>
           <div className="adm-pagination">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
+            <button disabled={page <= 1} onClick={() => { setPage(p => p - 1); setSelectedIds(new Set()) }}>← Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong> <span style={{marginLeft:8,color:'#b8b0a8'}}>·</span> Total <strong>{total}</strong></span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
+            <button disabled={page >= totalPages} onClick={() => { setPage(p => p + 1); setSelectedIds(new Set()) }}>Next →</button>
           </div>
         </>
       )}

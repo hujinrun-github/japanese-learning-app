@@ -13,6 +13,14 @@ import (
 	"japanese-learning-app/internal/module/speaking"
 )
 
+// TTSFileStats reports the result of generating content-addressed TTS files.
+type TTSFileStats struct {
+	Total     int `json:"total"`
+	Generated int `json:"generated"`
+	Existing  int `json:"existing"`
+	Failed    int `json:"failed"`
+}
+
 // ttsSentence is a lightweight struct for extracting sentences from import JSON files.
 type ttsSentence struct {
 	Japanese string `json:"japanese"`
@@ -82,38 +90,68 @@ func ExtractSpeakingSentences(raw []byte) ([]string, error) {
 // Files are named <sha256(text)[:16]>.wav and saved to outDir. Already-existing files
 // are skipped. Returns the count of newly generated files.
 func GenerateTTSFiles(client speaking.TTSSynthesizer, outDir string, sentences []string) (int, error) {
+	stats, err := GenerateTTSFilesWithStats(client, outDir, sentences, false)
+	if err != nil {
+		return 0, err
+	}
+	return stats.Generated, nil
+}
+
+// GenerateTTSFilesWithStats generates audio files and returns detailed counts.
+func GenerateTTSFilesWithStats(client speaking.TTSSynthesizer, outDir string, sentences []string, force bool) (TTSFileStats, error) {
 	if err := os.MkdirAll(outDir, 0755); err != nil {
-		return 0, fmt.Errorf("cli.GenerateTTSFiles mkdir %s: %w", outDir, err)
+		return TTSFileStats{}, fmt.Errorf("cli.GenerateTTSFiles mkdir %s: %w", outDir, err)
 	}
 
 	ctx := context.Background()
-	generated := 0
+	stats := TTSFileStats{}
 
-	for _, text := range sentences {
+	for _, text := range normalizeTTSSentences(sentences) {
+		stats.Total++
 		hash := fmt.Sprintf("%x", sha256.Sum256([]byte(text)))[:16]
 		filename := hash + ".wav"
 		path := filepath.Join(outDir, filename)
 
 		if _, err := os.Stat(path); err == nil {
-			continue
+			if !force {
+				stats.Existing++
+				continue
+			}
+			_ = os.Remove(path)
 		}
 
 		audio, err := client.Synthesize(ctx, text)
 		if err != nil {
 			slog.Error("TTS synthesis failed", "text", text, "err", err)
+			stats.Failed++
 			continue
 		}
 
 		if err := os.WriteFile(path, audio, 0644); err != nil {
 			slog.Error("failed to write TTS audio file", "path", path, "err", err)
+			stats.Failed++
 			continue
 		}
 
 		slog.Debug("TTS audio generated", "text", truncateStr(text, 40), "file", filename)
-		generated++
+		stats.Generated++
 	}
 
-	return generated, nil
+	return stats, nil
+}
+
+func normalizeTTSSentences(sentences []string) []string {
+	seen := make(map[string]bool, len(sentences))
+	out := make([]string, 0, len(sentences))
+	for _, sentence := range sentences {
+		text := strings.TrimSpace(sentence)
+		if text == "" || seen[text] {
+			continue
+		}
+		seen[text] = true
+		out = append(out, text)
+	}
+	return out
 }
 
 func truncateStr(s string, n int) string {

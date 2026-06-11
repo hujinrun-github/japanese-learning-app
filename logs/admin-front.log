@@ -3,28 +3,34 @@
 > vite
 
 
-  VITE v5.4.21  ready in 423 ms
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m1043[22m[2m[0m ms[22m
 
-  ➜  Local:   http://localhost:5174/
-  ➜  Network: use --host to expose
-12:27:57 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
-12:27:58 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
-12:27:58 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx
-12:27:58 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
-12:27:58 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
-12:27:58 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx
-12:33:47 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
-12:33:48 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh (new export)
-12:33:48 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx
-12:34:22 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx
-12:34:23 AM [vite] hmr update /src/pages/Grammar/Grammar.tsx
-12:34:24 AM [vite] hmr update /src/pages/Words/Words.tsx
-12:34:26 AM [vite] hmr update /src/components/AudioRegenButton/AudioRegenButton.tsx
-12:34:56 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx
-12:34:57 AM [vite] hmr update /src/pages/Grammar/Grammar.tsx
-12:34:57 AM [vite] hmr update /src/pages/Words/Words.tsx
-12:34:58 AM [vite] hmr update /src/components/AudioRegenButton/AudioRegenButton.tsx
-12:35:38 AM [vite] hmr update /src/components/AudioRegenButton/AudioRegenButton.tsx
-12:38:05 AM [vite] hmr update /src/components/TTSConfigFields/TTSConfigFields.tsx
-12:38:05 AM [vite] hmr invalidate /src/components/TTSConfigFields/TTSConfigFields.tsx Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
-12:38:05 AM [vite] hmr update /src/pages/Speaking/Speaking.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m23:25:41[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/TTSConfigFields/TTSConfigFields.tsx[22m
+[2m23:25:41[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/components/TTSConfigFields/TTSConfigFields.tsx[22m Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m23:25:41[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Grammar/Grammar.tsx, /src/pages/Speaking/Speaking.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx[22m
+[2m23:27:21[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AudioRegenButton/AudioRegenButton.tsx[22m
+[2m23:46:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/TTSConfigFields/TTSConfigFields.tsx[22m
+[2m23:46:51[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/components/TTSConfigFields/TTSConfigFields.tsx[22m Could not Fast Refresh ("defaultTTSConfig" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m23:46:51[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Grammar/Grammar.tsx, /src/pages/Speaking/Speaking.tsx, /src/pages/Words/Words.tsx, /src/components/AudioRegenButton/AudioRegenButton.tsx[22m
+[2m00:03:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:04:05[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:04:26[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Grammar/Grammar.tsx[22m
+[2m00:04:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Speaking/Speaking.tsx[22m
+[2m00:17:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx, /src/pages/Grammar/Grammar.tsx, /src/pages/Speaking/Speaking.tsx[22m
+[2m00:18:05[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:18:17[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Grammar/Grammar.tsx[22m
+[2m00:18:31[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Speaking/Speaking.tsx[22m
+[2m00:23:43[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:23:57[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:24:13[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:24:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:24:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Grammar/Grammar.tsx[22m
+[2m00:25:21[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Speaking/Speaking.tsx[22m
+[2m00:26:07[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:26:07[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Grammar/Grammar.tsx[22m
+[2m00:26:07[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Speaking/Speaking.tsx[22m
+[2m00:26:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Words/Words.tsx[22m
+[2m00:26:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Grammar/Grammar.tsx[22m
+[2m00:26:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Speaking/Speaking.tsx[22m

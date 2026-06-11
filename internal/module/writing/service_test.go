@@ -1,9 +1,9 @@
 package writing_test
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
-	"time"
 
 	"japanese-learning-app/internal/module/writing"
 )
@@ -18,6 +18,16 @@ type fakeWritingStore struct {
 
 func (f *fakeWritingStore) GetDailyQueue(userID int64) ([]writing.WritingQuestion, error) {
 	return f.questions, nil
+}
+
+func (f *fakeWritingStore) GetQuestionByID(id int64) (*writing.WritingQuestion, error) {
+	for _, q := range f.questions {
+		if q.ID == id {
+			cp := q
+			return &cp, nil
+		}
+	}
+	return nil, sql.ErrNoRows
 }
 
 func (f *fakeWritingStore) SaveRecord(r writing.WritingRecord) error {
@@ -63,24 +73,28 @@ func TestWritingService_GetDailyQueue_StripExpectedAnswer(t *testing.T) {
 }
 
 func TestWritingService_SubmitInput(t *testing.T) {
-	store := &fakeWritingStore{}
+	store := &fakeWritingStore{
+		questions: []writing.WritingQuestion{
+			{ID: 1, Type: writing.WritingTypeInput, Prompt: "Write apple", ExpectedAnswer: "りんご"},
+		},
+	}
 	svc := writing.NewWritingService(store, nil)
 
 	tests := []struct {
 		name        string
+		questionID  int64
 		question    string
 		userAnswer  string
-		expected    string
 		wantScore   int
 		wantCorrect bool
 	}{
-		{"exact match", "Write apple", "りんご", "りんご", 100, true},
-		{"wrong answer", "Write apple", "ねこ", "りんご", 0, false},
+		{"exact match", 1, "Write apple", "りんご", 100, true},
+		{"wrong answer", 1, "Write apple", "ねこ", 0, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rec, err := svc.SubmitInput(1, tt.question, tt.userAnswer, tt.expected)
+			rec, err := svc.SubmitInput(1, tt.questionID, tt.question, tt.userAnswer)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -146,5 +160,4 @@ func TestWritingService_ListRecords(t *testing.T) {
 	if len(records) != 2 {
 		t.Errorf("expected 2 records for user 1, got %d", len(records))
 	}
-	_ = time.Now() // use import
 }

@@ -60,24 +60,24 @@ func (h *Handler) bulkImport(w http.ResponseWriter, r *http.Request) {
 			SBVStyle:     r.FormValue("sbv_style"),
 		}
 		client := cli.NewTTSClient(ttsCfg)
+		force, _ := strconv.ParseBool(r.FormValue("tts_force"))
 
 		switch module {
 		case "words":
-			force, _ := strconv.ParseBool(r.FormValue("tts_force"))
 			if _, genErr := cli.GenerateWordAudio(h.cfg.DB, client, "./data/audio/words", "", force, false); genErr != nil {
 				slog.Error("bulkImport TTS words failed", "err", genErr)
 			}
 		case "grammar":
 			sentences, _ := cli.ExtractGrammarSentences(raw)
 			if len(sentences) > 0 {
-				if _, genErr := cli.GenerateTTSFiles(client, "./data/audio/examples", sentences); genErr != nil {
+				if _, genErr := cli.GenerateTTSFilesWithStats(client, "./data/audio/examples", sentences, force); genErr != nil {
 					slog.Error("bulkImport TTS grammar failed", "err", genErr)
 				}
 			}
 		case "speaking":
 			sentences, _ := cli.ExtractSpeakingSentences(raw)
 			if len(sentences) > 0 {
-				if _, genErr := cli.GenerateTTSFiles(client, "./data/audio/examples", sentences); genErr != nil {
+				if _, genErr := cli.GenerateTTSFilesWithStats(client, "./data/audio/examples", sentences, force); genErr != nil {
 					slog.Error("bulkImport TTS speaking failed", "err", genErr)
 				}
 			}
