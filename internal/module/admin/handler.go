@@ -73,6 +73,7 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /api/admin/import/{module}", h.auth(h.bulkImport))
 	// Audio
 	mux.HandleFunc("POST /api/admin/audio/regen", h.auth(h.regenerateAudio))
+	mux.HandleFunc("POST /api/admin/audio/batch", h.auth(h.batchGenerateAudio))
 	// TTS defaults
 	mux.HandleFunc("GET /api/admin/tts-defaults", h.auth(h.ttsDefaults))
 	return mux
@@ -119,4 +120,3 @@ func queryInt(r *http.Request, key string, defaultVal int) int {
 	}
 	return n
 }
-

@@ -15,9 +15,9 @@ import (
 	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/module/summary"
+	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
-	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/writing"
 )
 
@@ -38,12 +38,7 @@ func main() {
 	aiEndpoint := envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages")
 	staticDir := envOrDefault("STATIC_DIR", "./front/dist/assets")
 	templateDir := envOrDefault("TEMPLATE_DIR", "./front/dist")
-	// SMTP settings for password reset emails
-	smtpHost := envOrDefault("SMTP_HOST", "")
-	smtpPort := envOrDefault("SMTP_PORT", "587")
-	smtpUser := envOrDefault("SMTP_USER", "")
-	smtpPass := envOrDefault("SMTP_PASS", "")
-	smtpFrom := envOrDefault("SMTP_FROM", "noreply@japanese-learning.app")
+	mailerConfig := passwordResetMailerSettings(os.Getenv)
 	appBaseURL := envOrDefault("APP_BASE_URL", "http://localhost:5173")
 
 	setupLogger(logLevel)
@@ -62,14 +57,14 @@ func main() {
 	}
 
 	// ── Stores ────────────────────────────────────────────────────────────────
-	wordStore     := data.NewWordStore(db)
-	grammarStore  := data.NewGrammarStore(db)
-	lessonStore   := data.NewLessonStore(db)
+	wordStore := data.NewWordStore(db)
+	grammarStore := data.NewGrammarStore(db)
+	lessonStore := data.NewLessonStore(db)
 	speakingStore := data.NewSpeakingStore(db)
-	writingStore  := data.NewWritingStore(db)
-	userStore     := data.NewUserStore(db)
-	sessionStore  := data.NewSessionStore(db)
-	noteStore     := data.NewNoteStore(db)
+	writingStore := data.NewWritingStore(db)
+	userStore := data.NewUserStore(db)
+	sessionStore := data.NewSessionStore(db)
+	noteStore := data.NewNoteStore(db)
 	translationStore := data.NewTranslationStore(db)
 
 	// ── AI reviewer (writing) ─────────────────────────────────────────────────
@@ -92,44 +87,37 @@ func main() {
 	}
 
 	// ── Mailer (password reset) ───────────────────────────────────────────────
-	var mailer user.Mailer
-	if smtpHost != "" {
-		slog.Info("using SMTPMailer for password reset", "smtp_host", smtpHost)
-		mailer = user.NewSMTPMailer(smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom)
-	} else {
-		slog.Warn("SMTP_HOST not set — using StubMailer (reset URLs logged only)")
-		mailer = &user.StubMailer{}
-	}
+	mailer := newPasswordResetMailer(mailerConfig)
 
 	// ── Store adapters (bridge data.*Store to module.*StoreInterface) ─────────
-	wordAdapter    := data.NewWordStoreAdapter(wordStore)
-	lessonAdapter  := data.NewLessonStoreAdapter(lessonStore)
-	userAdapter    := data.NewUserStoreAdapter(userStore)
+	wordAdapter := data.NewWordStoreAdapter(wordStore)
+	lessonAdapter := data.NewLessonStoreAdapter(lessonStore)
+	userAdapter := data.NewUserStoreAdapter(userStore)
 	sessionAdapter := data.NewSessionStoreAdapter(sessionStore)
-	noteAdapter    := data.NewNoteStoreAdapter(noteStore)
+	noteAdapter := data.NewNoteStoreAdapter(noteStore)
 
 	// ── Services ──────────────────────────────────────────────────────────────
-	wordSvc     := word.NewWordService(wordAdapter)
-	grammarSvc  := grammar.NewGrammarService(grammarStore)
-	lessonSvc   := lesson.NewLessonService(lessonAdapter)
+	wordSvc := word.NewWordService(wordAdapter)
+	grammarSvc := grammar.NewGrammarService(grammarStore)
+	lessonSvc := lesson.NewLessonService(lessonAdapter)
 	speakingSvc := speaking.NewSpeakingService(speakingStore, speaking.NewWaveformScorer())
-	writingSvc  := writing.NewWritingService(writingStore, aiReviewer)
-	userSvc     := user.NewUserService(userAdapter, jwtSecret, mailer, appBaseURL)
-	summarySvc  := summary.NewSummaryService(sessionAdapter)
-	noteSvc        := note.NewNoteService(noteAdapter)
+	writingSvc := writing.NewWritingService(writingStore, aiReviewer)
+	userSvc := user.NewUserService(userAdapter, jwtSecret, mailer, appBaseURL)
+	summarySvc := summary.NewSummaryService(sessionAdapter)
+	noteSvc := note.NewNoteService(noteAdapter)
 	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
-	wordH     := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
+	wordH := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
 	wordH.SetDailyGoalProvider(&wordGoalProvider{store: userStore})
-	grammarH  := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
-	lessonH   := lesson.NewLessonHandler(lessonSvc)
+	grammarH := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
+	lessonH := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
-	writingH  := writing.NewWritingHandler(writingSvc)
-	userH     := user.NewUserHandler(userSvc)
-	summaryH  := summary.NewSummaryHandler(summarySvc)
-	noteH     := note.NewNoteHandler(noteSvc)
-	reviewH      := review.NewReviewHandler(wordSvc, noteSvc)
+	writingH := writing.NewWritingHandler(writingSvc)
+	userH := user.NewUserHandler(userSvc)
+	summaryH := summary.NewSummaryHandler(summarySvc)
+	noteH := note.NewNoteHandler(noteSvc)
+	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
@@ -202,6 +190,66 @@ func envOrDefault(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+type mailerSettings struct {
+	provider string
+	host     string
+	port     string
+	user     string
+	pass     string
+	from     string
+}
+
+func passwordResetMailerSettings(getenv func(string) string) mailerSettings {
+	if apiKey := getenv("RESEND_API_KEY"); apiKey != "" {
+		from := envValue(getenv, "RESEND_FROM", "")
+		if from == "" {
+			from = envValue(getenv, "SMTP_FROM", "noreply@japanese-learning.app")
+		}
+		return mailerSettings{
+			provider: "resend",
+			host:     "smtp.resend.com",
+			port:     "587",
+			user:     "resend",
+			pass:     apiKey,
+			from:     from,
+		}
+	}
+
+	if host := getenv("SMTP_HOST"); host != "" {
+		return mailerSettings{
+			provider: "smtp",
+			host:     host,
+			port:     envValue(getenv, "SMTP_PORT", "587"),
+			user:     getenv("SMTP_USER"),
+			pass:     getenv("SMTP_PASS"),
+			from:     envValue(getenv, "SMTP_FROM", "noreply@japanese-learning.app"),
+		}
+	}
+
+	return mailerSettings{provider: "stub"}
+}
+
+func envValue(getenv func(string) string, key, fallback string) string {
+	if v := getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func newPasswordResetMailer(settings mailerSettings) user.Mailer {
+	switch settings.provider {
+	case "resend":
+		slog.Info("using Resend SMTPMailer for password reset", "smtp_host", settings.host, "from", settings.from)
+		return user.NewSMTPMailer(settings.host, settings.port, settings.user, settings.pass, settings.from)
+	case "smtp":
+		slog.Info("using SMTPMailer for password reset", "smtp_host", settings.host, "from", settings.from)
+		return user.NewSMTPMailer(settings.host, settings.port, settings.user, settings.pass, settings.from)
+	default:
+		slog.Warn("mail provider not set — using StubMailer (reset URLs logged only)")
+		return &user.StubMailer{}
+	}
 }
 
 // setupLogger configures the global slog handler based on the log level string.
