@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { Fragment, useState, useEffect, useCallback } from 'react'
+import type { MouseEvent } from 'react'
 import { adminFetch } from '@/api/client'
 import styles from './Users.module.css'
 
@@ -35,6 +36,7 @@ export default function UsersPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -60,6 +62,33 @@ export default function UsersPage() {
     finally { setStatsLoading(false) }
   }
 
+  async function handleDeleteUser(e: MouseEvent<HTMLButtonElement>, user: User) {
+    e.stopPropagation()
+    const label = user.email || `ID ${user.id}`
+    if (!window.confirm(`Delete user ${label}? This cannot be undone.`)) return
+
+    setDeletingId(user.id)
+    setError('')
+    try {
+      await adminFetch<void>('DELETE', `/users/${user.id}`)
+      if (expandedId === user.id) {
+        setExpandedId(null)
+        setStats(null)
+      }
+      setItems(prev => prev.filter(item => item.id !== user.id))
+      setTotal(prev => Math.max(0, prev - 1))
+      if (items.length === 1 && page > 1) {
+        setPage(p => p - 1)
+      } else {
+        fetchItems()
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete user')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <div className="adm-page">
       <div className="adm-header">
@@ -72,12 +101,12 @@ export default function UsersPage() {
       {loading ? <p className="adm-loading">Loading users...</p> : (
         <>
           <table className="adm-table">
-            <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>JLPT Levels</th><th>Streak</th><th>Created</th></tr></thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>JLPT Levels</th><th>Streak</th><th>Created</th><th>Actions</th></tr></thead>
             <tbody>
-              {items.length === 0 ? <tr><td colSpan={6} className="adm-empty">No users found</td></tr> :
+              {items.length === 0 ? <tr><td colSpan={7} className="adm-empty">No users found</td></tr> :
                 items.map(u => (
-                  <>
-                    <tr key={u.id} className="adm-clickableRow" onClick={() => handleToggleExpand(u.id)}>
+                  <Fragment key={u.id}>
+                    <tr className="adm-clickableRow" onClick={() => handleToggleExpand(u.id)}>
                       <td className="adm-id">{u.id}</td>
                       <td className="adm-userName">{u.name}</td>
                       <td className="adm-userEmail">{u.email}</td>
@@ -90,10 +119,23 @@ export default function UsersPage() {
                       </td>
                       <td>🔥 {u.streak_days}</td>
                       <td className="adm-dateCell">{typeof u.created_at === 'string' ? u.created_at.slice(0, 10) : String(u.created_at)}</td>
+                      <td>
+                        <div className="adm-actions">
+                          <button
+                            type="button"
+                            className="adm-btnDanger"
+                            disabled={deletingId === u.id}
+                            title={`Delete ${u.email}`}
+                            onClick={(e) => handleDeleteUser(e, u)}
+                          >
+                            {deletingId === u.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                     {expandedId === u.id && (
                       <tr className="adm-expandedRow" key={`${u.id}-stats`}>
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           {statsLoading ? <p className="adm-loading">Loading stats...</p> : stats ? (
                             <div>
                               <div className="adm-streakBadge">🔥 Streak: {stats.streak_days} days</div>
@@ -113,7 +155,7 @@ export default function UsersPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))
               }
             </tbody>
