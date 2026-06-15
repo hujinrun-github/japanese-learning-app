@@ -337,7 +337,261 @@ make admin-front-build
 
 ---
 
-## 4. API 路由参考
+## 4. 批量重新生成语音
+
+管理后台支持对已有单词、语法、口语材料批量生成或重新生成 TTS 音频。入口在 `Words`、`Grammar`、`Speaking` 三个页面的表格工具栏。
+
+### 4.1 页面操作
+
+1. 启动管理后台接口和前端：
+
+```bash
+ADMIN_TOKEN=your-password make admin-run
+make admin-front-dev
+```
+
+如果需要在页面中预听 `/audio/...` 文件，还需要启动主后端：
+
+```bash
+make start-backend
+```
+
+2. 打开 `http://localhost:5174`，输入 `ADMIN_TOKEN` 登录。
+3. 进入 `Words`、`Grammar` 或 `Speaking` 页面。
+4. 使用筛选、搜索、分页定位数据后，勾选表格左侧的行。表头 checkbox 只会全选当前页可见行。
+5. 勾选工具栏里的 **Audio**，选择 TTS Provider。通常使用 `vLLM (Qwen3-TTS)`。
+6. 检查 TTS 配置：
+   - `TTS Endpoint URL`: vLLM TTS 地址，通常是 `http://<host>:8091/v1/audio/speech`
+   - `Model`: 默认 `Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice`
+   - `Voice`: 默认 `ono_anna`
+   - `Instructions`: 发音风格指令
+7. 如果要覆盖已有音频，勾选 **Force regenerate (overwrite existing audio files)**。不勾选时，已有文件会跳过并计入 `existing`。
+8. 点击 **Regenerate Selected Audio (n)**，确认弹窗后开始生成。
+9. 完成后弹窗显示 `generated`、`already existed`、`failed`、`total`。
+
+### 4.2 当前生成规则
+
+| 模块 | 批量输入 | 输出目录 | 数据库更新 | 说明 |
+|------|----------|----------|------------|------|
+| Words | 选中单词的 `reading` | `data/audio/words/` | 更新 `words.audio_url` | 单词音频会裁剪头尾静音 |
+| Grammar | 选中语法点的第一个例句 `japanese`；没有例句时用 `name` | `data/audio/examples/` | 不更新 DB | 页面播放时按文本 hash 推导音频路径 |
+| Speaking | 选中口语材料的 `text` | `data/audio/examples/` | 不更新 DB | 页面播放时按文本 hash 推导音频路径 |
+
+音频文件名固定为：
+
+```text
+sha256(text)[:16].wav
+```
+
+示例：文本相同则生成同一个文件名。批量生成默认跳过已存在文件；只有开启 `force` 才会删除并重写。
+
+### 4.3 单条重新生成
+
+表格每行的音频列有两个按钮：
+
+- 播放按钮：优先播放预生成音频；失败时回退到浏览器 TTS。
+- 重新生成按钮：打开单条 `Regenerate Audio` 弹窗，默认选择 `vLLM`，点击 `Generate` 后会立即生成并自动试听。
+
+单条重新生成接口会直接写入目标文件；如果是 `word` 模块且传入了 `word_id`，会同步更新 `words.audio_url`。
+
+### 4.4 用命令调用批量 API
+
+管理后台页面目前只提交“当前页被勾选的可见行”。如果需要按条件跑更大范围，推荐直接用命令调用后端 API。此方式不需要启动管理前端，只需要：
+
+- 管理后台后端 `:8082` 已启动
+- TTS 服务可访问，例如 `http://127.0.0.1:8091/v1/audio/speech`
+- 请求头带 `Authorization: Bearer <ADMIN_TOKEN>`
+
+PowerShell 启动管理后台后端：
+
+```powershell
+$env:ADMIN_TOKEN = "your-password"
+go run ./backend/cmd/admin/
+```
+
+另开一个 PowerShell 窗口执行批量生成命令。
+
+#### 4.4.1 PowerShell 通用变量
+
+```http
+POST /api/admin/audio/batch
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```powershell
+$token = "your-password"
+$endpoint = "http://localhost:8082/api/admin/audio/batch"
+$headers = @{ Authorization = "Bearer $token" }
+
+$tts = @{
+  provider = "vllm"
+  tts_url = "http://127.0.0.1:8091/v1/audio/speech"
+  tts_model = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+  voice = "ono_anna"
+  instructions = "Pronounce only the exact given word, in isolation. No extra sounds, no prefix, no suffix. Clean single-word pronunciation."
+}
+```
+
+#### 4.4.2 按单词 ID 生成或重生成
+
+```powershell
+$body = @{
+  module = "words"
+  word_ids = @(1, 2, 3)
+  force = $true
+} + $tts
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri $endpoint `
+  -Headers $headers `
+  -ContentType "application/json; charset=utf-8" `
+  -Body ($body | ConvertTo-Json -Depth 5)
+```
+
+#### 4.4.3 按 JLPT 级别生成所有单词
+
+```powershell
+$body = @{
+  module = "words"
+  level = "N5"
+  force = $false
+} + $tts
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri $endpoint `
+  -Headers $headers `
+  -ContentType "application/json; charset=utf-8" `
+  -Body ($body | ConvertTo-Json -Depth 5)
+```
+
+不传 `level` 时会处理所有有 `reading` 的单词。
+
+#### 4.4.4 生成语法例句音频
+
+按级别从数据库收集语法点里的所有例句：
+
+```powershell
+$body = @{
+  module = "grammar"
+  level = "N5"
+  force = $false
+} + $tts
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri $endpoint `
+  -Headers $headers `
+  -ContentType "application/json; charset=utf-8" `
+  -Body ($body | ConvertTo-Json -Depth 5)
+```
+
+只生成指定文本：
+
+```powershell
+$body = @{
+  module = "grammar"
+  texts = @("私は学生です。", "これは本です。")
+  force = $true
+} + $tts
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri $endpoint `
+  -Headers $headers `
+  -ContentType "application/json; charset=utf-8" `
+  -Body ($body | ConvertTo-Json -Depth 5)
+```
+
+#### 4.4.5 生成口语材料音频
+
+按级别和类型从数据库收集口语材料：
+
+```powershell
+$body = @{
+  module = "speaking"
+  level = "N5"
+  type = "read_aloud"
+  force = $false
+} + $tts
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri $endpoint `
+  -Headers $headers `
+  -ContentType "application/json; charset=utf-8" `
+  -Body ($body | ConvertTo-Json -Depth 5)
+```
+
+只生成指定文本：
+
+```powershell
+$body = @{
+  module = "speaking"
+  texts = @("おはようございます。今日もよろしくお願いします。")
+  force = $true
+} + $tts
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri $endpoint `
+  -Headers $headers `
+  -ContentType "application/json; charset=utf-8" `
+  -Body ($body | ConvertTo-Json -Depth 5)
+```
+
+不传 `word_ids` / `texts` 时，后端会按模块从数据库收集文本：
+
+- `module=words`: 可用 `level` 限定 JLPT 级别；不传则处理所有有 `reading` 的单词。
+- `module=grammar`: 可用 `level` 限定 JLPT 级别；不传 `texts` 时会收集语法点里的所有例句。
+- `module=speaking`: 可用 `level` 和 `type` 限定范围；不传 `texts` 时会收集所有非空 `text`。
+
+返回格式：
+
+```json
+{
+  "module": "words",
+  "total": 3,
+  "generated": 2,
+  "existing": 1,
+  "failed": 0
+}
+```
+
+#### 4.4.6 curl.exe 示例
+
+Windows PowerShell 中 `curl` 可能是别名，建议显式使用 `curl.exe`：
+
+```powershell
+curl.exe -X POST "http://localhost:8082/api/admin/audio/batch" `
+  -H "Authorization: Bearer your-password" `
+  -H "Content-Type: application/json" `
+  --data-raw '{ "module": "words", "level": "N5", "force": false, "provider": "vllm", "tts_url": "http://127.0.0.1:8091/v1/audio/speech", "tts_model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "voice": "ono_anna", "instructions": "Pronounce only the exact given word, in isolation. No extra sounds, no prefix, no suffix. Clean single-word pronunciation." }'
+```
+
+如果请求体中包含日文文本，优先使用上面的 `Invoke-RestMethod` + `ConvertTo-Json`，可以减少命令行编码问题。
+
+### 4.5 独立 CLI（仅单词）
+
+独立 CLI 当前只提供单词音频批量生成：
+
+```bash
+go run ./backend/cmd/server/ generate-word-audio \
+  --db ./data/app.db \
+  --level N5 \
+  --provider vllm \
+  --tts-url http://127.0.0.1:8091/v1/audio/speech \
+  --voice ono_anna \
+  --force
+```
+
+注意：该命令会执行数据库迁移。当前迁移系统没有追踪机制，重复执行迁移可能再次插入种子词；优先使用已运行的管理后台 UI/API，或在执行后按项目已知修复 SQL 清理重复词。
+
+---
+
+## 5. API 路由参考
 
 所有接口需带 `Authorization: Bearer <token>` 请求头。
 
@@ -407,9 +661,16 @@ make admin-front-build
 
 返回：`{"inserted": N}`
 
+### 批量语音
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/admin/audio/batch` | JSON body；module = `words` / `grammar` / `speaking`，支持 `force`、`level`、`type`、`word_ids`、`texts` |
+| POST | `/api/admin/audio/regen` | JSON body；单条重新生成音频，module = `word` / `example` |
+
 ---
 
-## 5. 已有种子数据位置
+## 6. 已有种子数据位置
 
 如果需要参考现有数据格式，可以查看：
 
