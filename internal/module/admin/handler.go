@@ -66,6 +66,7 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("DELETE /api/admin/translation/{id}", h.auth(h.deleteTranslation))
 	// Users
 	mux.HandleFunc("GET /api/admin/users", h.auth(h.listUsers))
+	mux.HandleFunc("DELETE /api/admin/users/{id}", h.auth(h.deleteUser))
 	mux.HandleFunc("GET /api/admin/users/{id}/stats", h.auth(h.getUserStats))
 	// Records
 	mux.HandleFunc("GET /api/admin/records/{module}", h.auth(h.listRecords))

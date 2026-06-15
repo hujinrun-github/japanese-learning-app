@@ -245,6 +245,51 @@ func (s *UserStore) UpdateUser(id int64, name, email, jlptLevelsJSON string) err
 	return nil
 }
 
+// DeleteUser removes a user and the user-owned data that does not cascade by schema.
+func (s *UserStore) DeleteUser(id int64) error {
+	slog.Debug("UserStore.DeleteUser called", "user_id", id)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		slog.Error("failed to begin delete user transaction", "err", err, "user_id", id)
+		return fmt.Errorf("data.UserStore.DeleteUser begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, stmt := range []string{
+		`DELETE FROM translation_records WHERE user_id = ?`,
+		`DELETE FROM note_links WHERE user_id = ?`,
+		`DELETE FROM notes WHERE user_id = ?`,
+	} {
+		if _, err := tx.Exec(stmt, id); err != nil {
+			slog.Error("failed to delete user-owned data", "err", err, "user_id", id)
+			return fmt.Errorf("data.UserStore.DeleteUser cleanup: %w", err)
+		}
+	}
+
+	res, err := tx.Exec(`DELETE FROM users WHERE id = ?`, id)
+	if err != nil {
+		slog.Error("failed to delete user", "err", err, "user_id", id)
+		return fmt.Errorf("data.UserStore.DeleteUser delete user: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		slog.Error("failed to read deleted user row count", "err", err, "user_id", id)
+		return fmt.Errorf("data.UserStore.DeleteUser rows affected: %w", err)
+	}
+	if affected == 0 {
+		return fmt.Errorf("data.UserStore.DeleteUser %d: %w", id, sql.ErrNoRows)
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("failed to commit delete user transaction", "err", err, "user_id", id)
+		return fmt.Errorf("data.UserStore.DeleteUser commit: %w", err)
+	}
+
+	slog.Info("UserStore.DeleteUser done", "user_id", id)
+	return nil
+}
+
 // GetStats returns the user's learning stats across all modules.
 func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	slog.Debug("UserStore.GetStats called", "user_id", userID)
