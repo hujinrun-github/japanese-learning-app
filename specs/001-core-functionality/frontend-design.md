@@ -802,7 +802,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:30081',
         changeOrigin: true,
       },
     },
@@ -810,7 +810,7 @@ export default defineConfig({
 });
 ```
 
-开发时：`npm run dev`（`:5173`）自动代理 API 到后端 `:8080`。
+开发时：`npm run dev`（`:35173`）自动代理 API 到后端 `:30081`。
 生产时：Go 直接服务 `dist/`，无需 Node.js。
 
 ---
@@ -1039,7 +1039,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 | `SMTP_USER` | `""` | SMTP 认证用户名 |
 | `SMTP_PASS` | `""` | SMTP 认证密码 |
 | `SMTP_FROM` | `"noreply@japanese-learning.app"` | 发件人地址 |
-| `APP_BASE_URL` | `"http://localhost:5173"` | 重置链接前缀 |
+| `APP_BASE_URL` | `"http://localhost:35173"` | 重置链接前缀 |
 
 #### Token 生命周期
 

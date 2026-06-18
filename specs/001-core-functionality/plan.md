@@ -680,7 +680,7 @@ package config
 // Config 应用配置（从环境变量或配置文件加载）
 type Config struct {
     // 服务器
-    ListenAddr string // 默认 ":8080"
+    ListenAddr string // 默认 ":30081"
 
     // 数据库
     DBPath string // SQLite 文件路径，默认 "./data/app.db"
@@ -924,7 +924,7 @@ clean:
 ```
 front/react/
 ├── index.html
-├── vite.config.ts              # 配置 Vite 开发代理 /api → :8080
+├── vite.config.ts              # 配置 Vite 开发代理 /api → :30081
 ├── tsconfig.json               # strict: true
 ├── package.json
 └── src/
@@ -982,8 +982,8 @@ front/react/
 **开发环境**：
 
 ```
-npm run dev → Vite dev server :5173
-Vite proxy: /api/* → http://localhost:8080
+npm run dev → Vite dev server :35173
+Vite proxy: /api/* → http://localhost:30081
 ```
 
 前端和后端独立启动，Vite 代理所有 `/api/` 请求，无需 CORS 配置。

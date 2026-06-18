@@ -10,11 +10,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5174,
+    port: 35174,
     allowedHosts: ['tylerhu-1.tail5cec87.ts.net'],
     proxy: {
-      '/api/admin': 'http://localhost:8082',
-      '/audio': 'http://localhost:8081',
+      '/api/admin': 'http://localhost:30082',
+      '/audio': 'http://localhost:30081',
     },
   },
   build: {

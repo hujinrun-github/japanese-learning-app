@@ -16,6 +16,28 @@
 
 ## 快速开始
 
+### 端口对照
+
+| 服务 | 端口 | 说明 |
+|---|---:|---|
+| 主后端 / 正式服务 | `30081` | `backend/cmd/server` 默认 `LISTEN_ADDR=:30081` |
+| 学习端前端 | `35173` | React/Vite dev server，`/api` 和 `/audio` 代理到 `:30081` |
+| 管理后台 API | `30082` | `backend/cmd/admin` 默认 `LISTEN_ADDR=:30082` |
+| 管理后台前端 | `35174` | Admin React/Vite dev server |
+
+`8080` 不是本项目当前默认端口；如果本机有 `8080` 监听，先确认进程来源再使用。
+
+### Tailscale 访问入口
+
+当前 Tailnet 后缀为 `king-shiner.ts.net`。Tailscale 域名约定如下：
+
+| 环境 | Tailscale 域名 | 学习端前端 | 主后端/API | 管理后台前端 | 管理后台 API |
+|---|---|---|---|---|---|
+| 正式 | `tylerhu-1.king-shiner.ts.net` | `http://tylerhu-1.king-shiner.ts.net:35173` | `http://tylerhu-1.king-shiner.ts.net:30081` | `http://tylerhu-1.king-shiner.ts.net:35174` | `http://tylerhu-1.king-shiner.ts.net:30082` |
+| 测试 | `tylerhu.king-shiner.ts.net` | `http://tylerhu.king-shiner.ts.net:35173` | `http://tylerhu.king-shiner.ts.net:30081` | `http://tylerhu.king-shiner.ts.net:35174` | `http://tylerhu.king-shiner.ts.net:30082` |
+
+注意：这些是本应用的 Tailscale/MagicDNS 域名约定；实际外网访问需确保对应服务监听在可被 Tailscale 转发的地址，或额外配置 `tailscale serve` / `tailscale funnel`。当前 `tailscale funnel status` 中的 `/all-note`、`/all-note-test` 和 `:10000` 映射属于其他项目，不是本应用入口。
+
 ### 环境要求
 
 - Go ≥ 1.22
@@ -24,7 +46,7 @@
 ### 启动后端
 
 ```bash
-# 最简启动（默认监听 :8080）
+# 最简启动（默认监听 :30081）
 make run
 
 # 或指定配置
@@ -130,14 +152,14 @@ go build -o ./server ./backend/cmd/server/
 ```bash
 cd front/react
 npm install
-npm run dev      # http://localhost:5173，/api 代理至 :8080
+npm run dev      # http://localhost:35173，/api 和 /audio 代理至 :30081
 ```
 
 ### 环境变量
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `LISTEN_ADDR` | `:8080` | HTTP 监听地址 |
+| `LISTEN_ADDR` | `:30081` | HTTP 监听地址 |
 | `DB_PATH` | `./data/app.db` | SQLite 数据库路径 |
 | `JWT_SECRET` | `change-me-in-production` | 生产环境必须修改 |
 | `LOG_LEVEL` | `INFO` | DEBUG / INFO / WARN / ERROR |
@@ -149,7 +171,7 @@ npm run dev      # http://localhost:5173，/api 代理至 :8080
 | `SMTP_USER` | `""` | SMTP 用户名 |
 | `SMTP_PASS` | `""` | SMTP 密码 |
 | `SMTP_FROM` | `noreply@japanese-learning.app` | SMTP 发件地址 |
-| `APP_BASE_URL` | `http://localhost:5173` | 密码重置链接前缀 |
+| `APP_BASE_URL` | `http://localhost:35173` | 密码重置链接前缀 |
 
 #### Resend 密码重置邮件
 
@@ -160,7 +182,7 @@ PowerShell 示例：
 ```powershell
 $env:RESEND_API_KEY="re_xxx"
 $env:RESEND_FROM="noreply@your-domain.com"
-$env:APP_BASE_URL="http://localhost:5173"
+$env:APP_BASE_URL="http://localhost:35173"
 make run
 ```
 

@@ -1,0 +1,1 @@
+-- PostgreSQL seed data is intentionally loaded only by explicit commands.

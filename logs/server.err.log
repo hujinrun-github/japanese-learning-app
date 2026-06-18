@@ -1,0 +1,32 @@
+time=2026-06-17T20:52:49.821+08:00 level=INFO msg="running migrations"
+time=2026-06-17T20:52:49.950+08:00 level=INFO msg="migration applied" file=001_init.sql
+time=2026-06-17T20:52:50.037+08:00 level=INFO msg="migration statement skipped (already applied)" file=001b_add_reading_type.sql
+time=2026-06-17T20:52:50.103+08:00 level=INFO msg="migration applied with duplicate columns skipped" file=001b_add_reading_type.sql
+time=2026-06-17T20:52:50.334+08:00 level=INFO msg="migration applied" file=002_seed.sql
+time=2026-06-17T20:52:50.593+08:00 level=INFO msg="migration applied" file=003_fix_writing_questions.sql
+time=2026-06-17T20:52:50.624+08:00 level=INFO msg="migration applied" file=004_words_unique_kanji_reading.sql
+time=2026-06-17T20:52:50.690+08:00 level=INFO msg="migration applied" file=005_password_reset_tokens.sql
+time=2026-06-17T20:52:50.692+08:00 level=INFO msg="migration applied" file=006_notes.sql
+time=2026-06-17T20:52:50.744+08:00 level=INFO msg="migration statement skipped (already applied)" file=007_speaking_lines.sql
+time=2026-06-17T20:52:50.787+08:00 level=INFO msg="migration applied with duplicate columns skipped" file=007_speaking_lines.sql
+time=2026-06-17T20:52:50.789+08:00 level=INFO msg="migration statement skipped (already applied)" file=008_grammar_records_updated_at.sql
+time=2026-06-17T20:52:50.861+08:00 level=INFO msg="migration applied with duplicate columns skipped" file=008_grammar_records_updated_at.sql
+time=2026-06-17T20:52:50.865+08:00 level=INFO msg="migration applied" file=009_translation.sql
+time=2026-06-17T20:52:50.891+08:00 level=INFO msg="migration statement skipped (already applied)" file=009_user_jlpt_levels.sql
+time=2026-06-17T20:52:50.893+08:00 level=INFO msg="migration statement skipped (already applied)" file=009_user_jlpt_levels.sql
+time=2026-06-17T20:52:50.905+08:00 level=INFO msg="migration applied with duplicate columns skipped" file=009_user_jlpt_levels.sql
+time=2026-06-17T20:52:50.917+08:00 level=INFO msg="migration statement skipped (already applied)" file=010_daily_goals.sql
+time=2026-06-17T20:52:50.938+08:00 level=INFO msg="migration applied with duplicate columns skipped" file=010_daily_goals.sql
+time=2026-06-17T20:52:50.939+08:00 level=INFO msg="migration statement skipped (already applied)" file=011_add_words_audio_url.sql
+time=2026-06-17T20:52:50.940+08:00 level=INFO msg="migration applied with duplicate columns skipped" file=011_add_words_audio_url.sql
+time=2026-06-17T20:52:50.941+08:00 level=INFO msg="migration statement skipped (already applied)" file=012_add_updated_at_content.sql
+time=2026-06-17T20:52:50.942+08:00 level=INFO msg="migration statement skipped (already applied)" file=012_add_updated_at_content.sql
+time=2026-06-17T20:52:50.943+08:00 level=INFO msg="migration statement skipped (already applied)" file=012_add_updated_at_content.sql
+time=2026-06-17T20:52:50.944+08:00 level=INFO msg="migration statement skipped (already applied)" file=012_add_updated_at_content.sql
+time=2026-06-17T20:52:50.945+08:00 level=INFO msg="migration statement skipped (already applied)" file=012_add_updated_at_content.sql
+time=2026-06-17T20:52:50.971+08:00 level=INFO msg="migration applied with duplicate columns skipped" file=012_add_updated_at_content.sql
+time=2026-06-17T20:52:50.971+08:00 level=INFO msg="all migrations completed" count=14
+time=2026-06-17T20:52:50.972+08:00 level=WARN msg="AI_API_KEY not set — using StubReviewer (no real AI feedback)"
+time=2026-06-17T20:52:50.973+08:00 level=WARN msg="AI_API_KEY not set — using StubReviewer for translation (no real AI feedback)"
+time=2026-06-17T20:52:50.973+08:00 level=WARN msg="mail provider not set — using StubMailer (reset URLs logged only)"
+time=2026-06-17T20:52:50.974+08:00 level=INFO msg="server starting" addr=:30081

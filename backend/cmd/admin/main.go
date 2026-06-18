@@ -57,7 +57,7 @@ func main() {
 
 	mux := h.RegisterRoutes()
 
-	addr := envOrDefault("LISTEN_ADDR", ":8082")
+	addr := envOrDefault("LISTEN_ADDR", ":30082")
 	slog.Info("admin server starting", "addr", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		slog.Error("server error", "err", err)
