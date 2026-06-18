@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -52,6 +53,41 @@ func TestShadowingMigrationRepeatSafe(t *testing.T) {
 					if !sqliteTableExists(t, db, table) {
 						t.Errorf("table %q does not exist", table)
 					}
+				}
+			},
+		},
+		{
+			name: "lessons shadowing version rejects zero",
+			check: func(t *testing.T, db *sql.DB) {
+				_, err := db.Exec(`
+					INSERT INTO lessons (
+						title,
+						content_furigana_json,
+						translation_json,
+						jlpt_level,
+						tags_json,
+						audio_url,
+						sentence_timestamps_json,
+						char_count,
+						word_ids_json,
+						shadowing_version
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					"invalid shadowing version",
+					`[]`,
+					`[]`,
+					"N5",
+					`[]`,
+					"",
+					`[]`,
+					0,
+					`[]`,
+					0,
+				)
+				if err == nil {
+					t.Fatal("insert lesson with shadowing_version 0 succeeded, want CHECK constraint error")
+				}
+				if !strings.Contains(err.Error(), "constraint") {
+					t.Fatalf("insert lesson with shadowing_version 0 error = %v, want constraint error", err)
 				}
 			},
 		},
