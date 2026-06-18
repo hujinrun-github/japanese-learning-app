@@ -17,6 +17,9 @@ import (
 //	import-words    --file <path> | --json <json>   Batch/single import words.
 //	import-grammar  --file <path> | --json <json>   Batch/single import grammar points.
 //	import-lessons  --file <path> | --json <json>   Batch/single import lessons.
+//	report-lesson-duplicates --db <path>             Report duplicate lessons.
+//	cleanup-lesson-duplicates --db <path>            Delete duplicate lesson rows.
+//	create-lesson-unique-index --db <path>           Create the lesson unique index.
 //	import-speaking --file <path> | --json <json>   Batch/single import speaking materials.
 //	import-writing  --file <path> | --json <json>   Batch/single import writing questions.
 func Run(args []string) int {
@@ -32,6 +35,12 @@ func Run(args []string) int {
 		return runImportGrammar(args[1:])
 	case "import-lessons":
 		return runImportLessons(args[1:])
+	case "report-lesson-duplicates":
+		return runReportLessonDuplicates(args[1:])
+	case "cleanup-lesson-duplicates":
+		return runCleanupLessonDuplicates(args[1:])
+	case "create-lesson-unique-index":
+		return runCreateLessonUniqueIndex(args[1:])
 	case "import-speaking":
 		return runImportSpeaking(args[1:])
 	case "import-writing":
@@ -54,6 +63,9 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-words    --file <path> | --json <json>  import words")
 	fmt.Fprintln(os.Stderr, "  import-grammar  --file <path> | --json <json>  import grammar points")
 	fmt.Fprintln(os.Stderr, "  import-lessons  --file <path> | --json <json>  import lessons")
+	fmt.Fprintln(os.Stderr, "  report-lesson-duplicates --db <path>            report duplicate lessons")
+	fmt.Fprintln(os.Stderr, "  cleanup-lesson-duplicates --db <path>           delete duplicate lesson rows")
+	fmt.Fprintln(os.Stderr, "  create-lesson-unique-index --db <path>          create lessons(title,jlpt_level) unique index")
 	fmt.Fprintln(os.Stderr, "  import-speaking --file <path> | --json <json>  import speaking materials")
 	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")
 	fmt.Fprintln(os.Stderr, "  import-translation-api    --file <config.json>           import translation sentences from API")
@@ -278,6 +290,125 @@ func runImportLessons(args []string) int {
 		fmt.Printf("import-lessons: inserted %d lesson(s)\n", n)
 	}
 	return 0
+}
+
+func runReportLessonDuplicates(args []string) int {
+	fs := flag.NewFlagSet("report-lesson-duplicates", flag.ContinueOnError)
+	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: %v\n", err)
+		return 1
+	}
+
+	db, err := data.OpenDB(*dbPath)
+	if err != nil {
+		slog.Error("report-lesson-duplicates: failed to open database", "db", *dbPath, "err", err)
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := data.RunMigrations(db); err != nil {
+		slog.Error("report-lesson-duplicates: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: run migrations: %v\n", err)
+		return 1
+	}
+
+	groups, err := ReportLessonDuplicates(db)
+	if err != nil {
+		slog.Error("report-lesson-duplicates: report failed", "err", err)
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: %v\n", err)
+		return 1
+	}
+	printLessonDuplicateReport("report-lesson-duplicates", groups)
+	return 0
+}
+
+func runCleanupLessonDuplicates(args []string) int {
+	fs := flag.NewFlagSet("cleanup-lesson-duplicates", flag.ContinueOnError)
+	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: %v\n", err)
+		return 1
+	}
+
+	db, err := data.OpenDB(*dbPath)
+	if err != nil {
+		slog.Error("cleanup-lesson-duplicates: failed to open database", "db", *dbPath, "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := data.RunMigrations(db); err != nil {
+		slog.Error("cleanup-lesson-duplicates: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: run migrations: %v\n", err)
+		return 1
+	}
+
+	groups, err := ReportLessonDuplicates(db)
+	if err != nil {
+		slog.Error("cleanup-lesson-duplicates: report failed", "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: %v\n", err)
+		return 1
+	}
+	printLessonDuplicateReport("cleanup-lesson-duplicates", groups)
+
+	deleted, err := CleanupLessonDuplicates(db)
+	if err != nil {
+		slog.Error("cleanup-lesson-duplicates: cleanup failed", "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: %v\n", err)
+		return 1
+	}
+	fmt.Printf("cleanup-lesson-duplicates: deleted %d lesson row(s)\n", deleted)
+	return 0
+}
+
+func runCreateLessonUniqueIndex(args []string) int {
+	fs := flag.NewFlagSet("create-lesson-unique-index", flag.ContinueOnError)
+	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: %v\n", err)
+		return 1
+	}
+
+	db, err := data.OpenDB(*dbPath)
+	if err != nil {
+		slog.Error("create-lesson-unique-index: failed to open database", "db", *dbPath, "err", err)
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := data.RunMigrations(db); err != nil {
+		slog.Error("create-lesson-unique-index: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: run migrations: %v\n", err)
+		return 1
+	}
+
+	if err := CreateLessonUniqueIndex(db); err != nil {
+		slog.Error("create-lesson-unique-index: create failed", "err", err)
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: %v\n", err)
+		return 1
+	}
+	fmt.Println("create-lesson-unique-index: unique index ready")
+	return 0
+}
+
+func printLessonDuplicateReport(prefix string, groups []LessonDuplicateGroup) {
+	if len(groups) == 0 {
+		fmt.Printf("%s: no duplicate lessons found\n", prefix)
+		return
+	}
+	for _, group := range groups {
+		fmt.Printf("%s: title=%q jlpt_level=%s kept_id=%d duplicate_ids=%v\n",
+			prefix,
+			group.Title,
+			group.JLPTLevel,
+			group.KeptID,
+			group.DuplicateIDs,
+		)
+	}
 }
 
 func runImportSpeaking(args []string) int {
