@@ -312,7 +312,7 @@ Phase 4:
 | 编号 | 文件 | 职责说明 | 依赖 |
 |---|---|---|---|
 | TF001 | `front/react/package.json` | 声明依赖：`react@18`、`react-dom@18`、`react-router-dom@6`、`typescript@5`、`vite@5`、`@vitejs/plugin-react`；定义脚本 `dev / build / preview / test`；**不引入任何 UI 库或状态管理库** | — |
-| TF002 | `front/react/vite.config.ts` | 配置 `@vitejs/plugin-react`；配置 dev server proxy：`/api` → `http://localhost:8080`；配置 `build.outDir = "../../front/dist"` 输出至后端 embed 目录 | TF001 |
+| TF002 | `front/react/vite.config.ts` | 配置 `@vitejs/plugin-react`；配置 dev server proxy：`/api` → `http://localhost:30081`；配置 `build.outDir = "../../front/dist"` 输出至后端 embed 目录 | TF001 |
 | TF003 | `front/react/tsconfig.json` | 严格模式 TypeScript 配置：`strict: true`，`target: ES2020`，`module: ESNext`，`moduleResolution: bundler`，`jsx: react-jsx`，`baseUrl: ./src`，路径别名 `@/*: ./src/*` | TF001 |
 | TF004 | `front/react/src/styles/variables.css` | 全局 CSS 变量：JLPT 等级色（N5 #74C0FC → N1 #F03E3E）、语义色（primary/success/warning/error/text/bg/border）、排版（字体族含日文回退 `"Noto Sans JP", "Hiragino Sans", sans-serif`、字号 scale）、间距（8px 网格）、圆角、阴影；`@media (prefers-color-scheme: dark)` 覆写变量 | — |
 | TF005 | `front/react/src/styles/global.css` | 全局重置样式：`box-sizing: border-box`，body 默认字体/颜色/背景；引入 `variables.css`；`.visually-hidden` 无障碍工具类 | TF004 |

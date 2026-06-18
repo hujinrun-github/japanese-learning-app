@@ -4,9 +4,18 @@
 
 管理后台是一个独立部署的 Web 应用，用于管理日语学习内容（单词、语法、口语、写作、翻译）和查看用户数据/学习记录。
 
-- **后端**: Go 二进制，监听 `:8082`，复用主应用的 SQLite 数据库
-- **前端**: React SPA，开发服务器 `:5174`
+- **后端**: Go 二进制，监听 `:30082`，复用主应用的 SQLite 数据库
+- **前端**: React SPA，开发服务器 `:35174`
 - **认证**: 通过环境变量 `ADMIN_TOKEN` 设置 token，前端登录页输入相同 token
+
+### Tailscale 访问入口
+
+| 环境 | 管理后台前端 | 管理后台 API |
+|------|--------------|--------------|
+| 正式 | `http://tylerhu-1.king-shiner.ts.net:35174` | `http://tylerhu-1.king-shiner.ts.net:30082` |
+| 测试 | `http://tylerhu.king-shiner.ts.net:35174` | `http://tylerhu.king-shiner.ts.net:30082` |
+
+注意：这些是管理后台的 Tailscale/MagicDNS 域名约定；实际外网访问需确保对应服务监听在可被 Tailscale 转发的地址，或额外配置 `tailscale serve` / `tailscale funnel`。当前 `tailscale funnel status` 中的 `/all-note`、`/all-note-test` 和 `:10000` 映射属于其他项目，不是管理后台入口。
 
 ### 环境变量
 
@@ -14,7 +23,7 @@
 |------|------|--------|------|
 | `ADMIN_TOKEN` | ✅ | - | 管理后台登录 token |
 | `DB_PATH` | | `./data/app.db` | SQLite 数据库路径 |
-| `LISTEN_ADDR` | | `:8082` | 监听地址 |
+| `LISTEN_ADDR` | | `:30082` | 监听地址 |
 | `AI_API_KEY` | | `sk-a235671815e6469c8c15e69f18494500` | LLM API 密钥（默认 DeepSeek） |
 | `AI_API_ENDPOINT` | | `https://api.deepseek.com/v1/chat/completions` | LLM API 地址 |
 | `AI_MODEL` | | `deepseek-chat` | 模型名称 |
@@ -56,7 +65,7 @@ cd front/admin && npm run build
 make admin-front-build
 ```
 
-启动后访问 `http://localhost:5174`，输入你设定的 token 登录。
+启动后访问 `http://localhost:35174`，输入你设定的 token 登录。
 
 ### AI 提供商说明
 
@@ -356,7 +365,7 @@ make admin-front-dev
 make start-backend
 ```
 
-2. 打开 `http://localhost:5174`，输入 `ADMIN_TOKEN` 登录。
+2. 打开 `http://localhost:35174`，输入 `ADMIN_TOKEN` 登录。
 3. 进入 `Words`、`Grammar` 或 `Speaking` 页面。
 4. 使用筛选、搜索、分页定位数据后，勾选表格左侧的行。表头 checkbox 只会全选当前页可见行。
 5. 勾选工具栏里的 **Audio**，选择 TTS Provider。通常使用 `vLLM (Qwen3-TTS)`。
@@ -398,7 +407,7 @@ sha256(text)[:16].wav
 
 管理后台页面目前只提交“当前页被勾选的可见行”。如果需要按条件跑更大范围，推荐直接用命令调用后端 API。此方式不需要启动管理前端，只需要：
 
-- 管理后台后端 `:8082` 已启动
+- 管理后台后端 `:30082` 已启动
 - TTS 服务可访问，例如 `http://127.0.0.1:8091/v1/audio/speech`
 - 请求头带 `Authorization: Bearer <ADMIN_TOKEN>`
 
@@ -421,7 +430,7 @@ Content-Type: application/json
 
 ```powershell
 $token = "your-password"
-$endpoint = "http://localhost:8082/api/admin/audio/batch"
+$endpoint = "http://localhost:30082/api/admin/audio/batch"
 $headers = @{ Authorization = "Bearer $token" }
 
 $tts = @{
@@ -565,7 +574,7 @@ Invoke-RestMethod `
 Windows PowerShell 中 `curl` 可能是别名，建议显式使用 `curl.exe`：
 
 ```powershell
-curl.exe -X POST "http://localhost:8082/api/admin/audio/batch" `
+curl.exe -X POST "http://localhost:30082/api/admin/audio/batch" `
   -H "Authorization: Bearer your-password" `
   -H "Content-Type: application/json" `
   --data-raw '{ "module": "words", "level": "N5", "force": false, "provider": "vllm", "tts_url": "http://127.0.0.1:8091/v1/audio/speech", "tts_model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "voice": "ono_anna", "instructions": "Pronounce only the exact given word, in isolation. No extra sounds, no prefix, no suffix. Clean single-word pronunciation." }'

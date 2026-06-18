@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"japanese-learning-app/internal/cli"
+	"japanese-learning-app/internal/config"
 	"japanese-learning-app/internal/data"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
@@ -26,20 +26,27 @@ func main() {
 	// If the first argument is a known CLI command, dispatch to the CLI handler
 	// and exit without starting the HTTP server.
 	if len(os.Args) > 1 && os.Args[1] != "serve" {
-		os.Exit(cli.Run(os.Args[1:]))
+		slog.Error("server binary no longer dispatches CLI commands", "arg", os.Args[1])
+		os.Exit(2)
 	}
 
 	// ── Configuration ─────────────────────────────────────────────────────────
-	dbPath := envOrDefault("DB_PATH", "./data/app.db")
-	listenAddr := envOrDefault("LISTEN_ADDR", ":8081")
-	jwtSecret := envOrDefault("JWT_SECRET", "change-me-in-production")
-	logLevel := envOrDefault("LOG_LEVEL", "INFO")
-	aiAPIKey := envOrDefault("AI_API_KEY", "")
-	aiEndpoint := envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages")
+	cfg, err := config.Load("")
+	if err != nil {
+		slog.Error("load config", "err", err)
+		os.Exit(1)
+	}
+
+	dbPath := cfg.DBPath
+	listenAddr := cfg.ListenAddr
+	jwtSecret := cfg.JWTSecret
+	logLevel := cfg.LogLevel
+	aiAPIKey := cfg.AIAPIKey
+	aiEndpoint := cfg.AIAPIEndpoint
 	staticDir := envOrDefault("STATIC_DIR", "./front/dist/assets")
 	templateDir := envOrDefault("TEMPLATE_DIR", "./front/dist")
 	mailerConfig := passwordResetMailerSettings(os.Getenv)
-	appBaseURL := envOrDefault("APP_BASE_URL", "http://localhost:5173")
+	appBaseURL := envOrDefault("APP_BASE_URL", "http://localhost:35173")
 
 	setupLogger(logLevel)
 
