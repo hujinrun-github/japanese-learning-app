@@ -59,7 +59,7 @@ def validate_lesson(lesson: dict[str, Any]) -> list[tuple[str, str]]:
         errors.append((title, "audio_url is required"))
 
     version = lesson.get("shadowing_version")
-    if not isinstance(version, int) or version < 1:
+    if not is_int(version) or version < 1:
         errors.append((title, "shadowing_version must be >= 1"))
 
     config = lesson.get("shadowing_config")
@@ -100,10 +100,10 @@ def validate_lesson(lesson: dict[str, Any]) -> list[tuple[str, str]]:
 
         start_ms = sentence.get("start_ms")
         end_ms = sentence.get("end_ms")
-        if not isinstance(start_ms, (int, float)):
+        if not is_number(start_ms):
             errors.append((title, f"sentences[{index}].start_ms is required"))
             start_ms = None
-        if not isinstance(end_ms, (int, float)):
+        if not is_number(end_ms):
             errors.append((title, f"sentences[{index}].end_ms is required"))
             end_ms = None
         if start_ms is None or end_ms is None:
@@ -138,7 +138,15 @@ def non_empty_string(value: Any) -> bool:
 
 
 def is_positive_number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and value > 0
+    return is_number(value) and value > 0
+
+
+def is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 if __name__ == "__main__":
