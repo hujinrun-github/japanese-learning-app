@@ -59,11 +59,7 @@ func CleanupLessonDuplicates(db *sql.DB) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("cli.CleanupLessonDuplicates Begin: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer tx.Rollback()
 
 	deleted := 0
 	for _, group := range groups {
@@ -71,15 +67,14 @@ func CleanupLessonDuplicates(db *sql.DB) (int, error) {
 			if id == group.KeptID {
 				continue
 			}
-			if _, err = tx.Exec(`DELETE FROM lesson_shadowing_attempts WHERE lesson_id = ?`, id); err != nil {
-				return 0, fmt.Errorf("cli.CleanupLessonDuplicates delete attempts for lesson %d: %w", id, err)
+			if err := moveShadowingAttempts(tx, id, group.KeptID); err != nil {
+				return 0, err
 			}
-			if _, err = tx.Exec(`DELETE FROM lesson_shadowing_progress WHERE lesson_id = ?`, id); err != nil {
-				return 0, fmt.Errorf("cli.CleanupLessonDuplicates delete progress for lesson %d: %w", id, err)
+			if err := mergeShadowingProgress(tx, id, group.KeptID); err != nil {
+				return 0, err
 			}
 			result, execErr := tx.Exec(`DELETE FROM lessons WHERE id = ?`, id)
 			if execErr != nil {
-				err = execErr
 				return 0, fmt.Errorf("cli.CleanupLessonDuplicates delete lesson %d: %w", id, execErr)
 			}
 			n, _ := result.RowsAffected()
@@ -91,6 +86,116 @@ func CleanupLessonDuplicates(db *sql.DB) (int, error) {
 		return 0, fmt.Errorf("cli.CleanupLessonDuplicates Commit: %w", err)
 	}
 	return deleted, nil
+}
+
+func moveShadowingAttempts(tx *sql.Tx, duplicateID, keptID int64) error {
+	if _, err := tx.Exec(
+		`UPDATE lesson_shadowing_attempts SET lesson_id = ? WHERE lesson_id = ?`,
+		keptID,
+		duplicateID,
+	); err != nil {
+		return fmt.Errorf("cli.moveShadowingAttempts %d -> %d: %w", duplicateID, keptID, err)
+	}
+	return nil
+}
+
+func mergeShadowingProgress(tx *sql.Tx, duplicateID, keptID int64) error {
+	rows, err := tx.Query(`
+		SELECT id,
+		       user_id,
+		       shadowing_version,
+		       last_sentence_index,
+		       last_position_ms,
+		       last_practice_mode,
+		       updated_at
+		FROM lesson_shadowing_progress
+		WHERE lesson_id = ?
+		ORDER BY id`,
+		duplicateID,
+	)
+	if err != nil {
+		return fmt.Errorf("cli.mergeShadowingProgress query duplicate %d: %w", duplicateID, err)
+	}
+	defer rows.Close()
+
+	type progressRow struct {
+		id                int64
+		userID            int64
+		shadowingVersion  int
+		lastSentenceIndex int
+		lastPositionMS    int
+		lastPracticeMode  string
+		updatedAt         string
+	}
+
+	var duplicates []progressRow
+	for rows.Next() {
+		var row progressRow
+		if err := rows.Scan(
+			&row.id,
+			&row.userID,
+			&row.shadowingVersion,
+			&row.lastSentenceIndex,
+			&row.lastPositionMS,
+			&row.lastPracticeMode,
+			&row.updatedAt,
+		); err != nil {
+			return fmt.Errorf("cli.mergeShadowingProgress scan duplicate %d: %w", duplicateID, err)
+		}
+		duplicates = append(duplicates, row)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("cli.mergeShadowingProgress rows duplicate %d: %w", duplicateID, err)
+	}
+
+	for _, duplicate := range duplicates {
+		var keptProgressID int64
+		var keptUpdatedAt string
+		err := tx.QueryRow(`
+			SELECT id, updated_at
+			FROM lesson_shadowing_progress
+			WHERE user_id = ? AND lesson_id = ? AND shadowing_version = ?`,
+			duplicate.userID,
+			keptID,
+			duplicate.shadowingVersion,
+		).Scan(&keptProgressID, &keptUpdatedAt)
+		if err == sql.ErrNoRows {
+			if _, err := tx.Exec(
+				`UPDATE lesson_shadowing_progress SET lesson_id = ? WHERE id = ?`,
+				keptID,
+				duplicate.id,
+			); err != nil {
+				return fmt.Errorf("cli.mergeShadowingProgress move progress %d to lesson %d: %w", duplicate.id, keptID, err)
+			}
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("cli.mergeShadowingProgress find kept progress for duplicate %d: %w", duplicate.id, err)
+		}
+
+		if duplicate.updatedAt > keptUpdatedAt {
+			if _, err := tx.Exec(`
+				UPDATE lesson_shadowing_progress
+				SET last_sentence_index = ?,
+				    last_position_ms = ?,
+				    last_practice_mode = ?,
+				    updated_at = ?
+				WHERE id = ?`,
+				duplicate.lastSentenceIndex,
+				duplicate.lastPositionMS,
+				duplicate.lastPracticeMode,
+				duplicate.updatedAt,
+				keptProgressID,
+			); err != nil {
+				return fmt.Errorf("cli.mergeShadowingProgress update kept progress %d: %w", keptProgressID, err)
+			}
+		}
+		if _, err := tx.Exec(`DELETE FROM lesson_shadowing_progress WHERE id = ?`, duplicate.id); err != nil {
+			return fmt.Errorf("cli.mergeShadowingProgress delete duplicate progress %d: %w", duplicate.id, err)
+		}
+	}
+
+	return nil
 }
 
 func CreateLessonUniqueIndex(db *sql.DB) error {

@@ -18,7 +18,7 @@ import (
 //	import-grammar  --file <path> | --json <json>   Batch/single import grammar points.
 //	import-lessons  --file <path> | --json <json>   Batch/single import lessons.
 //	report-lesson-duplicates --db <path>             Report duplicate lessons.
-//	cleanup-lesson-duplicates --db <path>            Delete duplicate lesson rows.
+//	cleanup-lesson-duplicates --db <path> [--apply]  Report or delete duplicate lesson rows.
 //	create-lesson-unique-index --db <path>           Create the lesson unique index.
 //	import-speaking --file <path> | --json <json>   Batch/single import speaking materials.
 //	import-writing  --file <path> | --json <json>   Batch/single import writing questions.
@@ -64,7 +64,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-grammar  --file <path> | --json <json>  import grammar points")
 	fmt.Fprintln(os.Stderr, "  import-lessons  --file <path> | --json <json>  import lessons")
 	fmt.Fprintln(os.Stderr, "  report-lesson-duplicates --db <path>            report duplicate lessons")
-	fmt.Fprintln(os.Stderr, "  cleanup-lesson-duplicates --db <path>           delete duplicate lesson rows")
+	fmt.Fprintln(os.Stderr, "  cleanup-lesson-duplicates --db <path> [--apply] report duplicates; delete only with --apply")
 	fmt.Fprintln(os.Stderr, "  create-lesson-unique-index --db <path>          create lessons(title,jlpt_level) unique index")
 	fmt.Fprintln(os.Stderr, "  import-speaking --file <path> | --json <json>  import speaking materials")
 	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")
@@ -327,6 +327,7 @@ func runReportLessonDuplicates(args []string) int {
 func runCleanupLessonDuplicates(args []string) int {
 	fs := flag.NewFlagSet("cleanup-lesson-duplicates", flag.ContinueOnError)
 	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	apply := fs.Bool("apply", false, "actually delete duplicate lesson rows after printing the report")
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: %v\n", err)
 		return 1
@@ -353,6 +354,10 @@ func runCleanupLessonDuplicates(args []string) int {
 		return 1
 	}
 	printLessonDuplicateReport("cleanup-lesson-duplicates", groups)
+	if !*apply {
+		fmt.Println("cleanup-lesson-duplicates: dry run only; rerun with --apply to delete duplicate lesson rows")
+		return 0
+	}
 
 	deleted, err := CleanupLessonDuplicates(db)
 	if err != nil {

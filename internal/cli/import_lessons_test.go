@@ -102,6 +102,41 @@ func seedDuplicateLessonsAtPath(t *testing.T, dbPath string) {
 	insertRawLesson(t, db, "Command Duplicate", "N5")
 }
 
+func insertUser(t *testing.T, db *sql.DB, email string) int64 {
+	t.Helper()
+
+	res, err := db.Exec(
+		`INSERT INTO users (email, password_hash, goal_level) VALUES (?, ?, ?)`,
+		email,
+		"test-hash",
+		"N5",
+	)
+	if err != nil {
+		t.Fatalf("insert user error: %v", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("user LastInsertId error: %v", err)
+	}
+	return id
+}
+
+func lessonCountByTitleAtPath(t *testing.T, dbPath, title string) int {
+	t.Helper()
+
+	db, err := data.OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("open count db: %v", err)
+	}
+	defer db.Close()
+
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM lessons WHERE title = ?`, title).Scan(&count); err != nil {
+		t.Fatalf("count lessons by title error: %v", err)
+	}
+	return count
+}
+
 func TestImportLessonsFromFile_UpdatesExistingLesson(t *testing.T) {
 	db := openTestDB(t)
 
@@ -228,6 +263,169 @@ func TestCleanupLessonDuplicates_RemovesNonKeptRows(t *testing.T) {
 	}
 }
 
+func TestCleanupLessonDuplicates_PreservesShadowingData(t *testing.T) {
+	db := openTestDB(t)
+	keptID := insertRawLesson(t, db, "Cleanup Shadowing Data", "N5")
+	removedID := insertRawLesson(t, db, "Cleanup Shadowing Data", "N5")
+	userWithConflict := insertUser(t, db, "shadowing-conflict@example.com")
+	userWithoutConflict := insertUser(t, db, "shadowing-no-conflict@example.com")
+
+	if _, err := db.Exec(`
+		INSERT INTO lesson_shadowing_attempts (
+			user_id,
+			lesson_id,
+			shadowing_version,
+			sentence_index,
+			practice_mode,
+			playback_rate,
+			loop_count,
+			self_score,
+			recognition_text,
+			audio_ref
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		userWithConflict,
+		removedID,
+		1,
+		0,
+		"normal",
+		1.0,
+		2,
+		88,
+		"おはようございます",
+		"attempt-1.wav",
+	); err != nil {
+		t.Fatalf("insert shadowing attempt error: %v", err)
+	}
+
+	if _, err := db.Exec(`
+		INSERT INTO lesson_shadowing_progress (
+			user_id,
+			lesson_id,
+			shadowing_version,
+			last_sentence_index,
+			last_position_ms,
+			last_practice_mode,
+			updated_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		userWithConflict,
+		keptID,
+		1,
+		1,
+		1000,
+		"old",
+		"2026-01-01 00:00:00",
+	); err != nil {
+		t.Fatalf("insert kept progress error: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO lesson_shadowing_progress (
+			user_id,
+			lesson_id,
+			shadowing_version,
+			last_sentence_index,
+			last_position_ms,
+			last_practice_mode,
+			updated_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		userWithConflict,
+		removedID,
+		1,
+		3,
+		4200,
+		"loop",
+		"2026-02-01 00:00:00",
+	); err != nil {
+		t.Fatalf("insert duplicate progress with conflict error: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO lesson_shadowing_progress (
+			user_id,
+			lesson_id,
+			shadowing_version,
+			last_sentence_index,
+			last_position_ms,
+			last_practice_mode,
+			updated_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		userWithoutConflict,
+		removedID,
+		2,
+		4,
+		5300,
+		"slow",
+		"2026-03-01 00:00:00",
+	); err != nil {
+		t.Fatalf("insert duplicate progress without conflict error: %v", err)
+	}
+
+	deleted, err := cli.CleanupLessonDuplicates(db)
+	if err != nil {
+		t.Fatalf("CleanupLessonDuplicates error: %v", err)
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted = %d, want 1", deleted)
+	}
+
+	var duplicateAttemptCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM lesson_shadowing_attempts WHERE lesson_id = ?`, removedID).Scan(&duplicateAttemptCount); err != nil {
+		t.Fatalf("query duplicate attempt count error: %v", err)
+	}
+	if duplicateAttemptCount != 0 {
+		t.Fatalf("duplicate attempt count = %d, want 0", duplicateAttemptCount)
+	}
+	var keptAttemptCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM lesson_shadowing_attempts WHERE lesson_id = ?`, keptID).Scan(&keptAttemptCount); err != nil {
+		t.Fatalf("query kept attempt count error: %v", err)
+	}
+	if keptAttemptCount != 1 {
+		t.Fatalf("kept attempt count = %d, want 1", keptAttemptCount)
+	}
+
+	var sentenceIndex int
+	var positionMS int
+	var practiceMode string
+	var updatedAt string
+	if err := db.QueryRow(`
+		SELECT last_sentence_index, last_position_ms, last_practice_mode, updated_at
+		FROM lesson_shadowing_progress
+		WHERE user_id = ? AND lesson_id = ? AND shadowing_version = ?`,
+		userWithConflict,
+		keptID,
+		1,
+	).Scan(&sentenceIndex, &positionMS, &practiceMode, &updatedAt); err != nil {
+		t.Fatalf("query merged progress error: %v", err)
+	}
+	if sentenceIndex != 3 || positionMS != 4200 || practiceMode != "loop" || !strings.HasPrefix(updatedAt, "2026-02-01") {
+		t.Fatalf("merged progress = (%d, %d, %q, %q), want duplicate newer row", sentenceIndex, positionMS, practiceMode, updatedAt)
+	}
+
+	var movedProgressCount int
+	if err := db.QueryRow(`
+		SELECT COUNT(*)
+		FROM lesson_shadowing_progress
+		WHERE user_id = ? AND lesson_id = ? AND shadowing_version = ?`,
+		userWithoutConflict,
+		keptID,
+		2,
+	).Scan(&movedProgressCount); err != nil {
+		t.Fatalf("query moved progress count error: %v", err)
+	}
+	if movedProgressCount != 1 {
+		t.Fatalf("moved progress count = %d, want 1", movedProgressCount)
+	}
+	var duplicateProgressCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM lesson_shadowing_progress WHERE lesson_id = ?`, removedID).Scan(&duplicateProgressCount); err != nil {
+		t.Fatalf("query duplicate progress count error: %v", err)
+	}
+	if duplicateProgressCount != 0 {
+		t.Fatalf("duplicate progress count = %d, want 0", duplicateProgressCount)
+	}
+}
+
 func TestCreateLessonUniqueIndex(t *testing.T) {
 	t.Run("rejects duplicates", func(t *testing.T) {
 		db := openTestDB(t)
@@ -291,7 +489,16 @@ func TestRunLessonDuplicateCommands(t *testing.T) {
 	cleanupDBPath := tempDBPath(t)
 	seedDuplicateLessonsAtPath(t, cleanupDBPath)
 	if code := cli.Run([]string{"cleanup-lesson-duplicates", "--db", cleanupDBPath}); code != 0 {
-		t.Fatalf("cleanup-lesson-duplicates exit code = %d, want 0", code)
+		t.Fatalf("cleanup-lesson-duplicates dry-run exit code = %d, want 0", code)
+	}
+	if count := lessonCountByTitleAtPath(t, cleanupDBPath, "Command Duplicate"); count != 2 {
+		t.Fatalf("cleanup-lesson-duplicates without --apply left %d rows, want 2", count)
+	}
+	if code := cli.Run([]string{"cleanup-lesson-duplicates", "--db", cleanupDBPath, "--apply"}); code != 0 {
+		t.Fatalf("cleanup-lesson-duplicates --apply exit code = %d, want 0", code)
+	}
+	if count := lessonCountByTitleAtPath(t, cleanupDBPath, "Command Duplicate"); count != 1 {
+		t.Fatalf("cleanup-lesson-duplicates --apply left %d rows, want 1", count)
 	}
 
 	createDBPath := tempDBPath(t)
