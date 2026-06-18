@@ -3,7 +3,7 @@
 
 ALTER TABLE lessons ADD COLUMN shadowing_enabled INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE lessons ADD COLUMN video_url TEXT NOT NULL DEFAULT '';
-ALTER TABLE lessons ADD COLUMN shadowing_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE lessons ADD COLUMN shadowing_version INTEGER NOT NULL DEFAULT 1 CHECK (shadowing_version >= 1);
 ALTER TABLE lessons ADD COLUMN shadowing_config_json TEXT NOT NULL DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS lesson_shadowing_progress (
