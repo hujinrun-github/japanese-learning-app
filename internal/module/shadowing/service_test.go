@@ -1,6 +1,7 @@
 package shadowing
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -256,4 +257,67 @@ func TestServiceGetSessionUsesCurrentShadowingVersion(t *testing.T) {
 	if len(session.CompletedSentenceIndexes) != 1 || session.CompletedSentenceIndexes[0] != 1 {
 		t.Fatalf("CompletedSentenceIndexes = %+v, want [1]", session.CompletedSentenceIndexes)
 	}
+	if session.CompletedSentenceCount != len(session.CompletedSentenceIndexes) {
+		t.Fatalf("CompletedSentenceCount = %d, want len(CompletedSentenceIndexes) = %d", session.CompletedSentenceCount, len(session.CompletedSentenceIndexes))
+	}
+}
+
+func TestRequestJSONContracts(t *testing.T) {
+	t.Run("progress request", func(t *testing.T) {
+		raw := []byte(`{"shadowing_version":7,"last_sentence_index":1,"last_position_ms":1600,"last_practice_mode":"slow"}`)
+		var req ProgressRequest
+		if err := json.Unmarshal(raw, &req); err != nil {
+			t.Fatalf("json.Unmarshal ProgressRequest error: %v", err)
+		}
+		if req.Version != 7 || req.LastSentenceIndex != 1 || req.LastPositionMS != 1600 || req.PracticeMode != PracticeModeSlow {
+			t.Fatalf("ProgressRequest decoded as %+v, want API contract fields", req)
+		}
+
+		encoded, err := json.Marshal(req)
+		if err != nil {
+			t.Fatalf("json.Marshal ProgressRequest error: %v", err)
+		}
+		var got map[string]any
+		if err := json.Unmarshal(encoded, &got); err != nil {
+			t.Fatalf("json.Unmarshal encoded ProgressRequest error: %v", err)
+		}
+		if _, ok := got["shadowing_version"]; !ok {
+			t.Fatalf("encoded ProgressRequest keys = %+v, missing shadowing_version", got)
+		}
+		if _, ok := got["last_practice_mode"]; !ok {
+			t.Fatalf("encoded ProgressRequest keys = %+v, missing last_practice_mode", got)
+		}
+		if _, ok := got["version"]; ok {
+			t.Fatalf("encoded ProgressRequest keys = %+v, should not include version", got)
+		}
+		if _, ok := got["practice_mode"]; ok {
+			t.Fatalf("encoded ProgressRequest keys = %+v, should not include practice_mode", got)
+		}
+	})
+
+	t.Run("attempt request", func(t *testing.T) {
+		raw := []byte(`{"shadowing_version":7,"sentence_index":1,"practice_mode":"record","playback_rate":1.25,"loop_count":2}`)
+		var req AttemptRequest
+		if err := json.Unmarshal(raw, &req); err != nil {
+			t.Fatalf("json.Unmarshal AttemptRequest error: %v", err)
+		}
+		if req.Version != 7 || req.SentenceIndex != 1 || req.PracticeMode != PracticeModeRecord || req.PlaybackRate != 1.25 || req.LoopCount != 2 {
+			t.Fatalf("AttemptRequest decoded as %+v, want API contract fields", req)
+		}
+
+		encoded, err := json.Marshal(req)
+		if err != nil {
+			t.Fatalf("json.Marshal AttemptRequest error: %v", err)
+		}
+		var got map[string]any
+		if err := json.Unmarshal(encoded, &got); err != nil {
+			t.Fatalf("json.Unmarshal encoded AttemptRequest error: %v", err)
+		}
+		if _, ok := got["shadowing_version"]; !ok {
+			t.Fatalf("encoded AttemptRequest keys = %+v, missing shadowing_version", got)
+		}
+		if _, ok := got["version"]; ok {
+			t.Fatalf("encoded AttemptRequest keys = %+v, should not include version", got)
+		}
+	})
 }
