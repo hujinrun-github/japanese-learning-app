@@ -30,12 +30,16 @@ type Sentence struct {
 
 // LessonSummary 课文列表项（不含全文内容，减少传输量）
 type LessonSummary struct {
-	ID        int64     `json:"id"`
-	Title     string    `json:"title"`
-	JLPTLevel JLPTLevel `json:"jlpt_level"`
-	Tags      []string  `json:"tags"`
-	CharCount int       `json:"char_count"`
-	AudioURL  string    `json:"audio_url"`
+	ID               int64          `json:"id"`
+	Title            string         `json:"title"`
+	JLPTLevel        JLPTLevel      `json:"jlpt_level"`
+	Tags             []string       `json:"tags"`
+	CharCount        int            `json:"char_count"`
+	AudioURL         string         `json:"audio_url"`
+	VideoURL         string         `json:"video_url"`
+	ShadowingEnabled bool           `json:"shadowing_enabled"`
+	ShadowingVersion int            `json:"shadowing_version"`
+	ShadowingConfig  map[string]any `json:"shadowing_config"`
 }
 
 // Lesson 课文详情

@@ -1,0 +1,45 @@
+[
+  {
+    "title": "朝のあいさつ",
+    "jlpt_level": "N5",
+    "tags": ["shadowing", "daily"],
+    "audio_url": "https://example.com/audio/morning-greeting.mp3",
+    "video_url": "",
+    "shadowing_enabled": true,
+    "shadowing_version": 1,
+    "shadowing_config": {
+      "media_type": "audio",
+      "media_duration_ms": 6200,
+      "source": {
+        "source_type": "manual",
+        "source_name": "Shadowing MVP pilot",
+        "license": "internal",
+        "permission_note": "Created for internal learning material validation.",
+        "subtitle_source": "manual transcript"
+      }
+    },
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          { "surface": "おはよう", "reading": "" },
+          { "surface": "ございます", "reading": "" }
+        ],
+        "chinese": "早上好。",
+        "start_ms": 0,
+        "end_ms": 2600
+      },
+      {
+        "index": 1,
+        "tokens": [
+          { "surface": "今日", "reading": "きょう" },
+          { "surface": "も", "reading": "" },
+          { "surface": "がんばりましょう", "reading": "" }
+        ],
+        "chinese": "今天也加油吧。",
+        "start_ms": 3000,
+        "end_ms": 6000
+      }
+    ]
+  }
+]

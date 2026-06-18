@@ -1,4 +1,4 @@
-.PHONY: run web test build lint seed seed-grammar seed-lessons seed-speaking seed-writing seed-all seed-postgres postgres-migrate storage-reconcile front-build clean kill-ports start-all start-backend start-admin start-learner-front start-admin-front admin-run admin-build admin-front-build admin-front-dev
+.PHONY: run web test build lint seed seed-grammar seed-lessons seed-speaking seed-writing seed-all seed-postgres postgres-migrate storage-reconcile validate-shadowing-pilot front-build clean kill-ports start-all start-backend start-admin start-learner-front start-admin-front admin-run admin-build admin-front-build admin-front-dev
 
 MAIN_PORT := 30081
 ADMIN_PORT := 30082
@@ -51,6 +51,9 @@ postgres-migrate: ## Show SQLite to relational migration help
 
 storage-reconcile: ## Dry-run audio object reconciliation
 	go run ./backend/cmd/storage-migrate audio-reconcile --dry-run
+
+validate-shadowing-pilot: ## Validate the shadowing pilot lesson material pack
+	python scripts/validate_lessons_shadowing.py --file ./data/seed/lessons_shadowing_pilot.json
 
 front-build: ## Build legacy frontend TypeScript assets
 	npx esbuild front/web/static/js/*.ts --bundle --outdir=front/web/static/js/dist
