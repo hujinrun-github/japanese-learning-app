@@ -100,18 +100,19 @@ type ShadowingSession struct {
 	Lesson                   *lesson.Lesson           `json:"lesson"`
 	Progress                 *Progress                `json:"progress,omitempty"`
 	AttemptSummary           []SentenceAttemptSummary `json:"attempt_summary"`
+	CompletedSentenceCount   int                      `json:"completed_sentence_count"`
 	CompletedSentenceIndexes []int                    `json:"completed_sentence_indexes"`
 }
 
 type ProgressRequest struct {
-	Version           int          `json:"version"`
+	Version           int          `json:"shadowing_version"`
 	LastSentenceIndex int          `json:"last_sentence_index"`
 	LastPositionMS    int64        `json:"last_position_ms"`
-	PracticeMode      PracticeMode `json:"practice_mode"`
+	PracticeMode      PracticeMode `json:"last_practice_mode"`
 }
 
 type AttemptRequest struct {
-	Version         int          `json:"version"`
+	Version         int          `json:"shadowing_version"`
 	SentenceIndex   int          `json:"sentence_index"`
 	PracticeMode    PracticeMode `json:"practice_mode"`
 	PlaybackRate    float64      `json:"playback_rate"`

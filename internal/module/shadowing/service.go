@@ -59,6 +59,7 @@ func (s *Service) GetSession(userID, lessonID int64) (*ShadowingSession, error) 
 		Lesson:                   l,
 		Progress:                 progress,
 		AttemptSummary:           summary,
+		CompletedSentenceCount:   len(completed),
 		CompletedSentenceIndexes: completed,
 	}, nil
 }
