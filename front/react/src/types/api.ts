@@ -6,6 +6,7 @@ export interface APIResponse<T> {
 export interface APIError {
   code: string
   message: string
+  details?: Record<string, unknown>
 }
 
 // JLPT level

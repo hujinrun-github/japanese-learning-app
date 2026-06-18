@@ -3,13 +3,26 @@ import type { APIResponse } from '@/types/api'
 export class APIError extends Error {
   code: string
   status: number
+  details?: Record<string, unknown>
 
-  constructor(code: string, message: string, status: number) {
+  constructor(code: string, message: string, status: number, details?: Record<string, unknown>) {
     super(message)
     this.name = 'APIError'
     this.code = code
     this.status = status
+    this.details = details
   }
+}
+
+type APIErrorPayload = {
+  error?: {
+    code?: string
+    message?: string
+    details?: Record<string, unknown>
+  }
+  code?: string
+  message?: string
+  details?: Record<string, unknown>
 }
 
 export async function apiFetch<T>(
@@ -43,15 +56,18 @@ export async function apiFetch<T>(
   if (!res.ok) {
     let code = 'ERR_UNKNOWN'
     let message = `HTTP ${res.status}`
+    let details: Record<string, unknown> | undefined
     try {
-      const err = await res.json()
+      const err = (await res.json()) as APIErrorPayload
       if (err.error) {
         code = err.error.code ?? code
         message = err.error.message ?? message
+        details = err.error.details
       } else {
         // backend returns flat: { code, message, request_id }
         code = err.code ?? code
         message = err.message ?? message
+        details = err.details
       }
     } catch {
       // ignore parse error
@@ -62,7 +78,7 @@ export async function apiFetch<T>(
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
-    throw new APIError(code, message, res.status)
+    throw new APIError(code, message, res.status, details)
   }
 
   // 204 No Content
