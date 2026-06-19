@@ -321,3 +321,29 @@ func TestRequestJSONContracts(t *testing.T) {
 		}
 	})
 }
+
+func TestShadowingSessionJSONIncludesNullProgress(t *testing.T) {
+	session := ShadowingSession{
+		Lesson:                   validLesson(),
+		Progress:                 nil,
+		AttemptSummary:           []SentenceAttemptSummary{},
+		CompletedSentenceIndexes: []int{},
+	}
+
+	encoded, err := json.Marshal(session)
+	if err != nil {
+		t.Fatalf("json.Marshal ShadowingSession error: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(encoded, &got); err != nil {
+		t.Fatalf("json.Unmarshal ShadowingSession error: %v", err)
+	}
+	progress, ok := got["progress"]
+	if !ok {
+		t.Fatalf("encoded ShadowingSession keys = %+v, missing progress", got)
+	}
+	if progress != nil {
+		t.Fatalf("progress = %#v, want JSON null", progress)
+	}
+}
