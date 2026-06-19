@@ -13,7 +13,9 @@ import { SpeakingPage } from '@/pages/speaking/SpeakingPage'
 import { TranslationListPage } from '@/pages/translation/TranslationListPage'
 import { TranslationPracticePage } from '@/pages/translation/TranslationPracticePage'
 import { WritingQueuePage } from '@/pages/writing/WritingQueuePage'
-import { LessonPage } from '@/pages/lesson/LessonPage'
+import { LessonListPage } from '@/pages/lesson/LessonListPage'
+import { LessonDetailPage } from '@/pages/lesson/LessonDetailPage'
+import { ShadowingPage } from '@/pages/shadowing/ShadowingPage'
 import { NoteListPage } from '@/pages/note/NoteListPage'
 import { NoteEditPage } from '@/pages/note/NoteEditPage'
 import { NoteDetailPage } from '@/pages/note/NoteDetailPage'
@@ -38,7 +40,9 @@ export default function App() {
             <Route path="/grammar/:id" element={<GrammarDetailPage />} />
             <Route path="/speaking" element={<SpeakingPage />} />
             <Route path="/writing" element={<WritingQueuePage />} />
-            <Route path="/lesson" element={<LessonPage />} />
+            <Route path="/lesson" element={<LessonListPage />} />
+            <Route path="/lesson/:id" element={<LessonDetailPage />} />
+            <Route path="/lesson/:id/shadowing" element={<ShadowingPage />} />
             <Route path="/notes" element={<NoteListPage />} />
             <Route path="/notes/new" element={<NoteEditPage />} />
             <Route path="/notes/:id" element={<NoteDetailPage />} />
