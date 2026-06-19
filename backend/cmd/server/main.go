@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -50,6 +51,28 @@ func main() {
 	appBaseURL := envOrDefault("APP_BASE_URL", "http://localhost:35173")
 
 	setupLogger(logLevel)
+
+	if cfg.RelationalStore == "postgres" {
+		mailer := newPasswordResetMailer(mailerConfig)
+		mux, cleanup, err := buildPostgresServerMux(context.Background(), cfg, staticDir, templateDir, mailer, appBaseURL)
+		if err != nil {
+			slog.Error("failed to build postgres server", "err", err)
+			os.Exit(1)
+		}
+		defer cleanup()
+
+		slog.Info("server starting", "addr", listenAddr, "relational_store", cfg.RelationalStore)
+		if err := http.ListenAndServe(listenAddr, mux); err != nil {
+			slog.Error("server error", "err", err)
+			fmt.Fprintf(os.Stderr, "server: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if cfg.RelationalStore != "" && cfg.RelationalStore != "sqlite" {
+		slog.Error("unsupported relational store", "relational_store", cfg.RelationalStore)
+		os.Exit(1)
+	}
 
 	// ── Database ──────────────────────────────────────────────────────────────
 	db, err := data.OpenDB(dbPath)

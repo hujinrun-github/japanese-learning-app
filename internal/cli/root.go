@@ -1,13 +1,16 @@
 package cli
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
 	"os"
 
 	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/store"
 )
 
 // Run is the entry point for the CLI. It parses os.Args and dispatches to the
@@ -35,6 +38,8 @@ func Run(args []string) int {
 		return runImportGrammar(args[1:])
 	case "import-lessons":
 		return runImportLessons(args[1:])
+	case "import-lessons-postgres":
+		return runImportLessonsPostgres(args[1:])
 	case "report-lesson-duplicates":
 		return runReportLessonDuplicates(args[1:])
 	case "cleanup-lesson-duplicates":
@@ -63,6 +68,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-words    --file <path> | --json <json>  import words")
 	fmt.Fprintln(os.Stderr, "  import-grammar  --file <path> | --json <json>  import grammar points")
 	fmt.Fprintln(os.Stderr, "  import-lessons  --file <path> | --json <json>  import lessons")
+	fmt.Fprintln(os.Stderr, "  import-lessons-postgres --database-url <url> --file <path> | --json <json>  import lessons into PostgreSQL")
 	fmt.Fprintln(os.Stderr, "  report-lesson-duplicates --db <path>            report duplicate lessons")
 	fmt.Fprintln(os.Stderr, "  cleanup-lesson-duplicates --db <path> [--apply] report duplicates; delete only with --apply")
 	fmt.Fprintln(os.Stderr, "  create-lesson-unique-index --db <path>          create lessons(title,jlpt_level) unique index")
@@ -288,6 +294,71 @@ func runImportLessons(args []string) int {
 			return 1
 		}
 		fmt.Printf("import-lessons: inserted %d lesson(s)\n", n)
+	}
+	return 0
+}
+
+func runImportLessonsPostgres(args []string) int {
+	fs := flag.NewFlagSet("import-lessons-postgres", flag.ContinueOnError)
+	filePath := fs.String("file", "", "path to the JSON file containing lessons to import")
+	jsonStr := fs.String("json", "", "inline JSON string for a single lesson")
+	databaseURL := fs.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL database URL")
+
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "import-lessons-postgres: %v\n", err)
+		return 1
+	}
+	if *filePath == "" && *jsonStr == "" {
+		fmt.Fprintln(os.Stderr, "import-lessons-postgres: --file or --json is required")
+		fs.Usage()
+		return 1
+	}
+	if *filePath != "" && *jsonStr != "" {
+		fmt.Fprintln(os.Stderr, "import-lessons-postgres: --file and --json are mutually exclusive")
+		return 1
+	}
+	if *databaseURL == "" {
+		fmt.Fprintln(os.Stderr, "import-lessons-postgres: --database-url or DATABASE_URL is required")
+		return 1
+	}
+
+	ctx := context.Background()
+	adapter := pgdata.Adapter{}
+	db, err := adapter.Open(ctx, store.DatabaseConfig{
+		DatabaseURL:  *databaseURL,
+		MaxOpenConns: 4,
+		MaxIdleConns: 2,
+	})
+	if err != nil {
+		slog.Error("import-lessons-postgres: failed to open database", "err", err)
+		fmt.Fprintf(os.Stderr, "import-lessons-postgres: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := adapter.RunMigrations(ctx, db); err != nil {
+		slog.Error("import-lessons-postgres: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "import-lessons-postgres: run migrations: %v\n", err)
+		return 1
+	}
+
+	var n int
+	if *filePath != "" {
+		n, err = ImportLessonsToPostgresFromFile(db, *filePath)
+		if err != nil {
+			slog.Error("import-lessons-postgres: ImportLessonsToPostgresFromFile failed", "file", *filePath, "err", err)
+			fmt.Fprintf(os.Stderr, "import-lessons-postgres: %v\n", err)
+			return 1
+		}
+		fmt.Printf("import-lessons-postgres: inserted %d lesson(s) from %s\n", n, *filePath)
+	} else {
+		n, err = ImportLessonToPostgresFromJSON(db, *jsonStr)
+		if err != nil {
+			slog.Error("import-lessons-postgres: ImportLessonToPostgresFromJSON failed", "err", err)
+			fmt.Fprintf(os.Stderr, "import-lessons-postgres: %v\n", err)
+			return 1
+		}
+		fmt.Printf("import-lessons-postgres: inserted %d lesson(s)\n", n)
 	}
 	return 0
 }

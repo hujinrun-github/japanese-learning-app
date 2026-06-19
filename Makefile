@@ -9,7 +9,7 @@ ADMIN_TOKEN ?= change-me
 LOG_DIR := logs
 
 run: ## Start the backend server
-	LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) go run ./backend/cmd/server/
+	RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) go run ./backend/cmd/server/
 
 web: build ## Build the web service binary
 
@@ -44,7 +44,7 @@ seed-writing: ## Import seed writing questions
 seed-all: seed seed-grammar seed-lessons seed-speaking seed-writing ## Import all seed data
 
 seed-postgres: ## Import PostgreSQL seed data
-	go run ./backend/cmd/appctl seed-postgres
+	DATABASE_URL=$(DATABASE_URL) go run ./backend/cmd/appctl import-lessons-postgres --file ./data/seed/lessons_shadowing_pilot.json
 
 postgres-migrate: ## Show SQLite to relational migration help
 	go run ./backend/cmd/storage-migrate migrate-sqlite-to-relational --help
@@ -84,7 +84,7 @@ kill-ports: ## Kill processes bound to the app ports
 start-backend: ## Start the main backend on :30081
 	@mkdir -p $(LOG_DIR)
 	@echo "==> Starting main server on :$(MAIN_PORT)..."
-	@LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) nohup go run ./backend/cmd/server/ > $(LOG_DIR)/server.log 2>&1 &
+	@RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) nohup go run ./backend/cmd/server/ > $(LOG_DIR)/server.log 2>&1 &
 	@sleep 1
 	@if lsof -ti :$(MAIN_PORT) >/dev/null 2>&1; then \
 		echo "  main server started (log: $(LOG_DIR)/server.log)"; \
