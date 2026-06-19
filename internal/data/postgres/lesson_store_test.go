@@ -44,10 +44,14 @@ func TestLessonStoreGetDetail(t *testing.T) {
 	store := newPostgresLessonStoreForDB(db)
 
 	lessonID := insertLessonFixture(t, db, lessonFixtureInput{
-		Title:     "Detail Lesson",
-		Level:     lesson.LevelN5,
-		Tags:      []string{"detail"},
-		CharCount: 20,
+		Title:            "Detail Lesson",
+		Level:            lesson.LevelN5,
+		Tags:             []string{"detail"},
+		CharCount:        20,
+		AudioURL:         "/audio/lessons/detail.wav",
+		ShadowingEnabled: true,
+		ShadowingVersion: 2,
+		ShadowingConfig:  map[string]any{"media_url": "/audio/lessons/detail.wav", "loop_count": float64(3)},
 		Sentences: []lesson.Sentence{
 			{
 				Index: 0,
@@ -75,6 +79,18 @@ func TestLessonStoreGetDetail(t *testing.T) {
 	if len(detail.Sentences) != 1 || len(detail.WordIDs) != 2 {
 		t.Fatalf("GetDetail() = %+v, want sentences and word IDs", detail)
 	}
+	if !detail.ShadowingEnabled {
+		t.Fatal("GetDetail() ShadowingEnabled = false, want true")
+	}
+	if detail.ShadowingVersion != 2 {
+		t.Fatalf("GetDetail() ShadowingVersion = %d, want 2", detail.ShadowingVersion)
+	}
+	if detail.AudioURL != "/audio/lessons/detail.wav" {
+		t.Fatalf("GetDetail() AudioURL = %q, want media URL from shadowing config", detail.AudioURL)
+	}
+	if detail.ShadowingConfig["loop_count"] != float64(3) {
+		t.Fatalf("GetDetail() ShadowingConfig = %+v, want loop_count", detail.ShadowingConfig)
+	}
 	if detail.Sentences[0].Tokens[0].Reading != "にほんご" {
 		t.Fatalf("GetDetail() tokens = %+v, want furigana tokens", detail.Sentences[0].Tokens)
 	}
@@ -89,6 +105,41 @@ func TestLessonStoreGetDetailNotFound(t *testing.T) {
 	}
 	if detail != nil {
 		t.Fatalf("GetDetail() detail = %+v, want nil", detail)
+	}
+}
+
+func TestLessonStoreListSummariesIncludesShadowingMetadata(t *testing.T) {
+	db := newMigratedPostgresTestDB(t)
+	store := newPostgresLessonStoreForDB(db)
+
+	_ = insertLessonFixture(t, db, lessonFixtureInput{
+		Title:            "Shadowing Summary Lesson",
+		Level:            lesson.LevelN5,
+		Tags:             []string{"shadowing"},
+		CharCount:        12,
+		AudioURL:         "/audio/lessons/summary.wav",
+		ShadowingEnabled: true,
+		ShadowingVersion: 4,
+		ShadowingConfig:  map[string]any{"media_url": "/audio/lessons/summary.wav"},
+	})
+
+	summaries, err := store.ListSummaries(lesson.LevelN5)
+	if err != nil {
+		t.Fatalf("ListSummaries() error = %v", err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("ListSummaries() len = %d, want 1", len(summaries))
+	}
+
+	got := summaries[0]
+	if !got.ShadowingEnabled {
+		t.Fatal("ListSummaries() ShadowingEnabled = false, want true")
+	}
+	if got.ShadowingVersion != 4 {
+		t.Fatalf("ListSummaries() ShadowingVersion = %d, want 4", got.ShadowingVersion)
+	}
+	if got.AudioURL != "/audio/lessons/summary.wav" {
+		t.Fatalf("ListSummaries() AudioURL = %q, want media URL from shadowing config", got.AudioURL)
 	}
 }
 
@@ -135,12 +186,16 @@ func TestLessonStoreGetSentences(t *testing.T) {
 }
 
 type lessonFixtureInput struct {
-	Title     string
-	Level     lesson.JLPTLevel
-	Tags      []string
-	CharCount int
-	Sentences []lesson.Sentence
-	WordIDs   []int64
+	Title            string
+	Level            lesson.JLPTLevel
+	Tags             []string
+	CharCount        int
+	AudioURL         string
+	ShadowingEnabled bool
+	ShadowingVersion int
+	ShadowingConfig  map[string]any
+	Sentences        []lesson.Sentence
+	WordIDs          []int64
 }
 
 func insertLessonFixture(t *testing.T, db queryer, input lessonFixtureInput) int64 {
@@ -169,16 +224,36 @@ func insertLessonFixture(t *testing.T, db queryer, input lessonFixtureInput) int
 	if err != nil {
 		t.Fatalf("marshal tags: %v", err)
 	}
+	shadowingVersion := input.ShadowingVersion
+	if shadowingVersion == 0 {
+		shadowingVersion = 1
+	}
+	shadowingConfig := input.ShadowingConfig
+	if shadowingConfig == nil {
+		shadowingConfig = map[string]any{}
+	}
+	if input.AudioURL != "" {
+		if _, ok := shadowingConfig["media_url"]; !ok {
+			shadowingConfig["media_url"] = input.AudioURL
+		}
+	}
+	shadowingConfigJSON, err := json.Marshal(shadowingConfig)
+	if err != nil {
+		t.Fatalf("marshal shadowing config: %v", err)
+	}
 
 	var lessonID int64
 	err = db.QueryRowContext(
 		ctx,
-		`INSERT INTO lessons (title, jlpt_level, tags, char_count, updated_at)
+		`INSERT INTO lessons (title, jlpt_level, tags, char_count, shadowing_enabled, shadowing_version, shadowing_config_json, updated_at)
 		 VALUES (
 		     $1,
 		     $2,
 		     COALESCE((SELECT array_agg(value) FROM jsonb_array_elements_text($3::jsonb) AS value), ARRAY[]::text[]),
 		     $4,
+		     $5,
+		     $6,
+		     $7::jsonb,
 		     now()
 		 )
 		 RETURNING id`,
@@ -186,6 +261,9 @@ func insertLessonFixture(t *testing.T, db queryer, input lessonFixtureInput) int
 		input.Level,
 		string(tagsJSON),
 		input.CharCount,
+		input.ShadowingEnabled,
+		shadowingVersion,
+		string(shadowingConfigJSON),
 	).Scan(&lessonID)
 	if err != nil {
 		t.Fatalf("insert lesson fixture lesson: %v", err)

@@ -19,10 +19,23 @@ func NewLessonStore(db queryer) *LessonStore {
 func (s *LessonStore) ListSummaries(level lesson.JLPTLevel) ([]lesson.LessonSummary, error) {
 	rows, err := s.db.QueryContext(
 		context.Background(),
-		`SELECT id, title, jlpt_level, COALESCE(array_to_json(tags)::text, '[]'), char_count
-		 FROM lessons
-		 WHERE jlpt_level = $1
-		 ORDER BY id`,
+		`SELECT l.id,
+		        l.title,
+		        l.jlpt_level,
+		        COALESCE(array_to_json(l.tags)::text, '[]'),
+		        l.char_count,
+		        COALESCE(
+		            l.shadowing_config_json->>'media_url',
+		            l.shadowing_config_json->>'audio_url',
+		            CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		        ) AS audio_url,
+		        l.shadowing_enabled,
+		        l.shadowing_version,
+		        l.shadowing_config_json::text
+		 FROM lessons l
+		 LEFT JOIN audio_objects ao ON ao.id = l.audio_object_id AND ao.deleted_at IS NULL
+		 WHERE l.jlpt_level = $1
+		 ORDER BY l.id`,
 		level,
 	)
 	if err != nil {
@@ -34,11 +47,25 @@ func (s *LessonStore) ListSummaries(level lesson.JLPTLevel) ([]lesson.LessonSumm
 	for rows.Next() {
 		var summary lesson.LessonSummary
 		var tagsJSON string
-		if err := rows.Scan(&summary.ID, &summary.Title, &summary.JLPTLevel, &tagsJSON, &summary.CharCount); err != nil {
+		var shadowingConfigJSON string
+		if err := rows.Scan(
+			&summary.ID,
+			&summary.Title,
+			&summary.JLPTLevel,
+			&tagsJSON,
+			&summary.CharCount,
+			&summary.AudioURL,
+			&summary.ShadowingEnabled,
+			&summary.ShadowingVersion,
+			&shadowingConfigJSON,
+		); err != nil {
 			return nil, fmt.Errorf("postgres.LessonStore.ListSummaries scan: %w", translateError(err))
 		}
 		if err := json.Unmarshal([]byte(tagsJSON), &summary.Tags); err != nil {
 			return nil, fmt.Errorf("postgres.LessonStore.ListSummaries unmarshal tags: %w", err)
+		}
+		if err := decodeLessonShadowingConfig(shadowingConfigJSON, &summary.ShadowingConfig); err != nil {
+			return nil, fmt.Errorf("postgres.LessonStore.ListSummaries unmarshal shadowing config: %w", err)
 		}
 		summaries = append(summaries, summary)
 	}
@@ -52,19 +79,46 @@ func (s *LessonStore) ListSummaries(level lesson.JLPTLevel) ([]lesson.LessonSumm
 func (s *LessonStore) GetDetail(id int64) (*lesson.Lesson, error) {
 	var detail lesson.Lesson
 	var tagsJSON string
+	var shadowingConfigJSON string
 
 	err := s.db.QueryRowContext(
 		context.Background(),
-		`SELECT id, title, jlpt_level, COALESCE(array_to_json(tags)::text, '[]'), char_count
-		 FROM lessons
-		 WHERE id = $1`,
+		`SELECT l.id,
+		        l.title,
+		        l.jlpt_level,
+		        COALESCE(array_to_json(l.tags)::text, '[]'),
+		        l.char_count,
+		        COALESCE(
+		            l.shadowing_config_json->>'media_url',
+		            l.shadowing_config_json->>'audio_url',
+		            CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		        ) AS audio_url,
+		        l.shadowing_enabled,
+		        l.shadowing_version,
+		        l.shadowing_config_json::text
+		 FROM lessons l
+		 LEFT JOIN audio_objects ao ON ao.id = l.audio_object_id AND ao.deleted_at IS NULL
+		 WHERE l.id = $1`,
 		id,
-	).Scan(&detail.ID, &detail.Title, &detail.JLPTLevel, &tagsJSON, &detail.CharCount)
+	).Scan(
+		&detail.ID,
+		&detail.Title,
+		&detail.JLPTLevel,
+		&tagsJSON,
+		&detail.CharCount,
+		&detail.AudioURL,
+		&detail.ShadowingEnabled,
+		&detail.ShadowingVersion,
+		&shadowingConfigJSON,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("postgres.LessonStore.GetDetail: %w", translateError(err))
 	}
 	if err := json.Unmarshal([]byte(tagsJSON), &detail.Tags); err != nil {
 		return nil, fmt.Errorf("postgres.LessonStore.GetDetail unmarshal tags: %w", err)
+	}
+	if err := decodeLessonShadowingConfig(shadowingConfigJSON, &detail.ShadowingConfig); err != nil {
+		return nil, fmt.Errorf("postgres.LessonStore.GetDetail unmarshal shadowing config: %w", err)
 	}
 
 	sentences, err := s.GetSentences(id)
@@ -79,6 +133,19 @@ func (s *LessonStore) GetDetail(id int64) (*lesson.Lesson, error) {
 	detail.Sentences = sentences
 	detail.WordIDs = wordIDs
 	return &detail, nil
+}
+
+func decodeLessonShadowingConfig(raw string, out *map[string]any) error {
+	if raw == "" {
+		raw = "{}"
+	}
+	if err := json.Unmarshal([]byte(raw), out); err != nil {
+		return err
+	}
+	if *out == nil {
+		*out = map[string]any{}
+	}
+	return nil
 }
 
 func (s *LessonStore) GetSentences(lessonID int64) ([]lesson.Sentence, error) {
