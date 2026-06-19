@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface AudioRecorderState {
   isRecording: boolean
@@ -20,8 +20,19 @@ export function useAudioRecorder(): UseAudioRecorderResult {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const audioURLRef = useRef<string | null>(null)
+
+  const revokeAudioURL = useCallback(() => {
+    if (audioURLRef.current) {
+      URL.revokeObjectURL(audioURLRef.current)
+      audioURLRef.current = null
+    }
+  }, [])
+
+  useEffect(() => revokeAudioURL, [revokeAudioURL])
 
   const start = useCallback(async () => {
+    revokeAudioURL()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mimeType = MediaRecorder.isTypeSupported('audio/webm')
@@ -44,7 +55,7 @@ export function useAudioRecorder(): UseAudioRecorderResult {
       setState((s) => ({ ...s, error: message }))
       throw err
     }
-  }, [])
+  }, [revokeAudioURL])
 
   const stop = useCallback((): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -58,6 +69,7 @@ export function useAudioRecorder(): UseAudioRecorderResult {
         const mimeType = recorder.mimeType || 'audio/webm'
         const blob = new Blob(chunksRef.current, { type: mimeType })
         const url = URL.createObjectURL(blob)
+        audioURLRef.current = url
 
         // Stop all tracks
         recorder.stream.getTracks().forEach((t) => t.stop())
