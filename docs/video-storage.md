@@ -34,6 +34,10 @@ Lesson APIs expose both `audio_url` and `video_url`.
   importer also sets `shadowing_config_json.media_url` to the same video URL.
 - If a lesson references `video_object_id`, the Postgres lesson store exposes
   `/api/v1/videos/{id}/stream` as the fallback `video_url`.
+- `/api/v1/videos/{id}/stream` streams public `video_objects` from MinIO. The
+  endpoint requires `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, and
+  `MINIO_SECRET_KEY`; missing storage configuration returns
+  `ERR_VIDEO_STORAGE_UNAVAILABLE`.
 
 ## Current Boundary
 

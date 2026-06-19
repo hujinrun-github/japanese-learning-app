@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -123,6 +124,84 @@ func TestBuildPostgresServerMuxServesShadowingSession(t *testing.T) {
 	if sessionResp.Data.Lesson.AudioURL != "/audio/lessons/server.wav" {
 		t.Fatalf("session audio_url = %q, want imported media URL", sessionResp.Data.Lesson.AudioURL)
 	}
+}
+
+func TestVideoStreamRouteRequiresMinIOConfig(t *testing.T) {
+	db := newMigratedPostgresServerDB(t)
+	videoObjectID := insertServerTestVideoObject(t, db)
+
+	mux := http.NewServeMux()
+	registerVideoStreamRoutes(mux, db, &config.Config{})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/videos/"+strconv.FormatInt(videoObjectID, 10)+"/stream", nil)
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("video stream status = %d, want 503; body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "ERR_VIDEO_STORAGE_UNAVAILABLE") {
+		t.Fatalf("video stream body = %s, want ERR_VIDEO_STORAGE_UNAVAILABLE", rec.Body.String())
+	}
+}
+
+func TestBuildPostgresServerMuxRegistersVideoStreamRoute(t *testing.T) {
+	db := newMigratedPostgresServerDB(t)
+	videoObjectID := insertServerTestVideoObject(t, db)
+
+	templateDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(templateDir, "index.html"), []byte("<html></html>"), 0o644); err != nil {
+		t.Fatalf("write index.html: %v", err)
+	}
+
+	cfg := &config.Config{
+		DatabaseURL:       os.Getenv("DATABASE_URL_TEST"),
+		DBMaxOpenConns:    4,
+		DBMaxIdleConns:    2,
+		DBConnMaxLifetime: time.Minute,
+		AppTimezone:       time.UTC,
+		JWTSecret:         "test-secret",
+	}
+	mux, cleanup, err := buildPostgresServerMux(context.Background(), cfg, t.TempDir(), templateDir, &user.StubMailer{}, "http://localhost:35173")
+	if err != nil {
+		t.Fatalf("buildPostgresServerMux error: %v", err)
+	}
+	defer cleanup()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/videos/"+strconv.FormatInt(videoObjectID, 10)+"/stream", nil)
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("video stream status = %d, want 503; body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "ERR_VIDEO_STORAGE_UNAVAILABLE") {
+		t.Fatalf("video stream body = %s, want ERR_VIDEO_STORAGE_UNAVAILABLE", rec.Body.String())
+	}
+}
+
+func insertServerTestVideoObject(t *testing.T, db *sql.DB) int64 {
+	t.Helper()
+
+	var videoObjectID int64
+	if err := db.QueryRow(`
+		INSERT INTO video_objects (
+			bucket, object_key, kind, visibility, content_sha256,
+			size_bytes, mime_type, metadata_json, updated_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, '{}'::jsonb, now())
+		RETURNING id`,
+		"lesson-videos",
+		"lessons/example.mp4",
+		"lesson_shadowing",
+		"public",
+		"sha256-video",
+		int64(1024),
+		"video/mp4",
+	).Scan(&videoObjectID); err != nil {
+		t.Fatalf("insert video object: %v", err)
+	}
+	return videoObjectID
 }
 
 func newMigratedPostgresServerDB(t *testing.T) *sql.DB {
