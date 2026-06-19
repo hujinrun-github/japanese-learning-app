@@ -13,6 +13,7 @@ import (
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/note"
 	"japanese-learning-app/internal/module/review"
+	"japanese-learning-app/internal/module/shadowing"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/translation"
@@ -73,6 +74,7 @@ func main() {
 	sessionStore := data.NewSessionStore(db)
 	noteStore := data.NewNoteStore(db)
 	translationStore := data.NewTranslationStore(db)
+	shadowingStore := data.NewShadowingStore(db)
 
 	// ── AI reviewer (writing) ─────────────────────────────────────────────────
 	var aiReviewer writing.AIReviewer
@@ -113,6 +115,7 @@ func main() {
 	summarySvc := summary.NewSummaryService(sessionAdapter)
 	noteSvc := note.NewNoteService(noteAdapter)
 	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)
+	shadowingSvc := shadowing.NewService(lessonAdapter, shadowingStore)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	wordH := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
@@ -126,6 +129,7 @@ func main() {
 	noteH := note.NewNoteHandler(noteSvc)
 	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)
+	shadowingH := shadowing.NewHandler(shadowingSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
@@ -145,6 +149,7 @@ func main() {
 	noteH.RegisterRoutes(protectedMux)
 	reviewH.RegisterRoutes(protectedMux)
 	translationH.RegisterRoutes(protectedMux)
+	shadowingH.RegisterRoutes(protectedMux)
 
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
