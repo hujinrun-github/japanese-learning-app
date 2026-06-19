@@ -25,15 +25,27 @@ func (s *LessonStore) ListSummaries(level lesson.JLPTLevel) ([]lesson.LessonSumm
 		        COALESCE(array_to_json(l.tags)::text, '[]'),
 		        l.char_count,
 		        COALESCE(
-		            l.shadowing_config_json->>'media_url',
-		            l.shadowing_config_json->>'audio_url',
+		            NULLIF(l.shadowing_config_json->>'audio_url', ''),
+		            CASE
+		                WHEN COALESCE(l.shadowing_config_json->>'media_type', 'audio') <> 'video'
+		                THEN NULLIF(l.shadowing_config_json->>'media_url', '')
+		            END,
 		            CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
 		        ) AS audio_url,
+		        COALESCE(
+		            NULLIF(l.shadowing_config_json->>'video_url', ''),
+		            CASE
+		                WHEN COALESCE(l.shadowing_config_json->>'media_type', '') = 'video'
+		                THEN NULLIF(l.shadowing_config_json->>'media_url', '')
+		            END,
+		            CASE WHEN vo.id IS NOT NULL THEN '/api/v1/videos/' || vo.id::text || '/stream' ELSE '' END
+		        ) AS video_url,
 		        l.shadowing_enabled,
 		        l.shadowing_version,
 		        l.shadowing_config_json::text
 		 FROM lessons l
 		 LEFT JOIN audio_objects ao ON ao.id = l.audio_object_id AND ao.deleted_at IS NULL
+		 LEFT JOIN video_objects vo ON vo.id = l.video_object_id AND vo.deleted_at IS NULL
 		 WHERE l.jlpt_level = $1
 		 ORDER BY l.id`,
 		level,
@@ -55,6 +67,7 @@ func (s *LessonStore) ListSummaries(level lesson.JLPTLevel) ([]lesson.LessonSumm
 			&tagsJSON,
 			&summary.CharCount,
 			&summary.AudioURL,
+			&summary.VideoURL,
 			&summary.ShadowingEnabled,
 			&summary.ShadowingVersion,
 			&shadowingConfigJSON,
@@ -89,15 +102,27 @@ func (s *LessonStore) GetDetail(id int64) (*lesson.Lesson, error) {
 		        COALESCE(array_to_json(l.tags)::text, '[]'),
 		        l.char_count,
 		        COALESCE(
-		            l.shadowing_config_json->>'media_url',
-		            l.shadowing_config_json->>'audio_url',
+		            NULLIF(l.shadowing_config_json->>'audio_url', ''),
+		            CASE
+		                WHEN COALESCE(l.shadowing_config_json->>'media_type', 'audio') <> 'video'
+		                THEN NULLIF(l.shadowing_config_json->>'media_url', '')
+		            END,
 		            CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
 		        ) AS audio_url,
+		        COALESCE(
+		            NULLIF(l.shadowing_config_json->>'video_url', ''),
+		            CASE
+		                WHEN COALESCE(l.shadowing_config_json->>'media_type', '') = 'video'
+		                THEN NULLIF(l.shadowing_config_json->>'media_url', '')
+		            END,
+		            CASE WHEN vo.id IS NOT NULL THEN '/api/v1/videos/' || vo.id::text || '/stream' ELSE '' END
+		        ) AS video_url,
 		        l.shadowing_enabled,
 		        l.shadowing_version,
 		        l.shadowing_config_json::text
 		 FROM lessons l
 		 LEFT JOIN audio_objects ao ON ao.id = l.audio_object_id AND ao.deleted_at IS NULL
+		 LEFT JOIN video_objects vo ON vo.id = l.video_object_id AND vo.deleted_at IS NULL
 		 WHERE l.id = $1`,
 		id,
 	).Scan(
@@ -107,6 +132,7 @@ func (s *LessonStore) GetDetail(id int64) (*lesson.Lesson, error) {
 		&tagsJSON,
 		&detail.CharCount,
 		&detail.AudioURL,
+		&detail.VideoURL,
 		&detail.ShadowingEnabled,
 		&detail.ShadowingVersion,
 		&shadowingConfigJSON,

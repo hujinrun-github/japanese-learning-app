@@ -145,13 +145,17 @@ func (s *Service) loadValidLesson(method string, lessonID int64) (*lesson.Lesson
 	if !l.ShadowingEnabled {
 		return nil, &Error{Code: ERR_SHADOWING_DISABLED, Message: "shadowing is disabled for this lesson"}
 	}
-	if strings.TrimSpace(l.AudioURL) == "" {
-		return nil, &Error{Code: ERR_SHADOWING_MEDIA_MISSING, Message: "shadowing audio is missing"}
+	if !lessonHasPlayableMedia(l) {
+		return nil, &Error{Code: ERR_SHADOWING_MEDIA_MISSING, Message: "shadowing media is missing"}
 	}
 	if !validSentences(l.Sentences) {
 		return nil, &Error{Code: ERR_SHADOWING_CONTENT_INVALID, Message: "shadowing sentence timings are invalid"}
 	}
 	return l, nil
+}
+
+func lessonHasPlayableMedia(l *lesson.Lesson) bool {
+	return strings.TrimSpace(l.AudioURL) != "" || strings.TrimSpace(l.VideoURL) != ""
 }
 
 func validSentences(sentences []lesson.Sentence) bool {
