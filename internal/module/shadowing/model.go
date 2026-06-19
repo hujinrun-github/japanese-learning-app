@@ -98,7 +98,7 @@ type SentenceAttemptSummary struct {
 
 type ShadowingSession struct {
 	Lesson                   *lesson.Lesson           `json:"lesson"`
-	Progress                 *Progress                `json:"progress,omitempty"`
+	Progress                 *Progress                `json:"progress"`
 	AttemptSummary           []SentenceAttemptSummary `json:"attempt_summary"`
 	CompletedSentenceCount   int                      `json:"completed_sentence_count"`
 	CompletedSentenceIndexes []int                    `json:"completed_sentence_indexes"`
