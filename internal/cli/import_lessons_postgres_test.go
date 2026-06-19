@@ -88,6 +88,59 @@ func TestImportLessonsToPostgresFromFileUpsertsContentAndShadowingMediaURL(t *te
 	}
 }
 
+func TestImportLessonsToPostgresFromFilePreservesVideoMediaURL(t *testing.T) {
+	tests := []struct {
+		name       string
+		lessonJSON map[string]any
+		wantMedia  string
+		wantVideo  string
+	}{
+		{
+			name:       "video material pack uses video_url as media_url",
+			lessonJSON: postgresVideoLessonImportJSON("PG Video Shadowing Import", "/video/lessons/import.mp4"),
+			wantMedia:  "/video/lessons/import.mp4",
+			wantVideo:  "/video/lessons/import.mp4",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := newMigratedPostgresLessonImportDB(t)
+			filePath := writePostgresLessonImportTempJSON(t, []map[string]any{tt.lessonJSON})
+
+			inserted, err := ImportLessonsToPostgresFromFile(db, filePath)
+			if err != nil {
+				t.Fatalf("ImportLessonsToPostgresFromFile error: %v", err)
+			}
+			if inserted != 1 {
+				t.Fatalf("ImportLessonsToPostgresFromFile inserted = %d, want 1", inserted)
+			}
+
+			var configJSON string
+			if err := db.QueryRow(`
+				SELECT shadowing_config_json::text
+				FROM lessons
+				WHERE title = $1 AND jlpt_level = $2`,
+				"PG Video Shadowing Import",
+				"N5",
+			).Scan(&configJSON); err != nil {
+				t.Fatalf("query imported lesson config error: %v", err)
+			}
+
+			var config map[string]any
+			if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
+				t.Fatalf("unmarshal shadowing_config_json: %v", err)
+			}
+			if config["media_url"] != tt.wantMedia {
+				t.Fatalf("media_url = %#v, want %q", config["media_url"], tt.wantMedia)
+			}
+			if config["video_url"] != tt.wantVideo {
+				t.Fatalf("video_url = %#v, want %q", config["video_url"], tt.wantVideo)
+			}
+		})
+	}
+}
+
 func TestRunImportLessonsPostgresCommand(t *testing.T) {
 	db := newMigratedPostgresLessonImportDB(t)
 	url := os.Getenv("DATABASE_URL_TEST")
@@ -143,6 +196,13 @@ func postgresLessonImportJSON(title, audioURL, chinese string, version int) map[
 			},
 		},
 	}
+}
+
+func postgresVideoLessonImportJSON(title, videoURL string) map[string]any {
+	item := postgresLessonImportJSON(title, "", "video sentence", 1)
+	item["video_url"] = videoURL
+	item["shadowing_config"] = map[string]any{"media_type": "video"}
+	return item
 }
 
 func newMigratedPostgresLessonImportDB(t *testing.T) *sql.DB {

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -140,6 +141,93 @@ func TestLessonStoreListSummariesIncludesShadowingMetadata(t *testing.T) {
 	}
 	if got.AudioURL != "/audio/lessons/summary.wav" {
 		t.Fatalf("ListSummaries() AudioURL = %q, want media URL from shadowing config", got.AudioURL)
+	}
+}
+
+func TestLessonStoreReturnsVideoURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		arrange func(t *testing.T, db *sql.DB) int64
+		want    string
+	}{
+		{
+			name: "from shadowing config video_url",
+			arrange: func(t *testing.T, db *sql.DB) int64 {
+				return insertLessonFixture(t, db, lessonFixtureInput{
+					Title:            "Video Config Lesson",
+					Level:            lesson.LevelN5,
+					ShadowingEnabled: true,
+					ShadowingConfig: map[string]any{
+						"media_type": "video",
+						"video_url":  "/video/lessons/config.mp4",
+					},
+				})
+			},
+			want: "/video/lessons/config.mp4",
+		},
+		{
+			name: "from video object fallback",
+			arrange: func(t *testing.T, db *sql.DB) int64 {
+				var videoObjectID int64
+				err := db.QueryRow(`
+					INSERT INTO video_objects (
+						bucket, object_key, kind, visibility, content_sha256,
+						size_bytes, mime_type, metadata_json, updated_at
+					)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, '{}'::jsonb, now())
+					RETURNING id`,
+					"lesson-videos",
+					"lessons/object.mp4",
+					"lesson_shadowing",
+					"public",
+					"sha256-video",
+					int64(1024),
+					"video/mp4",
+				).Scan(&videoObjectID)
+				if err != nil {
+					t.Fatalf("insert video object: %v", err)
+				}
+
+				lessonID := insertLessonFixture(t, db, lessonFixtureInput{
+					Title:            "Video Object Lesson",
+					Level:            lesson.LevelN5,
+					ShadowingEnabled: true,
+					ShadowingConfig:  map[string]any{"media_type": "video"},
+				})
+				if _, err := db.Exec(`UPDATE lessons SET video_object_id = $1 WHERE id = $2`, videoObjectID, lessonID); err != nil {
+					t.Fatalf("attach video object: %v", err)
+				}
+				return lessonID
+			},
+			want: "/api/v1/videos/1/stream",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := newMigratedPostgresTestDB(t)
+			store := newPostgresLessonStoreForDB(db)
+
+			lessonID := tt.arrange(t, db)
+			detail, err := store.GetDetail(lessonID)
+			if err != nil {
+				t.Fatalf("GetDetail() error = %v", err)
+			}
+			if detail.VideoURL != tt.want {
+				t.Fatalf("GetDetail() VideoURL = %q, want %q", detail.VideoURL, tt.want)
+			}
+
+			summaries, err := store.ListSummaries(lesson.LevelN5)
+			if err != nil {
+				t.Fatalf("ListSummaries() error = %v", err)
+			}
+			if len(summaries) != 1 {
+				t.Fatalf("ListSummaries() len = %d, want 1", len(summaries))
+			}
+			if summaries[0].VideoURL != tt.want {
+				t.Fatalf("ListSummaries() VideoURL = %q, want %q", summaries[0].VideoURL, tt.want)
+			}
+		})
 	}
 }
 

@@ -154,6 +154,19 @@ func buildPostgresLessonRow(item lessonImport) (lessonRow, error) {
 				shadowingConfig["media_url"] = item.AudioURL
 			}
 		}
+		if _, ok := shadowingConfig["audio_url"]; !ok {
+			shadowingConfig["audio_url"] = item.AudioURL
+		}
+	}
+	if item.VideoURL != "" {
+		if _, ok := shadowingConfig["video_url"]; !ok {
+			shadowingConfig["video_url"] = item.VideoURL
+		}
+		if mediaType, _ := shadowingConfig["media_type"].(string); mediaType == "video" {
+			if _, ok := shadowingConfig["media_url"]; !ok {
+				shadowingConfig["media_url"] = item.VideoURL
+			}
+		}
 	}
 	shadowingConfigJSON, err := json.Marshal(shadowingConfig)
 	if err != nil {

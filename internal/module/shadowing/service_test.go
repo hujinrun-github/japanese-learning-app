@@ -167,6 +167,23 @@ func TestServiceGetSessionValidationErrors(t *testing.T) {
 	}
 }
 
+func TestServiceGetSessionAcceptsVideoOnlyLesson(t *testing.T) {
+	l := validLesson()
+	l.AudioURL = ""
+	l.VideoURL = "/video/lessons/shadowing.mp4"
+	l.ShadowingConfig = map[string]any{"media_type": "video"}
+	svc := NewService(&fakeLessonReader{lesson: l}, &fakeStore{})
+
+	session, err := svc.GetSession(100, l.ID)
+
+	if err != nil {
+		t.Fatalf("GetSession() error = %v, want nil for video-only lesson", err)
+	}
+	if session == nil || session.Lesson.VideoURL != l.VideoURL {
+		t.Fatalf("GetSession() session = %+v, want video lesson", session)
+	}
+}
+
 func TestServiceSaveProgressStaleVersionReturnsCurrentVersion(t *testing.T) {
 	l := validLesson()
 	svc := NewService(&fakeLessonReader{lesson: l}, &fakeStore{})
