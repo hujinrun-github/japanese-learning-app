@@ -5,11 +5,12 @@ import { getShadowingSession, saveShadowingAttempt, saveShadowingProgress } from
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import type { PracticeMode, ShadowingSession as ShadowingSessionDTO } from '@/types/shadowing'
 import { getCurrentSentenceIndex } from '@/util/shadowing/currentSentence'
+import { selectShadowingMedia } from '@/util/shadowing/media'
 import styles from './ShadowingPage.module.css'
 
 export function ShadowingPage() {
   const { id } = useParams()
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const mediaRef = useRef<HTMLMediaElement | null>(null)
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null)
   const progressTimeoutRef = useRef<number | null>(null)
   const loopCountRef = useRef(0)
@@ -87,23 +88,23 @@ export function ShadowingPage() {
   }
 
   function handleLoadedMetadata() {
-    const audio = audioRef.current
-    if (!audio || !session?.progress) return
-    audio.currentTime = session.progress.last_position_ms / 1000
-    audio.playbackRate = session.progress.last_practice_mode === 'slow' ? 0.75 : 1
+    const media = mediaRef.current
+    if (!media || !session?.progress) return
+    media.currentTime = session.progress.last_position_ms / 1000
+    media.playbackRate = session.progress.last_practice_mode === 'slow' ? 0.75 : 1
     setCurrentSentenceIndex(session.progress.last_sentence_index)
   }
 
   function handleRateChange() {
-    const audio = audioRef.current
-    if (audio) setPlaybackRate(audio.playbackRate)
+    const media = mediaRef.current
+    if (media) setPlaybackRate(media.playbackRate)
   }
 
   function handleTimeUpdate() {
-    const audio = audioRef.current
-    if (!audio || !session) return
+    const media = mediaRef.current
+    if (!media || !session) return
 
-    const currentTimeMs = Math.floor(audio.currentTime * 1000)
+    const currentTimeMs = Math.floor(media.currentTime * 1000)
     const next = getCurrentSentenceIndex(session.lesson.sentences, currentTimeMs)
     if (next !== currentSentenceIndex) {
       setCurrentSentenceIndex(next)
@@ -114,7 +115,7 @@ export function ShadowingPage() {
     const sentence = session.lesson.sentences.find((item) => item.index === currentSentenceIndex)
     if (!sentence || currentTimeMs < sentence.end_ms) return
 
-    audio.currentTime = sentence.start_ms / 1000
+    media.currentTime = sentence.start_ms / 1000
     const nextLoopCount = loopCountRef.current + 1
     const requiredLoopCount = getConfiguredLoopCount(session)
     if (nextLoopCount < requiredLoopCount) {
@@ -132,10 +133,10 @@ export function ShadowingPage() {
   }
 
   function seekToSentence(index: number) {
-    const audio = audioRef.current
+    const media = mediaRef.current
     const sentence = session?.lesson.sentences.find((item) => item.index === index)
-    if (!audio || !sentence) return
-    audio.currentTime = sentence.start_ms / 1000
+    if (!media || !sentence) return
+    media.currentTime = sentence.start_ms / 1000
     setCurrentSentenceIndex(sentence.index)
     scheduleProgressSave(sentence.index)
   }
@@ -148,31 +149,31 @@ export function ShadowingPage() {
   }
 
   function replayCurrent() {
-    const audio = audioRef.current
-    if (!audio || currentSentenceIndex === null) return
+    const media = mediaRef.current
+    if (!media || currentSentenceIndex === null) return
     seekToSentence(currentSentenceIndex)
-    audio.playbackRate = playbackRate
-    void audio.play()
+    media.playbackRate = playbackRate
+    void media.play()
   }
 
   function playSlow() {
-    const audio = audioRef.current
-    if (!audio || currentSentenceIndex === null) return
-    audio.playbackRate = 0.75
+    const media = mediaRef.current
+    if (!media || currentSentenceIndex === null) return
+    media.playbackRate = 0.75
     setPlaybackRate(0.75)
     seekToSentence(currentSentenceIndex)
-    void audio.play()
+    void media.play()
   }
 
   function toggleLoop() {
-    const audio = audioRef.current
-    if (!audio || currentSentenceIndex === null) return
+    const media = mediaRef.current
+    if (!media || currentSentenceIndex === null) return
     const nextLooping = !looping
     setLooping(nextLooping)
     setLoopCountValue(0)
     if (nextLooping) {
       seekToSentence(currentSentenceIndex)
-      void audio.play()
+      void media.play()
     }
   }
 
@@ -207,12 +208,12 @@ export function ShadowingPage() {
 
   async function saveProgressNow(sentenceIndex = currentSentenceIndex) {
     if (!session || sentenceIndex === null) return
-    const audio = audioRef.current
+    const media = mediaRef.current
     try {
       await saveShadowingProgress(session.lesson.id, {
         shadowing_version: session.lesson.shadowing_version,
         last_sentence_index: sentenceIndex,
-        last_position_ms: Math.floor((audio?.currentTime ?? 0) * 1000),
+        last_position_ms: Math.floor((media?.currentTime ?? 0) * 1000),
         last_practice_mode: progressMode(),
       })
     } catch (err) {
@@ -299,6 +300,7 @@ export function ShadowingPage() {
 
   const sentence = currentSentence()
   const completed = new Set(session.completed_sentence_indexes)
+  const media = selectShadowingMedia(session.lesson)
 
   return (
     <div className={styles.page}>
@@ -308,7 +310,7 @@ export function ShadowingPage() {
 
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Audio Shadowing</p>
+          <p className={styles.eyebrow}>{media.kind === 'video' ? 'Video Shadowing' : 'Audio Shadowing'}</p>
           <h1 className={styles.title}>{session.lesson.title}</h1>
         </div>
         <div className={styles.progressPill}>
@@ -320,14 +322,25 @@ export function ShadowingPage() {
       {notice && <p className={styles.notice}>{notice}</p>}
 
       <section className={styles.playerCard}>
-        <audio
-          ref={audioRef}
-          controls
-          src={session.lesson.audio_url}
-          onLoadedMetadata={handleLoadedMetadata}
-          onRateChange={handleRateChange}
-          onTimeUpdate={handleTimeUpdate}
-        />
+        {media.kind === 'video' ? (
+          <video
+            ref={(node) => { mediaRef.current = node }}
+            controls
+            src={media.url}
+            onLoadedMetadata={handleLoadedMetadata}
+            onRateChange={handleRateChange}
+            onTimeUpdate={handleTimeUpdate}
+          />
+        ) : (
+          <audio
+            ref={(node) => { mediaRef.current = node }}
+            controls
+            src={media.url}
+            onLoadedMetadata={handleLoadedMetadata}
+            onRateChange={handleRateChange}
+            onTimeUpdate={handleTimeUpdate}
+          />
+        )}
       </section>
 
       <section className={styles.currentCard}>

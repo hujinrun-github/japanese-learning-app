@@ -13,17 +13,26 @@ import (
 
 // HandlerConfig holds all dependencies for admin handlers.
 type HandlerConfig struct {
-	AdminToken       string
-	WordStore        *data.WordStore
-	GrammarStore     *data.GrammarStore
-	SpeakingStore    *data.SpeakingStore
-	WritingStore     *data.WritingStore
-	TranslationStore *data.TranslationStore
-	UserStore        *data.UserStore
-	DB               *sql.DB
-	AIAPIKey         string
-	AIAPIEndpoint    string
-	AIModel          string
+	AdminToken             string
+	WordStore              *data.WordStore
+	GrammarStore           *data.GrammarStore
+	SpeakingStore          *data.SpeakingStore
+	WritingStore           *data.WritingStore
+	TranslationStore       *data.TranslationStore
+	UserStore              *data.UserStore
+	DB                     *sql.DB
+	ShadowingMaterialsDB   *sql.DB
+	ShadowingMaterialsSQL  string
+	ShadowingVideoBasePath string
+	ShadowingVideoUploader ShadowingVideoUploader
+	ShadowingVideoBucket   string
+	MinIOEndpoint          string
+	MinIOAccessKey         string
+	MinIOSecretKey         string
+	MinIOUseSSL            bool
+	AIAPIKey               string
+	AIAPIEndpoint          string
+	AIModel                string
 }
 
 // Handler groups all admin HTTP handlers.
@@ -77,6 +86,11 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /api/admin/audio/batch", h.auth(h.batchGenerateAudio))
 	// TTS defaults
 	mux.HandleFunc("GET /api/admin/tts-defaults", h.auth(h.ttsDefaults))
+	// Shadowing materials
+	mux.HandleFunc("GET /api/admin/shadowing/materials/lessons", h.auth(h.listShadowingMaterialLessons))
+	mux.HandleFunc("POST /api/admin/shadowing/materials/drafts", h.auth(h.createShadowingMaterialDraft))
+	mux.HandleFunc("POST /api/admin/shadowing/materials/videos", h.auth(h.uploadShadowingVideo))
+	mux.HandleFunc("POST /api/admin/shadowing/materials/lessons/{id}/video", h.auth(h.bindShadowingLessonVideo))
 	return mux
 }
 
