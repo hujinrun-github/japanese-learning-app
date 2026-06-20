@@ -51,7 +51,7 @@ func runEmbeddedMigrations(ctx context.Context, conn *sql.Conn) error {
 			return fmt.Errorf("postgres.runEmbeddedMigrations read %s: %w", filename, err)
 		}
 
-		checksum := sha256Hex(content)
+		checksum := canonicalMigrationChecksum(content)
 		if err := applyMigrationFile(ctx, conn, name, checksum, string(content)); err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func applyMigrationFile(ctx context.Context, conn *sql.Conn, name, checksum, sql
 	row := tx.QueryRowContext(ctx, `SELECT checksum FROM schema_migrations WHERE filename = $1`, name)
 	switch err := row.Scan(&existingChecksum); {
 	case err == nil:
-		if existingChecksum != checksum {
+		if !migrationChecksumMatches(existingChecksum, []byte(sqlText)) {
 			_ = tx.Rollback()
 			return fmt.Errorf("postgres.applyMigrationFile checksum mismatch for %s: stored=%s current=%s", name, existingChecksum, checksum)
 		}
@@ -145,4 +145,33 @@ func applyMigrationFile(ctx context.Context, conn *sql.Conn, name, checksum, sql
 func sha256Hex(content []byte) string {
 	sum := sha256.Sum256(content)
 	return hex.EncodeToString(sum[:])
+}
+
+func canonicalMigrationChecksum(content []byte) string {
+	return sha256Hex(normalizeMigrationLineEndings(content))
+}
+
+func migrationChecksumMatches(storedChecksum string, content []byte) bool {
+	for _, checksum := range migrationChecksumVariants(content) {
+		if storedChecksum == checksum {
+			return true
+		}
+	}
+	return false
+}
+
+func migrationChecksumVariants(content []byte) []string {
+	normalized := normalizeMigrationLineEndings(content)
+	crlf := []byte(strings.ReplaceAll(string(normalized), "\n", "\r\n"))
+	return []string{
+		canonicalMigrationChecksum(content),
+		sha256Hex(content),
+		sha256Hex(crlf),
+	}
+}
+
+func normalizeMigrationLineEndings(content []byte) []byte {
+	normalized := strings.ReplaceAll(string(content), "\r\n", "\n")
+	normalized = strings.ReplaceAll(normalized, "\r", "\n")
+	return []byte(normalized)
 }
