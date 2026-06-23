@@ -37,7 +37,7 @@ This design closes that gap without redesigning video storage.
 - Bind imported shadowing lessons to `lessons.video_object_id` when a MinIO
   video object is used.
 - Keep URL-only `video_url` import as a fallback for external or temporary
-  media.
+  media, without leaving stale `video_object_id` bindings behind.
 - Make the admin page able to go from reviewed draft JSON to an imported lesson
   without leaving the page.
 - Reuse one backend import path so CLI and admin behavior stay consistent.
@@ -86,6 +86,7 @@ Input contains `video_object_id`.
 Behavior:
 
 - Verify the object exists in `video_objects`.
+- Require `kind = 'lesson_shadowing'`.
 - Require `visibility = 'public'` and `deleted_at IS NULL`.
 - Import or update the lesson.
 - Bind the lesson to the object.
@@ -123,18 +124,43 @@ Behavior:
 - Preserve `video_url` in `shadowing_config_json`.
 - If `shadowing_config.media_type = "video"` and `media_url` is empty, set
   `media_url = video_url`.
-- Leave `lessons.video_object_id` unchanged unless an explicit clearing option
-  is added in a later change.
+- If the target lesson has an existing `video_object_id`, reject the import with
+  `409 ERR_VIDEO_OBJECT_CONFLICT` unless the caller explicitly sets
+  `clear_video_object = true`.
+- When `clear_video_object = true`, clear `lessons.video_object_id` in the same
+  transaction that writes the URL-only config.
 
 This mode is a fallback and does not satisfy MinIO-backed storage by itself.
+The explicit clearing rule prevents Admin and learner APIs from showing
+different video sources for the same lesson.
+
+## Upload Limits
+
+The current admin upload code reads the full video into memory after parsing the
+multipart request. The new import path must not add another unbounded upload
+path.
+
+First implementation requirements:
+
+- Enforce a hard request/file size limit before reading the full body.
+- Use `SHADOWING_VIDEO_MAX_BYTES` when set.
+- Default to `209715200` bytes, which is 200 MiB.
+- Return `413 ERR_VIDEO_TOO_LARGE` when the upload exceeds the limit.
+- Do not create a MinIO object or database row after a size-limit failure.
+
+Implementation may still buffer files under the limit for the first version,
+but the service boundary must keep uploader internals replaceable. A follow-up
+can move to temp-file or streaming hash plus MinIO upload without changing the
+Admin API or CLI flags.
 
 ## Backend Components
 
 ### Reusable Service
 
 Add a small reusable package or service boundary that can be called from both
-CLI and admin code. It must not live inside `internal/module/admin` if CLI also
-uses it, because `admin` already imports `internal/cli`.
+CLI and admin code. The shared import logic must not live in `internal/cli`,
+because Admin should not depend on CLI command code. CLI should become argument
+parsing plus a call into the shared service.
 
 Suggested boundary:
 
@@ -145,11 +171,14 @@ Core responsibilities:
 - Validate import request.
 - Upload video to MinIO when a file is provided.
 - Insert or update `video_objects`.
-- Call the PostgreSQL lesson upsert function.
+- Upsert the PostgreSQL lesson data.
 - Bind the lesson to `video_object_id`.
 
-The existing admin upload/bind helpers should be moved into this shared service
-or wrapped by it so the admin page continues to use the same behavior.
+The current PostgreSQL lesson upsert core should move out of
+`internal/cli/import_lessons_postgres.go` into this shared package or a sibling
+shared data/import package. The CLI command then calls the shared importer.
+Admin handlers call the same importer. This keeps dependency direction clean:
+HTTP and CLI are adapters; the shared service owns import behavior.
 
 ### PostgreSQL Lesson Importer
 
@@ -163,6 +192,7 @@ type PostgresLessonImportOptions struct {
 	VideoObjectID *int64
 	VideoURL      string
 	VideoBasePath string
+	ClearVideoObject bool
 }
 ```
 
@@ -171,6 +201,10 @@ The importer should keep existing JSON compatibility while adding these rules:
 - Existing top-level `video_url` remains supported.
 - When `VideoObjectID` is set, it wins over URL-only fields.
 - When `VideoObjectID` is set, the importer updates `lessons.video_object_id`.
+- When URL-only import targets a lesson that already has `video_object_id`, the
+  importer rejects unless `ClearVideoObject` is true.
+- When `ClearVideoObject` is true, the importer sets `lessons.video_object_id`
+  to `NULL` while updating `shadowing_config_json`.
 - The importer returns imported lesson IDs so callers can report the created or
   updated lesson.
 
@@ -190,6 +224,7 @@ Fields:
 - `lesson_json`: required JSON object for one lesson material pack.
 - `video_file`: optional video file.
 - `video_object_id`: optional existing video object ID.
+- `clear_video_object`: optional boolean, default `false`.
 - `import_mode`: optional, defaults to `upsert`.
 
 Validation:
@@ -200,7 +235,11 @@ Validation:
   it consistently; the sidecar form field is the source of truth.
 - `video_file` and `video_object_id` are mutually exclusive.
 - If `video_file` is present, MinIO config must be available.
-- If `video_object_id` is present, the object must exist and be public.
+- If `video_file` is present, the upload must fit inside the configured size
+  limit.
+- If `video_object_id` is present, the object must exist, be public, be
+  undeleted, and have `kind = 'lesson_shadowing'`.
+- `clear_video_object` is allowed only in URL-only mode.
 - If neither is present, URL-only import is allowed only when the material pack
   has `video_url` or valid audio fields.
 
@@ -223,9 +262,13 @@ Successful response:
 Status behavior:
 
 - `400` for malformed JSON, invalid IDs, or mutually exclusive fields.
-- `404` for missing `video_object_id`.
-- `409` if duplicate lesson rows make upsert ambiguous.
+- `404` for missing `video_object_id` or a `video_object_id` that is not a
+  public undeleted `lesson_shadowing` object.
+- `409` if duplicate lesson rows make upsert ambiguous or URL-only import would
+  overwrite a lesson that still has `video_object_id` without
+  `clear_video_object = true`.
 - `422` for invalid lesson content or unsupported material shape.
+- `413` when uploaded video exceeds the configured size limit.
 - `503` when MinIO configuration is required but missing.
 - `502` when MinIO upload fails.
 
@@ -254,7 +297,11 @@ Supported video flags:
 
 - `--video-file`: upload the file to MinIO, create `video_objects`, and bind.
 - `--video-object-id`: bind an existing `video_objects.id`.
+- `--clear-video-object`: allow URL-only import to clear an existing
+  `lessons.video_object_id`.
 - `--video-base-path`: default `/api/v1/videos`.
+- `--video-max-bytes`: default from `SHADOWING_VIDEO_MAX_BYTES`, falling back to
+  200 MiB.
 
 MinIO config follows the same environment and flags used by migration/admin
 tools:
@@ -270,7 +317,12 @@ Rules:
 - `--video-file` and `--video-object-id` are mutually exclusive.
 - `--video-file` and `--video-object-id` require the input to contain exactly
   one lesson. JSON arrays with more than one lesson return a validation error.
-- If neither is provided, import remains URL-only and keeps current behavior.
+- `--clear-video-object` is allowed only when neither `--video-file` nor
+  `--video-object-id` is set.
+- If URL-only import targets an existing lesson with `video_object_id` and
+  `--clear-video-object` is absent, return a conflict error.
+- If neither is provided, import remains URL-only for lessons without existing
+  MinIO video binding.
 - The command prints imported lesson IDs and video binding results.
 
 ## Admin Page Flow
@@ -284,6 +336,8 @@ UI changes:
 - Keep the existing draft generator.
 - Add an `Import reviewed JSON` action next to the draft JSON textarea.
 - Add optional controls for `video_object_id` and `video_file`.
+- Add an explicit `Clear existing MinIO video binding` checkbox for URL-only
+  replacement.
 - After successful import, refresh the lesson list and show `lesson_id`,
   `video_object_id`, and `video_url`.
 
@@ -349,17 +403,40 @@ MinIO upload cannot be part of the PostgreSQL transaction. The first version
 uses deterministic object keys to make retry safe instead of attempting complex
 rollback.
 
+The operation order should minimize orphan objects:
+
+1. Parse and validate lesson JSON.
+2. Resolve whether the target lesson already exists and whether it has
+   `video_object_id`.
+3. Validate video mode, `clear_video_object`, uniqueness, size limits, and
+   `video_object_id` metadata before upload.
+4. Upload to MinIO only after validation passes.
+5. Run the PostgreSQL transaction for lesson import, `video_objects` upsert,
+   and lesson binding.
+
+This does not eliminate every orphan-object case, but it avoids uploading when
+the request is already known to be invalid.
+
 ## Testing Strategy
 
 Backend tests should be table-driven where possible.
 
 CLI/importer tests:
 
-- URL-only import preserves current behavior.
+- URL-only import preserves current behavior when the target lesson has no
+  existing MinIO video binding.
+- URL-only import over an existing MinIO binding fails without
+  `clear_video_object`.
+- URL-only import with `clear_video_object` clears `lessons.video_object_id` and
+  makes Admin and learner APIs expose the URL-only video.
 - Existing `video_object_id` binds lesson and normalizes config.
+- Existing `video_object_id` with a non-`lesson_shadowing` kind is rejected.
 - `--video-file` uploads through a fake uploader and binds the created object.
 - `--video-file` and `--video-object-id` together return a validation error.
+- Oversized `--video-file` returns a validation error before upload.
 - Re-import updates the same lesson and does not duplicate child rows.
+- CLI and Admin tests both exercise the shared import service rather than
+  separate duplicate logic.
 
 Admin handler tests:
 
@@ -368,6 +445,9 @@ Admin handler tests:
   binds the lesson.
 - Missing MinIO config returns `503` only when upload is requested.
 - Missing video object returns `404`.
+- Non-`lesson_shadowing` video object returns `404`.
+- Oversized upload returns `413` and does not create a MinIO object or
+  `video_objects` row.
 - Invalid material JSON returns `422`.
 
 Runtime tests:
@@ -387,10 +467,17 @@ Frontend checks:
 - A reviewed material pack can be imported from the admin page into PostgreSQL.
 - A video file selected on the admin page is uploaded to MinIO and represented
   in PostgreSQL `video_objects`.
-- The imported lesson has `lessons.video_object_id` set.
-- The imported lesson's `shadowing_config_json.video_url` and `media_url` point
-  to `/api/v1/videos/{id}/stream`.
+- MinIO-backed imports set `lessons.video_object_id`.
+- URL-only replacement of an existing MinIO binding is either rejected or uses
+  explicit clearing so Admin and learner APIs show the same video source.
+- Binding an existing object fails when `video_objects.kind` is not
+  `lesson_shadowing`.
+- Oversized video uploads return a clear `413` response without creating media
+  metadata.
+- MinIO-backed imports set `shadowing_config_json.video_url` and `media_url` to
+  `/api/v1/videos/{id}/stream`.
 - CLI manual import can bind an existing video object or upload a video file.
+- CLI and Admin both call the same shared import service.
 - URL-only import still works for temporary external media.
 - No new SQLite video import behavior is required.
 - Existing video upload and bind endpoints continue to work.
