@@ -88,6 +88,8 @@ Behavior:
 - Verify the object exists in `video_objects`.
 - Require `kind = 'lesson_shadowing'`.
 - Require `visibility = 'public'` and `deleted_at IS NULL`.
+- Verify the referenced MinIO object is actually readable with
+  `StatObject(bucket, object_key)` before importing or binding.
 - Import or update the lesson.
 - Bind the lesson to the object.
 - Set `shadowing_config_json.media_type = "video"`.
@@ -96,6 +98,13 @@ Behavior:
 
 This is the safest mode when the operator already uploaded video from the admin
 page.
+
+If the database row exists but the MinIO object is missing, return
+`409 ERR_VIDEO_OBJECT_UNAVAILABLE`. If the storage check fails because MinIO is
+unreachable or rejects the request, return `502 ERR_VIDEO_STORAGE_CHECK_FAILED`.
+If MinIO configuration is missing, return `503 ERR_VIDEO_STORAGE_UNAVAILABLE`.
+The existing admin bind endpoint must use the same validation so it cannot bind
+an unplayable video object.
 
 ### Uploaded Video File
 
@@ -106,13 +115,30 @@ Behavior:
 - Upload the file to MinIO.
 - Use bucket `MINIO_BUCKET_VIDEO`, defaulting to `lesson-videos`.
 - Use object key `lessons/shadowing/<sha256-first-16><ext>`.
-- Insert or update `video_objects` by `(bucket, object_key)`.
+- Insert or update `video_objects` by `(bucket, object_key)` only when any
+  existing row is compatible.
 - Import or update the lesson.
 - Bind the lesson to the created video object.
 
 The object key is content-addressed, so retrying the same file is idempotent.
 If the database step fails after the MinIO upload succeeds, the orphan object is
 acceptable for the first version because a retry reuses the same object key.
+
+Conflict rule:
+
+- If `(bucket, object_key)` already exists, require
+  `kind = 'lesson_shadowing'`.
+- Require the existing `content_sha256` to equal the uploaded file hash.
+- Require the existing `size_bytes` to equal the uploaded file size.
+- If any check fails, return `409 ERR_VIDEO_OBJECT_CONFLICT` and do not update
+  the row or bind the lesson.
+- Compatible existing rows may be reused and undeleted.
+
+When a video file is provided, the service canonicalizes all video fields. Any
+top-level `video_url`, `shadowing_config.video_url`,
+`shadowing_config.media_url`, or `shadowing_config.media_type` supplied in the
+lesson JSON is overwritten with the server-generated stream URL and
+`media_type = "video"`.
 
 ### URL-Only Video
 
@@ -143,10 +169,14 @@ path.
 First implementation requirements:
 
 - Enforce a hard request/file size limit before reading the full body.
+- Apply the same limit to the new import endpoint and the existing
+  `POST /api/admin/shadowing/materials/videos` endpoint.
 - Use `SHADOWING_VIDEO_MAX_BYTES` when set.
 - Default to `209715200` bytes, which is 200 MiB.
 - Return `413 ERR_VIDEO_TOO_LARGE` when the upload exceeds the limit.
 - Do not create a MinIO object or database row after a size-limit failure.
+- Keep the old upload/bind panel wired to the shared uploader and verifier so it
+  cannot bypass the limit.
 
 Implementation may still buffer files under the limit for the first version,
 but the service boundary must keep uploader internals replaceable. A follow-up
@@ -201,6 +231,8 @@ The importer should keep existing JSON compatibility while adding these rules:
 - Existing top-level `video_url` remains supported.
 - When `VideoObjectID` is set, it wins over URL-only fields.
 - When `VideoObjectID` is set, the importer updates `lessons.video_object_id`.
+- When `VideoObjectID` or a newly uploaded video file is set, the importer
+  overwrites JSON-provided video fields with the canonical stream URL.
 - When URL-only import targets a lesson that already has `video_object_id`, the
   importer rejects unless `ClearVideoObject` is true.
 - When `ClearVideoObject` is true, the importer sets `lessons.video_object_id`
@@ -239,6 +271,8 @@ Validation:
   limit.
 - If `video_object_id` is present, the object must exist, be public, be
   undeleted, and have `kind = 'lesson_shadowing'`.
+- If `video_object_id` is present, `StatObject(bucket, object_key)` must
+  succeed before the lesson is imported or bound.
 - `clear_video_object` is allowed only in URL-only mode.
 - If neither is present, URL-only import is allowed only when the material pack
   has `video_url` or valid audio fields.
@@ -267,10 +301,14 @@ Status behavior:
 - `409` if duplicate lesson rows make upsert ambiguous or URL-only import would
   overwrite a lesson that still has `video_object_id` without
   `clear_video_object = true`.
+- `409 ERR_VIDEO_OBJECT_CONFLICT` when `(bucket, object_key)` already exists
+  with a different hash, size, or kind.
+- `409 ERR_VIDEO_OBJECT_UNAVAILABLE` when a selected DB video object exists but
+  its MinIO object is missing.
 - `422` for invalid lesson content or unsupported material shape.
 - `413` when uploaded video exceeds the configured size limit.
 - `503` when MinIO configuration is required but missing.
-- `502` when MinIO upload fails.
+- `502` when MinIO upload or object availability check fails.
 
 The existing endpoints remain valid:
 
@@ -279,6 +317,9 @@ The existing endpoints remain valid:
 - `POST /api/admin/shadowing/materials/drafts`
 
 The new import endpoint becomes the preferred page flow.
+The existing video upload and bind endpoints must share the same uploader,
+object verifier, size limit, `kind` check, and MinIO availability check as the
+new import endpoint.
 
 ## CLI Manual Import
 
@@ -381,15 +422,29 @@ Runtime URL:
 When a MinIO object is bound, this runtime URL becomes the canonical lesson
 video URL. External `video_url` is only a fallback when no object is bound.
 
+Conflict handling:
+
+- `(bucket, object_key)` remains the identity key for MinIO-backed videos.
+- The importer must not blindly overwrite a row found by `(bucket, object_key)`.
+- Existing rows are reusable only when `kind`, `content_sha256`, and
+  `size_bytes` match the uploaded object.
+- Incompatible rows return `409 ERR_VIDEO_OBJECT_CONFLICT`.
+- Existing object binding must verify the MinIO object exists before changing
+  lesson data.
+
 ## Data Consistency
 
 The import operation should be idempotent:
 
 - Same lesson title and JLPT level update the existing lesson.
 - Same video file creates the same MinIO object key.
-- Same `(bucket, object_key)` upserts the same `video_objects` row.
+- Same `(bucket, object_key)` reuses the same `video_objects` row only when the
+  existing metadata matches the uploaded object.
 - Re-importing the same material pack should not create duplicate lessons or
   duplicate video metadata.
+- MinIO-backed imports always normalize JSON-provided video fields to the
+  server-generated stream URL.
+- URL-only imports never silently keep an old `video_object_id`.
 
 Database work should run in one transaction where practical:
 
@@ -431,9 +486,18 @@ CLI/importer tests:
   makes Admin and learner APIs expose the URL-only video.
 - Existing `video_object_id` binds lesson and normalizes config.
 - Existing `video_object_id` with a non-`lesson_shadowing` kind is rejected.
+- Existing `video_object_id` whose MinIO object is missing is rejected before
+  lesson data changes.
+- Existing `video_object_id` whose MinIO stat check fails due to storage failure
+  returns a storage error.
 - `--video-file` uploads through a fake uploader and binds the created object.
 - `--video-file` and `--video-object-id` together return a validation error.
 - Oversized `--video-file` returns a validation error before upload.
+- Upload reuse succeeds when `(bucket, object_key)`, hash, size, and kind match.
+- Upload reuse fails when `(bucket, object_key)` exists with a different hash,
+  size, or kind.
+- `video_file` and `video_object_id` modes overwrite JSON-provided video fields
+  with the canonical stream URL.
 - Re-import updates the same lesson and does not duplicate child rows.
 - CLI and Admin tests both exercise the shared import service rather than
   separate duplicate logic.
@@ -448,6 +512,10 @@ Admin handler tests:
 - Non-`lesson_shadowing` video object returns `404`.
 - Oversized upload returns `413` and does not create a MinIO object or
   `video_objects` row.
+- Existing `/shadowing/materials/videos` upload endpoint also returns `413` for
+  oversized files.
+- Existing upload and bind endpoints use the same `kind`, metadata conflict,
+  and MinIO availability checks as the import endpoint.
 - Invalid material JSON returns `422`.
 
 Runtime tests:
@@ -472,8 +540,16 @@ Frontend checks:
   explicit clearing so Admin and learner APIs show the same video source.
 - Binding an existing object fails when `video_objects.kind` is not
   `lesson_shadowing`.
+- Binding an existing object fails before import when the MinIO object cannot be
+  verified.
+- Uploading a file does not overwrite an incompatible `video_objects` row with
+  the same `(bucket, object_key)`.
+- `video_file` and `video_object_id` imports overwrite JSON-provided video
+  fields with the canonical stream URL.
 - Oversized video uploads return a clear `413` response without creating media
   metadata.
+- The existing `/api/admin/shadowing/materials/videos` endpoint enforces the
+  same upload size limit and 413 behavior as the new import endpoint.
 - MinIO-backed imports set `shadowing_config_json.video_url` and `media_url` to
   `/api/v1/videos/{id}/stream`.
 - CLI manual import can bind an existing video object or upload a video file.
