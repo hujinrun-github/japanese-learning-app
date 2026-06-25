@@ -1,6 +1,7 @@
 import { Fragment, useState, useEffect, useCallback } from 'react'
 import type { MouseEvent } from 'react'
 import { adminFetch } from '@/api/client'
+import Modal from '@/components/Modal/Modal'
 import styles from './Users.module.css'
 
 interface User {
@@ -27,6 +28,8 @@ const MODULE_ICONS: Record<string, string> = {
 
 const LVL_CSS: Record<string, string> = { N5: 'adm-lvlN5', N4: 'adm-lvlN4', N3: 'adm-lvlN3', N2: 'adm-lvlN2', N1: 'adm-lvlN1' }
 
+const emptyPasswordForm = { newPassword: '', confirmPassword: '' }
+
 export default function UsersPage() {
   const [items, setItems] = useState<User[]>([])
   const [total, setTotal] = useState(0)
@@ -37,6 +40,12 @@ export default function UsersPage() {
   const [stats, setStats] = useState<UserStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [passwordUser, setPasswordUser] = useState<User | null>(null)
+  const [passwordForm, setPasswordForm] = useState(emptyPasswordForm)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordNotice, setPasswordNotice] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [showResetPassword, setShowResetPassword] = useState(false)
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -45,7 +54,7 @@ export default function UsersPage() {
     try {
       const params = new URLSearchParams({ page: String(page), size: String(PAGE_SIZE) })
       const data = await adminFetch<{ items: User[]; total: number }>('GET', `/users?${params}`)
-      setItems(data.items); setTotal(data.total)
+      setItems(data.items || []); setTotal(data.total || 0)
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load') }
     finally { setLoading(false) }
   }, [page])
@@ -89,6 +98,50 @@ export default function UsersPage() {
     }
   }
 
+  function openPasswordModal(e: MouseEvent<HTMLButtonElement>, user: User) {
+    e.stopPropagation()
+    setPasswordUser(user)
+    setPasswordForm(emptyPasswordForm)
+    setPasswordError('')
+    setShowResetPassword(false)
+  }
+
+  function closePasswordModal() {
+    if (savingPassword) return
+    setPasswordUser(null)
+    setPasswordForm(emptyPasswordForm)
+    setPasswordError('')
+    setShowResetPassword(false)
+  }
+
+  async function handleUpdatePassword() {
+    if (!passwordUser) return
+    const newPassword = passwordForm.newPassword.trim()
+    if (!newPassword) {
+      setPasswordError('New password is required')
+      return
+    }
+    if (newPassword !== passwordForm.confirmPassword.trim()) {
+      setPasswordError('Passwords do not match')
+      return
+    }
+
+    setSavingPassword(true)
+    setPasswordError('')
+    setPasswordNotice('')
+    try {
+      await adminFetch<void>('PUT', `/users/${passwordUser.id}/password`, { new_password: newPassword })
+      setPasswordNotice(`Password updated for ${passwordUser.email}`)
+      setPasswordUser(null)
+      setPasswordForm(emptyPasswordForm)
+      setShowResetPassword(false)
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to update password')
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
   return (
     <div className="adm-page">
       <div className="adm-header">
@@ -98,6 +151,7 @@ export default function UsersPage() {
         </div>
       </div>
       {error && <p className="adm-error">{error}</p>}
+      {passwordNotice && <p className={styles.success}>{passwordNotice}</p>}
       {loading ? <p className="adm-loading">Loading users...</p> : (
         <>
           <table className="adm-table">
@@ -121,6 +175,13 @@ export default function UsersPage() {
                       <td className="adm-dateCell">{typeof u.created_at === 'string' ? u.created_at.slice(0, 10) : String(u.created_at)}</td>
                       <td>
                         <div className="adm-actions">
+                          <button
+                            type="button"
+                            title={`Reset password for ${u.email}`}
+                            onClick={(e) => openPasswordModal(e, u)}
+                          >
+                            Reset Password
+                          </button>
                           <button
                             type="button"
                             className="adm-btnDanger"
@@ -167,6 +228,50 @@ export default function UsersPage() {
           </div>
         </>
       )}
+      <Modal
+        open={passwordUser !== null}
+        title={passwordUser ? `Reset Password: ${passwordUser.email}` : 'Reset Password'}
+        onClose={closePasswordModal}
+      >
+        <div className="adm-form">
+          <p className={styles.passwordHint}>
+            Set a new learner login password. The user can sign in with this password immediately.
+          </p>
+          {passwordError && <p className="adm-error">{passwordError}</p>}
+          <div className={styles.passwordTools}>
+            <button
+              type="button"
+              className={styles.passwordToggle}
+              onClick={() => setShowResetPassword((visible) => !visible)}
+              aria-pressed={showResetPassword}
+              aria-label={showResetPassword ? 'Hide reset password' : 'Show reset password'}
+            >
+              {showResetPassword ? 'Hide Password' : 'Show Password'}
+            </button>
+          </div>
+          <label>
+            New Password
+            <input
+              type={showResetPassword ? 'text' : 'password'}
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm((current) => ({ ...current, newPassword: e.target.value }))}
+              autoComplete="new-password"
+            />
+          </label>
+          <label>
+            Confirm Password
+            <input
+              type={showResetPassword ? 'text' : 'password'}
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm((current) => ({ ...current, confirmPassword: e.target.value }))}
+              autoComplete="new-password"
+            />
+          </label>
+          <button className="adm-saveBtn" onClick={handleUpdatePassword} disabled={savingPassword}>
+            {savingPassword ? 'Saving...' : 'Update Password'}
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

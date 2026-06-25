@@ -6,6 +6,7 @@ export interface APIResponse<T> {
 export interface APIError {
   code: string
   message: string
+  details?: Record<string, unknown>
 }
 
 // JLPT level
@@ -137,8 +138,9 @@ export interface FuriganaToken {
 export interface Sentence {
   index: number
   tokens: FuriganaToken[]
-  translation: string
-  audio_url?: string
+  chinese: string
+  start_ms: number
+  end_ms: number
 }
 
 export interface LessonSummary {
@@ -146,11 +148,17 @@ export interface LessonSummary {
   title: string
   jlpt_level: JLPTLevel
   tags: string[]
-  sentence_count: number
+  char_count: number
+  audio_url: string
+  video_url: string
+  shadowing_enabled: boolean
+  shadowing_version: number
+  shadowing_config: Record<string, unknown>
 }
 
 export interface Lesson extends LessonSummary {
   sentences: Sentence[]
+  word_ids: number[]
 }
 
 // Speaking

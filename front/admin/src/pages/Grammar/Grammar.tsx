@@ -59,8 +59,8 @@ export default function GrammarPage() {
       if (level) params.set('level', level)
       if (search) params.set('search', search)
       const data = await adminFetch<{ items: GrammarPoint[]; total: number }>('GET', `/grammar?${params}`)
-      setItems(data.items)
-      setTotal(data.total)
+      setItems(data.items || [])
+      setTotal(data.total || 0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {

@@ -1,0 +1,32 @@
+time=2026-06-20T15:50:49.933+08:00 level=WARN msg="mail provider not set — using StubMailer (reset URLs logged only)"
+time=2026-06-20T15:50:49.956+08:00 level=INFO msg="server starting" addr=:30081 relational_store=postgres
+time=2026-06-21T17:49:37.626+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T17:49:37.628+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T17:49:52.748+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T17:49:52.750+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T17:56:08.137+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T17:56:08.139+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T17:56:26.055+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T17:56:26.056+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:00:03.712+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:00:03.721+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:30.928+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:30.929+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:36.355+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:36.356+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:39.530+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:39.532+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:44.748+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:44.749+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:51.340+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:51.341+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:56.900+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:08:56.901+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:21:14.602+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:21:14.603+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:23:45.974+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:23:45.974+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:23:57.780+08:00 level=ERROR msg="UserService.Login: GetUserByEmail failed" err="postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:23:57.781+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login GetUserByEmail: postgres.scanUserRecord: not found\nsql: no rows in result set" email=tylerhu@tencent.com
+time=2026-06-21T18:34:17.602+08:00 level=ERROR msg="UserService.Login: wrong password" email=codex-admin-pg-20260621183347@example.com
+time=2026-06-21T18:34:17.604+08:00 level=ERROR msg="handleLogin failed" err="user.UserService.Login: invalid credentials" email=codex-admin-pg-20260621183347@example.com

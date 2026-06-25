@@ -45,6 +45,33 @@
   border-color: #60a5fa;
 }
 
+.tokenField {
+  position: relative;
+}
+
+.tokenField .input {
+  padding-right: 68px;
+}
+
+.tokenToggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  border: none;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 4px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tokenToggle:hover {
+  background: #dbeafe;
+}
+
 .submitBtn {
   width: 100%;
   margin-top: 16px;

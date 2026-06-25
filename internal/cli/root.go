@@ -1,13 +1,16 @@
 package cli
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
 	"os"
 
 	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/store"
 )
 
 // Run is the entry point for the CLI. It parses os.Args and dispatches to the
@@ -17,6 +20,9 @@ import (
 //	import-words    --file <path> | --json <json>   Batch/single import words.
 //	import-grammar  --file <path> | --json <json>   Batch/single import grammar points.
 //	import-lessons  --file <path> | --json <json>   Batch/single import lessons.
+//	report-lesson-duplicates --db <path>             Report duplicate lessons.
+//	cleanup-lesson-duplicates --db <path> [--apply]  Report or delete duplicate lesson rows.
+//	create-lesson-unique-index --db <path>           Create the lesson unique index.
 //	import-speaking --file <path> | --json <json>   Batch/single import speaking materials.
 //	import-writing  --file <path> | --json <json>   Batch/single import writing questions.
 func Run(args []string) int {
@@ -32,6 +38,14 @@ func Run(args []string) int {
 		return runImportGrammar(args[1:])
 	case "import-lessons":
 		return runImportLessons(args[1:])
+	case "import-lessons-postgres":
+		return runImportLessonsPostgres(args[1:])
+	case "report-lesson-duplicates":
+		return runReportLessonDuplicates(args[1:])
+	case "cleanup-lesson-duplicates":
+		return runCleanupLessonDuplicates(args[1:])
+	case "create-lesson-unique-index":
+		return runCreateLessonUniqueIndex(args[1:])
 	case "import-speaking":
 		return runImportSpeaking(args[1:])
 	case "import-writing":
@@ -40,6 +54,8 @@ func Run(args []string) int {
 		return runImportTranslationAPI(args[1:])
 	case "generate-word-audio":
 		return runGenerateWordAudio(args[1:])
+	case "migrate-sqlite-to-pg":
+		return runMigrateSQLiteToPG(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", args[0])
 		printUsage()
@@ -54,10 +70,17 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-words    --file <path> | --json <json>  import words")
 	fmt.Fprintln(os.Stderr, "  import-grammar  --file <path> | --json <json>  import grammar points")
 	fmt.Fprintln(os.Stderr, "  import-lessons  --file <path> | --json <json>  import lessons")
+	fmt.Fprintln(os.Stderr, "  import-lessons-postgres --database-url <url> --file <path> | --json <json>  import lessons into PostgreSQL")
+	fmt.Fprintln(os.Stderr, "  report-lesson-duplicates --db <path>            report duplicate lessons")
+	fmt.Fprintln(os.Stderr, "  cleanup-lesson-duplicates --db <path> [--apply] report duplicates; delete only with --apply")
+	fmt.Fprintln(os.Stderr, "  create-lesson-unique-index --db <path>          create lessons(title,jlpt_level) unique index")
 	fmt.Fprintln(os.Stderr, "  import-speaking --file <path> | --json <json>  import speaking materials")
 	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")
 	fmt.Fprintln(os.Stderr, "  import-translation-api    --file <config.json>           import translation sentences from API")
 	fmt.Fprintln(os.Stderr, "  generate-word-audio --db <path> --level <N5-N1>  regenerate word audio via TTS")
+	fmt.Fprintln(os.Stderr, "  migrate-sqlite-to-pg --database-url <url> [--sqlite-db <path>] [--audio-dir <dir>]")
+	fmt.Fprintln(os.Stderr, "                        [--minio-endpoint <url>] [--dry-run] [--skip-audio] [--phase <name>]")
+	fmt.Fprintln(os.Stderr, "                        migrate all data from SQLite to PostgreSQL")
 }
 
 func runImportWords(args []string) int {
@@ -278,6 +301,195 @@ func runImportLessons(args []string) int {
 		fmt.Printf("import-lessons: inserted %d lesson(s)\n", n)
 	}
 	return 0
+}
+
+func runImportLessonsPostgres(args []string) int {
+	fs := flag.NewFlagSet("import-lessons-postgres", flag.ContinueOnError)
+	filePath := fs.String("file", "", "path to the JSON file containing lessons to import")
+	jsonStr := fs.String("json", "", "inline JSON string for a single lesson")
+	databaseURL := fs.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL database URL")
+
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "import-lessons-postgres: %v\n", err)
+		return 1
+	}
+	if *filePath == "" && *jsonStr == "" {
+		fmt.Fprintln(os.Stderr, "import-lessons-postgres: --file or --json is required")
+		fs.Usage()
+		return 1
+	}
+	if *filePath != "" && *jsonStr != "" {
+		fmt.Fprintln(os.Stderr, "import-lessons-postgres: --file and --json are mutually exclusive")
+		return 1
+	}
+	if *databaseURL == "" {
+		fmt.Fprintln(os.Stderr, "import-lessons-postgres: --database-url or DATABASE_URL is required")
+		return 1
+	}
+
+	ctx := context.Background()
+	adapter := pgdata.Adapter{}
+	db, err := adapter.Open(ctx, store.DatabaseConfig{
+		DatabaseURL:  *databaseURL,
+		MaxOpenConns: 4,
+		MaxIdleConns: 2,
+	})
+	if err != nil {
+		slog.Error("import-lessons-postgres: failed to open database", "err", err)
+		fmt.Fprintf(os.Stderr, "import-lessons-postgres: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := adapter.RunMigrations(ctx, db); err != nil {
+		slog.Error("import-lessons-postgres: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "import-lessons-postgres: run migrations: %v\n", err)
+		return 1
+	}
+
+	var n int
+	if *filePath != "" {
+		n, err = ImportLessonsToPostgresFromFile(db, *filePath)
+		if err != nil {
+			slog.Error("import-lessons-postgres: ImportLessonsToPostgresFromFile failed", "file", *filePath, "err", err)
+			fmt.Fprintf(os.Stderr, "import-lessons-postgres: %v\n", err)
+			return 1
+		}
+		fmt.Printf("import-lessons-postgres: inserted %d lesson(s) from %s\n", n, *filePath)
+	} else {
+		n, err = ImportLessonToPostgresFromJSON(db, *jsonStr)
+		if err != nil {
+			slog.Error("import-lessons-postgres: ImportLessonToPostgresFromJSON failed", "err", err)
+			fmt.Fprintf(os.Stderr, "import-lessons-postgres: %v\n", err)
+			return 1
+		}
+		fmt.Printf("import-lessons-postgres: inserted %d lesson(s)\n", n)
+	}
+	return 0
+}
+
+func runReportLessonDuplicates(args []string) int {
+	fs := flag.NewFlagSet("report-lesson-duplicates", flag.ContinueOnError)
+	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: %v\n", err)
+		return 1
+	}
+
+	db, err := data.OpenDB(*dbPath)
+	if err != nil {
+		slog.Error("report-lesson-duplicates: failed to open database", "db", *dbPath, "err", err)
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := data.RunMigrations(db); err != nil {
+		slog.Error("report-lesson-duplicates: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: run migrations: %v\n", err)
+		return 1
+	}
+
+	groups, err := ReportLessonDuplicates(db)
+	if err != nil {
+		slog.Error("report-lesson-duplicates: report failed", "err", err)
+		fmt.Fprintf(os.Stderr, "report-lesson-duplicates: %v\n", err)
+		return 1
+	}
+	printLessonDuplicateReport("report-lesson-duplicates", groups)
+	return 0
+}
+
+func runCleanupLessonDuplicates(args []string) int {
+	fs := flag.NewFlagSet("cleanup-lesson-duplicates", flag.ContinueOnError)
+	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	apply := fs.Bool("apply", false, "actually delete duplicate lesson rows after printing the report")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: %v\n", err)
+		return 1
+	}
+
+	db, err := data.OpenDB(*dbPath)
+	if err != nil {
+		slog.Error("cleanup-lesson-duplicates: failed to open database", "db", *dbPath, "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := data.RunMigrations(db); err != nil {
+		slog.Error("cleanup-lesson-duplicates: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: run migrations: %v\n", err)
+		return 1
+	}
+
+	groups, err := ReportLessonDuplicates(db)
+	if err != nil {
+		slog.Error("cleanup-lesson-duplicates: report failed", "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: %v\n", err)
+		return 1
+	}
+	printLessonDuplicateReport("cleanup-lesson-duplicates", groups)
+	if !*apply {
+		fmt.Println("cleanup-lesson-duplicates: dry run only; rerun with --apply to delete duplicate lesson rows")
+		return 0
+	}
+
+	deleted, err := CleanupLessonDuplicates(db)
+	if err != nil {
+		slog.Error("cleanup-lesson-duplicates: cleanup failed", "err", err)
+		fmt.Fprintf(os.Stderr, "cleanup-lesson-duplicates: %v\n", err)
+		return 1
+	}
+	fmt.Printf("cleanup-lesson-duplicates: deleted %d lesson row(s)\n", deleted)
+	return 0
+}
+
+func runCreateLessonUniqueIndex(args []string) int {
+	fs := flag.NewFlagSet("create-lesson-unique-index", flag.ContinueOnError)
+	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: %v\n", err)
+		return 1
+	}
+
+	db, err := data.OpenDB(*dbPath)
+	if err != nil {
+		slog.Error("create-lesson-unique-index: failed to open database", "db", *dbPath, "err", err)
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := data.RunMigrations(db); err != nil {
+		slog.Error("create-lesson-unique-index: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: run migrations: %v\n", err)
+		return 1
+	}
+
+	if err := CreateLessonUniqueIndex(db); err != nil {
+		slog.Error("create-lesson-unique-index: create failed", "err", err)
+		fmt.Fprintf(os.Stderr, "create-lesson-unique-index: %v\n", err)
+		return 1
+	}
+	fmt.Println("create-lesson-unique-index: unique index ready")
+	return 0
+}
+
+func printLessonDuplicateReport(prefix string, groups []LessonDuplicateGroup) {
+	if len(groups) == 0 {
+		fmt.Printf("%s: no duplicate lessons found\n", prefix)
+		return
+	}
+	for _, group := range groups {
+		fmt.Printf("%s: title=%q jlpt_level=%s kept_id=%d duplicate_ids=%v\n",
+			prefix,
+			group.Title,
+			group.JLPTLevel,
+			group.KeptID,
+			group.DuplicateIDs,
+		)
+	}
 }
 
 func runImportSpeaking(args []string) int {

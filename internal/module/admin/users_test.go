@@ -1,7 +1,9 @@
 package admin
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +12,7 @@ import (
 	"testing"
 
 	"japanese-learning-app/internal/data"
+	"japanese-learning-app/internal/module/user"
 )
 
 func TestDeleteUserRemovesUserAndOwnedData(t *testing.T) {
@@ -46,6 +49,106 @@ func TestDeleteUserRemovesUserAndOwnedData(t *testing.T) {
 	assertCount(t, db, "SELECT COUNT(*) FROM translation_records WHERE user_id = ?", created.ID, 0)
 }
 
+func TestUpdateUserPassword(t *testing.T) {
+	_, store, srv := newUsersTestServer(t)
+	defer srv.Close()
+
+	created, err := store.Create("Password User", "password-user@example.com", user.HashPassword("old-password"), `["N5"]`)
+	if err != nil {
+		t.Fatalf("Create user: %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		userID     int64
+		body       map[string]string
+		wantStatus int
+		wantLogin  bool
+	}{
+		{
+			name:       "updates password",
+			userID:     created.ID,
+			body:       map[string]string{"new_password": "new-password"},
+			wantStatus: http.StatusNoContent,
+			wantLogin:  true,
+		},
+		{
+			name:       "rejects empty password",
+			userID:     created.ID,
+			body:       map[string]string{"new_password": ""},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "returns not found for missing user",
+			userID:     created.ID + 999,
+			body:       map[string]string{"new_password": "new-password"},
+			wantStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := json.Marshal(tt.body)
+			if err != nil {
+				t.Fatalf("Marshal body: %v", err)
+			}
+			req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/api/admin/users/%d/password", srv.URL, tt.userID), bytes.NewReader(body))
+			if err != nil {
+				t.Fatalf("NewRequest PUT password: %v", err)
+			}
+			req.Header.Set("Authorization", "Bearer test-token")
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := srv.Client().Do(req)
+			if err != nil {
+				t.Fatalf("PUT password: %v", err)
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != tt.wantStatus {
+				respBody, _ := io.ReadAll(resp.Body)
+				t.Fatalf("PUT password status = %d, want %d, body: %s", resp.StatusCode, tt.wantStatus, respBody)
+			}
+
+			if tt.wantLogin {
+				adapter := data.NewUserStoreAdapter(store)
+				svc := user.NewUserService(adapter, "test-secret", &user.StubMailer{}, "http://localhost")
+				if _, err := svc.Login(user.LoginReq{Email: created.Email, Password: tt.body["new_password"]}); err != nil {
+					t.Fatalf("Login with new password: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestUsersHandlerAcceptsAdminUserStoreInterface(t *testing.T) {
+	fakeStore := &fakeAdminUserStore{
+		users: []user.User{{ID: 1, Name: "Postgres User", Email: "pg-user@example.com", JLPTLevels: []string{"N5"}}},
+	}
+	h := NewHandler(HandlerConfig{
+		AdminToken: "test-token",
+		UserStore:  fakeStore,
+	})
+	srv := httptest.NewServer(h.RegisterRoutes())
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/admin/users", nil)
+	if err != nil {
+		t.Fatalf("NewRequest GET users: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer test-token")
+
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("GET users: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("GET users status = %d, want %d, body: %s", resp.StatusCode, http.StatusOK, body)
+	}
+}
+
 func newUsersTestServer(t *testing.T) (*sql.DB, *data.UserStore, *httptest.Server) {
 	t.Helper()
 
@@ -66,6 +169,26 @@ func newUsersTestServer(t *testing.T) (*sql.DB, *data.UserStore, *httptest.Serve
 		DB:         db,
 	})
 	return db, store, httptest.NewServer(h.RegisterRoutes())
+}
+
+type fakeAdminUserStore struct {
+	users []user.User
+}
+
+func (s *fakeAdminUserStore) ListAllUsers(offset, limit int) ([]user.User, int, error) {
+	return s.users, len(s.users), nil
+}
+
+func (s *fakeAdminUserStore) GetStats(userID int64) (*user.UserStats, error) {
+	return &user.UserStats{}, nil
+}
+
+func (s *fakeAdminUserStore) DeleteUser(id int64) error {
+	return nil
+}
+
+func (s *fakeAdminUserStore) UpdatePassword(userID int64, newPasswordHash string) error {
+	return nil
 }
 
 func seedUserOwnedData(t *testing.T, db *sql.DB, userID int64) {

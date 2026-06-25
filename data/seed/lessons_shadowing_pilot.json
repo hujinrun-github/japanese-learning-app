@@ -1,0 +1,116 @@
+[
+  {
+    "title": "私の一日",
+    "jlpt_level": "N5",
+    "tags": ["日常生活", "時間", "shadowing"],
+    "audio_url": "/audio/lessons/shadowing-pilot-n5-day.wav",
+    "video_url": "",
+    "shadowing_enabled": true,
+    "shadowing_version": 1,
+    "shadowing_config": {
+      "media_type": "audio",
+      "media_duration_ms": 19000,
+      "loop_count": 3,
+      "source": {
+        "source_type": "manual_seed",
+        "source_name": "data/seed/lessons_n5.json: 私の一日",
+        "source_url": "",
+        "license": "project-owned seed content",
+        "permission_note": "Existing project seed lesson text reused as manual pilot material.",
+        "subtitle_source": "manual timings from existing seed"
+      }
+    },
+    "word_ids": [],
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [
+          {"surface": "毎朝", "reading": "まいあさ"},
+          {"surface": "、", "reading": ""},
+          {"surface": "七時", "reading": "しちじ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "起きます", "reading": "おきます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "每天早上七点起床。",
+        "start_ms": 0,
+        "end_ms": 3000
+      },
+      {
+        "index": 1,
+        "tokens": [
+          {"surface": "朝ごはん", "reading": "あさごはん"},
+          {"surface": "は", "reading": ""},
+          {"surface": "パン", "reading": ""},
+          {"surface": "と", "reading": ""},
+          {"surface": "コーヒー", "reading": ""},
+          {"surface": "です", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "早餐是面包和咖啡。",
+        "start_ms": 3000,
+        "end_ms": 6000
+      },
+      {
+        "index": 2,
+        "tokens": [
+          {"surface": "八時半", "reading": "はちじはん"},
+          {"surface": "に", "reading": ""},
+          {"surface": "学校", "reading": "がっこう"},
+          {"surface": "へ", "reading": ""},
+          {"surface": "行きます", "reading": "いきます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "八点半去学校。",
+        "start_ms": 6000,
+        "end_ms": 9000
+      },
+      {
+        "index": 3,
+        "tokens": [
+          {"surface": "午後", "reading": "ごご"},
+          {"surface": "は", "reading": ""},
+          {"surface": "図書館", "reading": "としょかん"},
+          {"surface": "で", "reading": ""},
+          {"surface": "勉強", "reading": "べんきょう"},
+          {"surface": "します", "reading": ""},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "下午在图书馆学习。",
+        "start_ms": 9000,
+        "end_ms": 12000
+      },
+      {
+        "index": 4,
+        "tokens": [
+          {"surface": "夜", "reading": "よる"},
+          {"surface": "は", "reading": ""},
+          {"surface": "家族", "reading": "かぞく"},
+          {"surface": "と", "reading": ""},
+          {"surface": "一緒", "reading": "いっしょ"},
+          {"surface": "に", "reading": ""},
+          {"surface": "晩ごはん", "reading": "ばんごはん"},
+          {"surface": "を", "reading": ""},
+          {"surface": "食べます", "reading": "たべます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "晚上和家人一起吃晚饭。",
+        "start_ms": 12000,
+        "end_ms": 16000
+      },
+      {
+        "index": 5,
+        "tokens": [
+          {"surface": "十一時", "reading": "じゅういちじ"},
+          {"surface": "ごろ", "reading": ""},
+          {"surface": "に", "reading": ""},
+          {"surface": "寝ます", "reading": "ねます"},
+          {"surface": "。", "reading": ""}
+        ],
+        "chinese": "大约十一点睡觉。",
+        "start_ms": 16000,
+        "end_ms": 19000
+      }
+    ]
+  }
+]

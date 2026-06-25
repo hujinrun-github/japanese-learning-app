@@ -99,7 +99,7 @@ japanese-learning-app/
 │       │   ├── i18n/                # 国际化配置 + zh/ja/en 翻译
 │       │   ├── components/          # 公共组件（layout + ui）
 │       │   └── pages/               # 页面组件（home/word/grammar/speaking/writing/lesson/auth）
-│       ├── vite.config.ts           # Vite 配置（/api → localhost:8080 代理）
+│       ├── vite.config.ts           # Vite 配置（/api、/audio → localhost:30081 代理）
 │       └── package.json
 ├── specs/                           # 需求文档
 ├── Makefile
@@ -126,8 +126,28 @@ japanese-learning-app/
 
 ### 3.2 Makefile 速查
 
+当前端口约定：
+
+| 服务 | 端口 | 说明 |
+|---|---:|---|
+| 主后端 / 正式服务 | `30081` | `backend/cmd/server` 默认 `LISTEN_ADDR=:30081` |
+| 学习端前端 | `35173` | React/Vite dev server，`/api` 和 `/audio` 代理到 `:30081` |
+| 管理后台 API | `30082` | `backend/cmd/admin` 默认 `LISTEN_ADDR=:30082` |
+| 管理后台前端 | `35174` | Admin React/Vite dev server |
+
+`8080` 不是本项目当前默认端口；如果本机有 `8080` 监听，先确认进程来源再使用。
+
+当前 Tailnet 后缀为 `king-shiner.ts.net`。Tailscale 域名约定如下：
+
+| 环境 | Tailscale 域名 | 学习端前端 | 主后端/API | 管理后台前端 | 管理后台 API |
+|---|---|---|---|---|---|
+| 正式 | `tylerhu-1.king-shiner.ts.net` | `http://tylerhu-1.king-shiner.ts.net:35173` | `http://tylerhu-1.king-shiner.ts.net:30081` | `http://tylerhu-1.king-shiner.ts.net:35174` | `http://tylerhu-1.king-shiner.ts.net:30082` |
+| 测试 | `tylerhu.king-shiner.ts.net` | `http://tylerhu.king-shiner.ts.net:35173` | `http://tylerhu.king-shiner.ts.net:30081` | `http://tylerhu.king-shiner.ts.net:35174` | `http://tylerhu.king-shiner.ts.net:30082` |
+
+注意：这些是本应用的 Tailscale/MagicDNS 域名约定；实际外网访问需确保对应服务监听在可被 Tailscale 转发的地址，或额外配置 `tailscale serve` / `tailscale funnel`。当前 `tailscale funnel status` 中的 `/all-note`、`/all-note-test` 和 `:10000` 映射属于其他项目，不是本应用入口。
+
 ```bash
-make run          # 启动开发服务器（默认监听 :8080）
+make run          # 启动开发服务器（默认监听 :30081）
 make build        # 编译为 bin/server 可执行文件
 make test         # 运行所有测试（含集成测试）
 make lint         # 静态分析 go vet ./...
@@ -144,7 +164,7 @@ go run ./backend/cmd/server/
 
 # 指定配置
 DB_PATH=./data/app.db \
-LISTEN_ADDR=:8080 \
+LISTEN_ADDR=:30081 \
 JWT_SECRET=your-secret-here \
 LOG_LEVEL=DEBUG \
 AI_API_KEY=sk-ant-... \
@@ -155,7 +175,7 @@ go run ./backend/cmd/server/
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `LISTEN_ADDR` | `:8080` | HTTP 监听地址 |
+| `LISTEN_ADDR` | `:30081` | HTTP 监听地址 |
 | `DB_PATH` | `./data/app.db` | SQLite 数据库路径 |
 | `JWT_SECRET` | `change-me-in-production` | **生产环境必须修改** |
 | `LOG_LEVEL` | `INFO` | `DEBUG / INFO / WARN / ERROR` |
@@ -534,7 +554,7 @@ HTML 模板由 Go 的 `http.FileServer` 直接托管，不做服务端渲染，
 
 ### 11.2 新版：React SPA（`front/react/`）
 
-基于 **React 18 + TypeScript + Vite** 构建的单页应用，通过 Vite 代理将 `/api` 请求转发至 Go 后端（`:8080`）。
+基于 **React 18 + TypeScript + Vite** 构建的单页应用，通过 Vite 代理将 `/api` 和 `/audio` 请求转发至 Go 后端（`:30081`）。
 
 #### 目录结构
 
@@ -694,8 +714,8 @@ interface Token { surface: string; reading: string; pos: string }
 ```bash
 cd front/react
 npm install
-npm run dev      # Vite dev server，http://localhost:5173
-                 # /api/* → 代理至 http://localhost:8080
+npm run dev      # Vite dev server，http://localhost:35173
+                 # /api/*、/audio/* → 代理至 http://localhost:30081
 ```
 
 ---
