@@ -180,3 +180,12 @@ func TestUserStorePasswordResetLifecycle(t *testing.T) {
 		t.Fatal("GetResetToken() used = false, want true")
 	}
 }
+
+func TestUserStoreUpdatePasswordNotFound(t *testing.T) {
+	store := newPostgresUserStoreForTest(t)
+
+	err := store.UpdatePassword(999999, "new-hash")
+	if !errors.Is(err, storepkg.ErrNotFound) {
+		t.Fatalf("UpdatePassword() error = %v, want ErrNotFound", err)
+	}
+}

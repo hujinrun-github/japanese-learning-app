@@ -54,7 +54,7 @@ func NewUserService(store UserStoreInterface, jwtSecret string, mailer Mailer, a
 func (s *UserService) Register(req RegisterReq) (*User, error) {
 	slog.Debug("UserService.Register called", "email", req.Email)
 
-	hash := hashPassword(req.Password)
+	hash := HashPassword(req.Password)
 	goalLevel := req.GoalLevel
 	if goalLevel == "" {
 		goalLevel = LevelN5
@@ -87,7 +87,7 @@ func (s *UserService) Login(req LoginReq) (TokenResp, error) {
 		return TokenResp{}, fmt.Errorf("user.UserService.Login GetUserByEmail: %w", err)
 	}
 
-	if hashPassword(req.Password) != storedHash {
+	if HashPassword(req.Password) != storedHash {
 		slog.Error("UserService.Login: wrong password", "email", req.Email)
 		return TokenResp{}, fmt.Errorf("user.UserService.Login: invalid credentials")
 	}
@@ -148,11 +148,11 @@ func (s *UserService) ChangePassword(userID int64, req UpdatePasswordReq) error 
 		return fmt.Errorf("user.UserService.ChangePassword GetUserByEmail: %w", err)
 	}
 
-	if hashPassword(req.CurrentPassword) != storedHash {
+	if HashPassword(req.CurrentPassword) != storedHash {
 		return ErrWrongPassword
 	}
 
-	if err := s.store.UpdatePassword(userID, hashPassword(req.NewPassword)); err != nil {
+	if err := s.store.UpdatePassword(userID, HashPassword(req.NewPassword)); err != nil {
 		return fmt.Errorf("user.UserService.ChangePassword UpdatePassword: %w", err)
 	}
 
@@ -160,10 +160,10 @@ func (s *UserService) ChangePassword(userID int64, req UpdatePasswordReq) error 
 	return nil
 }
 
-// hashPassword returns a hex-encoded SHA-256 hash of the password.
+// HashPassword returns a hex-encoded SHA-256 hash of the password.
 // NOTE: For production use bcrypt is recommended; SHA-256 is used here per the
 // simplicity-first principle and to avoid third-party dependencies.
-func hashPassword(password string) string {
+func HashPassword(password string) string {
 	sum := sha256.Sum256([]byte(password))
 	return fmt.Sprintf("%x", sum)
 }
@@ -229,7 +229,7 @@ func (s *UserService) ResetPassword(token, newPassword string) error {
 		return ErrTokenInvalid
 	}
 
-	newHash := hashPassword(newPassword)
+	newHash := HashPassword(newPassword)
 	if err := s.store.UpdatePassword(rt.UserID, newHash); err != nil {
 		slog.Error("UserService.ResetPassword: UpdatePassword failed", "err", err, "user_id", rt.UserID)
 		return fmt.Errorf("user.UserService.ResetPassword UpdatePassword: %w", err)

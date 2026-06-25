@@ -25,6 +25,10 @@ type APIErrorPayload = {
   details?: Record<string, unknown>
 }
 
+function shouldRedirectToLoginOnUnauthorized(path: string): boolean {
+  return path !== '/api/v1/auth/login'
+}
+
 export async function apiFetch<T>(
   method: string,
   path: string,
@@ -73,10 +77,12 @@ export async function apiFetch<T>(
       // ignore parse error
     }
     // Auto-redirect to login on 401 (expired or invalid token)
-    if (res.status === 401) {
+    if (res.status === 401 && shouldRedirectToLoginOnUnauthorized(path)) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'
+      }
     }
     throw new APIError(code, message, res.status, details)
   }

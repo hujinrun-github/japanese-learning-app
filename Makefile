@@ -1,4 +1,4 @@
-.PHONY: run web test build lint seed seed-grammar seed-lessons seed-speaking seed-writing seed-all seed-postgres postgres-migrate storage-reconcile validate-shadowing-pilot front-build clean kill-ports start-all start-backend start-admin start-learner-front start-admin-front admin-run admin-build admin-front-build admin-front-dev
+.PHONY: run web test build lint seed seed-grammar seed-lessons seed-speaking seed-writing seed-all seed-postgres postgres-migrate storage-reconcile migrate-to-pg migrate-to-pg-dry-run validate-shadowing-pilot front-build clean kill-ports start-all start-backend start-admin start-learner-front start-admin-front admin-run admin-build admin-front-build admin-front-dev
 
 MAIN_PORT := 30081
 ADMIN_PORT := 30082
@@ -52,6 +52,15 @@ postgres-migrate: ## Show SQLite to relational migration help
 storage-reconcile: ## Dry-run audio object reconciliation
 	go run ./backend/cmd/storage-migrate audio-reconcile --dry-run
 
+migrate-to-pg: ## Migrate all data from SQLite to PostgreSQL
+ifndef DATABASE_URL
+	$(error DATABASE_URL is required. Usage: make migrate-to-pg DATABASE_URL="postgres://user:pass@localhost:5432/db" [SQLITE_DB=./data/app.db] [AUDIO_DIR=./data/audio])
+endif
+	go run ./backend/cmd/appctl migrate-sqlite-to-pg --database-url "$(DATABASE_URL)" --sqlite-db "$(or $(SQLITE_DB),./data/app.db)" --audio-dir "$(or $(AUDIO_DIR),./data/audio)" $(if $(MINIO_ENDPOINT),--minio-endpoint "$(MINIO_ENDPOINT)") $(if $(DRY_RUN),--dry-run) $(if $(SKIP_AUDIO),--skip-audio) $(if $(PHASE),--phase "$(PHASE)")
+
+migrate-to-pg-dry-run: ## Dry-run SQLite to PostgreSQL migration (no writes)
+	$(MAKE) migrate-to-pg DRY_RUN=1
+
 validate-shadowing-pilot: ## Validate the shadowing pilot lesson material pack
 	python scripts/validate_lessons_shadowing.py --file ./data/seed/lessons_shadowing_pilot.json
 
@@ -59,7 +68,7 @@ front-build: ## Build legacy frontend TypeScript assets
 	npx esbuild front/web/static/js/*.ts --bundle --outdir=front/web/static/js/dist
 
 admin-run: ## Start the admin API
-	ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) go run ./backend/cmd/admin/
+	RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) go run ./backend/cmd/admin/
 
 admin-build: ## Build the admin API binary
 	go build -o bin/admin ./backend/cmd/admin/
@@ -95,7 +104,7 @@ start-backend: ## Start the main backend on :30081
 start-admin: ## Start the admin API on :30082
 	@mkdir -p $(LOG_DIR)
 	@echo "==> Starting admin server on :$(ADMIN_PORT)..."
-	@ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) nohup go run ./backend/cmd/admin/ > $(LOG_DIR)/admin.log 2>&1 &
+	@RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) nohup go run ./backend/cmd/admin/ > $(LOG_DIR)/admin.log 2>&1 &
 	@sleep 1
 	@if lsof -ti :$(ADMIN_PORT) >/dev/null 2>&1; then \
 		echo "  admin server started (log: $(LOG_DIR)/admin.log)"; \

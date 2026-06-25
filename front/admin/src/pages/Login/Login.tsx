@@ -4,6 +4,7 @@ import styles from './Login.module.css'
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
+  const [showToken, setShowToken] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -38,13 +39,22 @@ export default function LoginPage() {
       <form className={styles.card} onSubmit={handleSubmit}>
         <h1 className={styles.title}>Admin Login</h1>
         {error && <p className={styles.error}>{error}</p>}
-        <input
-          className={styles.input}
-          type="password"
-          placeholder="Enter admin token"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className={styles.tokenField}>
+          <input
+            className={styles.input}
+            type={showToken ? 'text' : 'password'}
+            placeholder="Enter admin token"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            className={styles.tokenToggle}
+            type="button"
+            onClick={() => setShowToken((current) => !current)}
+          >
+            {showToken ? 'Hide' : 'Show'}
+          </button>
+        </div>
         <button className={styles.submitBtn} type="submit" disabled={loading}>
           {loading ? 'Verifying...' : 'Login'}
         </button>

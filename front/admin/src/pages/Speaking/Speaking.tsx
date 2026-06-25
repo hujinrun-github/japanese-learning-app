@@ -47,7 +47,7 @@ export default function SpeakingPage() {
       if (type) params.set('type', type)
       if (search) params.set('search', search)
       const data = await adminFetch<{ items: SpeakingQuestion[]; total: number }>('GET', `/speaking?${params}`)
-      setItems(data.items); setTotal(data.total)
+      setItems(data.items || []); setTotal(data.total || 0)
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load') }
     finally { setLoading(false) }
   }, [page, level, type, search])
@@ -123,8 +123,8 @@ export default function SpeakingPage() {
     }
   }
 
-  const selectableIds = items.filter(q => q.text).map(q => q.id)
-  const selectedVisibleItems = items.filter(q => q.text && selectedIds.has(q.id))
+  const selectableIds = (items || []).filter(q => q.text).map(q => q.id)
+  const selectedVisibleItems = (items || []).filter(q => q.text && selectedIds.has(q.id))
   const allVisibleSelected = selectableIds.length > 0 && selectedVisibleItems.length === selectableIds.length
 
   function toggleSelectAllVisible(checked: boolean) {

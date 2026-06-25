@@ -54,6 +54,8 @@ func Run(args []string) int {
 		return runImportTranslationAPI(args[1:])
 	case "generate-word-audio":
 		return runGenerateWordAudio(args[1:])
+	case "migrate-sqlite-to-pg":
+		return runMigrateSQLiteToPG(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", args[0])
 		printUsage()
@@ -76,6 +78,9 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")
 	fmt.Fprintln(os.Stderr, "  import-translation-api    --file <config.json>           import translation sentences from API")
 	fmt.Fprintln(os.Stderr, "  generate-word-audio --db <path> --level <N5-N1>  regenerate word audio via TTS")
+	fmt.Fprintln(os.Stderr, "  migrate-sqlite-to-pg --database-url <url> [--sqlite-db <path>] [--audio-dir <dir>]")
+	fmt.Fprintln(os.Stderr, "                        [--minio-endpoint <url>] [--dry-run] [--skip-audio] [--phase <name>]")
+	fmt.Fprintln(os.Stderr, "                        migrate all data from SQLite to PostgreSQL")
 }
 
 func runImportWords(args []string) int {

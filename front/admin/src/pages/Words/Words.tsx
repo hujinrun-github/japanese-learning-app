@@ -49,7 +49,7 @@ export default function WordsPage() {
       if (level) params.set('level', level)
       if (search) params.set('search', search)
       const data = await adminFetch<{ items: Word[]; total: number }>('GET', `/words?${params}`)
-      setItems(data.items); setTotal(data.total)
+      setItems(data.items || []); setTotal(data.total || 0)
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load') }
     finally { setLoading(false) }
   }, [page, level, search])

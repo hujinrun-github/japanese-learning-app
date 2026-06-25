@@ -6,6 +6,7 @@ import { apiFetch } from '@/api/client'
 import type { JLPTLevel } from '@/types/api'
 import { Button } from '@/components/ui/Button'
 import { EyeIcon } from './EyeIcon'
+import { applyLoginFailureFormState, type LoginFormState } from './loginFormState'
 import styles from './AuthPage.module.css'
 
 interface LoginResponse {
@@ -23,11 +24,12 @@ interface LoginResponse {
 export function LoginPage() {
   const { isAuthenticated, login } = useAuth()
   const { t } = useTranslation()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [form, setForm] = useState<LoginFormState>({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const { email, password } = form
 
   if (isAuthenticated) return <Navigate to="/" replace />
 
@@ -40,6 +42,7 @@ export function LoginPage() {
       login(res.token, res.user)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.login.error'))
+      setForm((current) => applyLoginFailureFormState(current))
     } finally {
       setLoading(false)
     }
@@ -63,7 +66,7 @@ export function LoginPage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
               placeholder="example@mail.com"
               required
               autoComplete="email"
@@ -77,7 +80,7 @@ export function LoginPage() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => setForm((current) => ({ ...current, password: e.target.value }))}
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"

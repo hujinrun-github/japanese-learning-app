@@ -318,7 +318,7 @@ func (s *UserStore) MarkTokenUsed(token string) error {
 }
 
 func (s *UserStore) UpdatePassword(userID int64, newPasswordHash string) error {
-	_, err := s.db.ExecContext(
+	result, err := s.db.ExecContext(
 		context.Background(),
 		`UPDATE users SET password_hash = $2 WHERE id = $1`,
 		userID,
@@ -326,6 +326,13 @@ func (s *UserStore) UpdatePassword(userID int64, newPasswordHash string) error {
 	)
 	if err != nil {
 		return fmt.Errorf("postgres.UserStore.UpdatePassword: %w", translateError(err))
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("postgres.UserStore.UpdatePassword rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("postgres.UserStore.UpdatePassword: %w", errors.Join(store.ErrNotFound, sql.ErrNoRows))
 	}
 	return nil
 }
