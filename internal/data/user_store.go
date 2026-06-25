@@ -215,10 +215,17 @@ func (s *UserStore) MarkTokenUsed(token string) error {
 func (s *UserStore) UpdatePassword(userID int64, newPasswordHash string) error {
 	slog.Debug("UserStore.UpdatePassword called", "user_id", userID)
 
-	_, err := s.db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, newPasswordHash, userID)
+	res, err := s.db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, newPasswordHash, userID)
 	if err != nil {
 		slog.Error("failed to update password", "err", err, "user_id", userID)
 		return fmt.Errorf("data.UserStore.UpdatePassword: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("data.UserStore.UpdatePassword rows affected: %w", err)
+	}
+	if affected == 0 {
+		return fmt.Errorf("data.UserStore.UpdatePassword %d: %w", userID, sql.ErrNoRows)
 	}
 
 	slog.Debug("UserStore.UpdatePassword done", "user_id", userID)

@@ -6,8 +6,11 @@ import (
 
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
+	"japanese-learning-app/internal/module/writing"
 )
 
 type StoreRuntime struct {
@@ -103,6 +106,7 @@ type AdminUserStoreInterface interface {
 	ListAllUsers(offset, limit int) ([]user.User, int, error)
 	GetStats(userID int64) (*user.UserStats, error)
 	DeleteUser(id int64) error
+	UpdatePassword(userID int64, newPasswordHash string) error
 }
 type AdminWordStoreInterface interface {
 	ListAll(level word.JLPTLevel, search string, offset, limit int) ([]word.Word, int, error)
@@ -119,8 +123,25 @@ type AdminGrammarStoreInterface interface {
 	ListAllRecords(userID int64, offset, limit int) ([]grammar.GrammarRecord, int, error)
 }
 type AdminLessonStoreInterface interface{}
-type AdminSpeakingStoreInterface interface{}
-type AdminWritingStoreInterface interface{}
-type AdminTranslationStoreInterface interface{}
+type AdminSpeakingStoreInterface interface {
+	ListAll(practiceType, level string, offset, limit int) ([]speaking.SpeakingMaterial, int, error)
+	InsertMaterial(m speaking.SpeakingMaterial) (int64, error)
+	UpdateMaterial(m speaking.SpeakingMaterial) error
+	DeleteMaterial(id int64) error
+	ListAllRecords(userID int64, offset, limit int) ([]speaking.SpeakingRecord, int, error)
+}
+type AdminWritingStoreInterface interface {
+	ListAllQuestions(level, qtype string, offset, limit int) ([]writing.WritingQuestion, int, error)
+	InsertQuestion(q writing.WritingQuestion) (int64, error)
+	UpdateQuestion(q writing.WritingQuestion) error
+	DeleteQuestion(id int64) error
+	ListAllRecords(userID int64, offset, limit int) ([]writing.WritingRecord, int, error)
+}
+type AdminTranslationStoreInterface interface {
+	ListAllSentences(sourceID int64, direction string, offset, limit int) ([]translation.TranslationSentence, int, error)
+	SaveSentence(sent translation.TranslationSentence) (int64, error)
+	UpdateSentence(sent translation.TranslationSentence) error
+	DeleteSentence(id int64) error
+}
 type AdminRecordStoreInterface interface{}
 type AdminImportStoreInterface interface{}

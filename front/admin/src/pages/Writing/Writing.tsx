@@ -38,7 +38,7 @@ export default function WritingPage() {
       if (type) params.set('type', type)
       if (search) params.set('search', search)
       const data = await adminFetch<{ items: WritingQuestion[]; total: number }>('GET', `/writing?${params}`)
-      setItems(data.items); setTotal(data.total)
+      setItems(data.items || []); setTotal(data.total || 0)
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load') }
     finally { setLoading(false) }
   }, [page, level, type, search])

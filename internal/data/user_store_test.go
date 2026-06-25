@@ -1,6 +1,8 @@
 package data
 
 import (
+	"database/sql"
+	"errors"
 	"testing"
 )
 
@@ -111,5 +113,14 @@ func TestUserStore_UpdateStreak(t *testing.T) {
 	}
 	if got.StreakDays != 5 {
 		t.Errorf("StreakDays = %d, want 5", got.StreakDays)
+	}
+}
+
+func TestUserStore_UpdatePassword_NotFound(t *testing.T) {
+	store := &UserStore{db: testDB}
+
+	err := store.UpdatePassword(999999, "new-hash")
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("UpdatePassword missing user error = %v, want sql.ErrNoRows", err)
 	}
 }

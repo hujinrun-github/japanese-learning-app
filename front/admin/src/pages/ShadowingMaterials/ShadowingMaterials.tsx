@@ -48,8 +48,8 @@ export default function ShadowingMaterialsPage() {
       const params = new URLSearchParams({ page: String(page), size: String(PAGE_SIZE) })
       if (search.trim()) params.set('search', search.trim())
       const data = await adminFetch<{ items: ShadowingMaterialLesson[]; total: number }>('GET', `/shadowing/materials/lessons?${params}`)
-      setItems(data.items)
-      setTotal(data.total)
+      setItems(data.items || [])
+      setTotal(data.total || 0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load shadowing materials')
     } finally {

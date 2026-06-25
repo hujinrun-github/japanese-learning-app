@@ -42,6 +42,7 @@ type RowBatch struct {
 }
 
 type AudioObjectRow struct {
+	ID            int64
 	Bucket        string
 	ObjectKey     string
 	Kind          string
@@ -51,6 +52,9 @@ type AudioObjectRow struct {
 	MimeType      string
 	MetadataJSON  []byte
 	OwnerUserID   *int64
+	DeletedAt     *time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type MigrationManifest struct {

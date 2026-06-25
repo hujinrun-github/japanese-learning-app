@@ -41,4 +41,32 @@ describe('apiFetch', () => {
       },
     })
   })
+
+  test('does not redirect on login 401 so the login form can keep its email', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      removeItem: vi.fn(),
+    })
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({
+        code: 'ERR_INVALID_CREDENTIALS',
+        message: 'invalid email or password',
+      }),
+    })))
+
+    const location = { href: 'http://localhost/login?email=learner@example.com' }
+    vi.stubGlobal('window', { location })
+
+    await expect(apiFetch('POST', '/api/v1/auth/login', {
+      email: 'learner@example.com',
+      password: 'wrong-password',
+    })).rejects.toMatchObject({
+      code: 'ERR_INVALID_CREDENTIALS',
+      status: 401,
+    })
+
+    expect(location.href).toBe('http://localhost/login?email=learner@example.com')
+  })
 })

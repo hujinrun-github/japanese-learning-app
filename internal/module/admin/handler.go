@@ -7,19 +7,19 @@ import (
 	"strconv"
 	"strings"
 
-	"japanese-learning-app/internal/data"
 	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/store"
 )
 
 // HandlerConfig holds all dependencies for admin handlers.
 type HandlerConfig struct {
 	AdminToken             string
-	WordStore              *data.WordStore
-	GrammarStore           *data.GrammarStore
-	SpeakingStore          *data.SpeakingStore
-	WritingStore           *data.WritingStore
-	TranslationStore       *data.TranslationStore
-	UserStore              *data.UserStore
+	WordStore              store.AdminWordStoreInterface
+	GrammarStore           store.AdminGrammarStoreInterface
+	SpeakingStore          store.AdminSpeakingStoreInterface
+	WritingStore           store.AdminWritingStoreInterface
+	TranslationStore       store.AdminTranslationStoreInterface
+	UserStore              store.AdminUserStoreInterface
 	DB                     *sql.DB
 	ShadowingMaterialsDB   *sql.DB
 	ShadowingMaterialsSQL  string
@@ -77,6 +77,7 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /api/admin/users", h.auth(h.listUsers))
 	mux.HandleFunc("DELETE /api/admin/users/{id}", h.auth(h.deleteUser))
 	mux.HandleFunc("GET /api/admin/users/{id}/stats", h.auth(h.getUserStats))
+	mux.HandleFunc("PUT /api/admin/users/{id}/password", h.auth(h.updateUserPassword))
 	// Records
 	mux.HandleFunc("GET /api/admin/records/{module}", h.auth(h.listRecords))
 	// Import

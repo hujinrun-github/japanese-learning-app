@@ -27,7 +27,7 @@ export default function RecordsPage() {
       const params = new URLSearchParams({ page: String(page), size: String(PAGE_SIZE) })
       if (userId) params.set('user_id', userId)
       const data = await adminFetch<{ items: RecordItem[]; total: number }>('GET', `/records/${module}?${params}`)
-      setItems(data.items); setTotal(data.total)
+      setItems(data.items || []); setTotal(data.total || 0)
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load') }
     finally { setLoading(false) }
   }, [module, userId, page])
