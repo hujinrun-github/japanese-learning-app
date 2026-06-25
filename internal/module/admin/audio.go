@@ -70,6 +70,10 @@ func (h *Handler) regenerateAudio(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider is required"})
 		return
 	}
+	if req.Module == "word" && req.WordID > 0 && h.cfg.DB == nil {
+		writeJSON(w, http.StatusNotImplemented, map[string]string{"error": "word audio database update is not available in PostgreSQL admin mode"})
+		return
+	}
 
 	client := cli.NewTTSClient(ttsConfigFromRegenRequest(req))
 
@@ -135,7 +139,7 @@ func (h *Handler) batchGenerateAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.cfg.DB == nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "database is not configured"})
+		writeJSON(w, http.StatusNotImplemented, map[string]string{"error": "batch audio is not available in PostgreSQL admin mode"})
 		return
 	}
 

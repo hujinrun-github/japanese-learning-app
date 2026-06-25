@@ -97,6 +97,60 @@ func TestLessonStore_GetDetail(t *testing.T) {
 	}
 }
 
+func TestLessonStore_GetDetail_ShadowingMetadata(t *testing.T) {
+	store := &LessonStore{db: testDB}
+
+	res, err := testDB.Exec(`
+		INSERT INTO lessons (
+			title,
+			content_furigana_json,
+			translation_json,
+			jlpt_level,
+			tags_json,
+			audio_url,
+			video_url,
+			sentence_timestamps_json,
+			char_count,
+			word_ids_json,
+			shadowing_enabled,
+			shadowing_version,
+			shadowing_config_json
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		"Shadowing Metadata Detail",
+		`[{"index":0,"tokens":[{"surface":"日本語","reading":"にほんご"}],"chinese":"日语","start_ms":0,"end_ms":3000}]`,
+		`["日语"]`,
+		string(lesson.LevelN5),
+		`["shadowing"]`,
+		"https://example.com/audio.mp3",
+		"https://example.com/video.mp4",
+		`[{"index":0,"start_ms":0,"end_ms":3000}]`,
+		3,
+		`[1]`,
+		1,
+		2,
+		`{"media_type":"audio"}`,
+	)
+	if err != nil {
+		t.Fatalf("insert shadowing lesson error: %v", err)
+	}
+	id, _ := res.LastInsertId()
+
+	detail, err := store.GetDetail(id)
+	if err != nil {
+		t.Fatalf("GetDetail(%d) error: %v", id, err)
+	}
+	if !detail.ShadowingEnabled {
+		t.Fatalf("ShadowingEnabled = false, want true")
+	}
+	if detail.ShadowingVersion != 2 {
+		t.Fatalf("ShadowingVersion = %d, want 2", detail.ShadowingVersion)
+	}
+	if got := detail.ShadowingConfig["media_type"]; got != "audio" {
+		t.Fatalf("ShadowingConfig[media_type] = %#v, want %q", got, "audio")
+	}
+}
+
 func TestLessonStore_GetDetail_NotFound(t *testing.T) {
 	store := &LessonStore{db: testDB}
 

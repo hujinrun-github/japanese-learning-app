@@ -3,13 +3,14 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import styles from './Layout.module.css'
 
 const NAV_ITEMS = [
-  { to: '/words',       label: 'Words',        icon: '📝' },
-  { to: '/grammar',     label: 'Grammar',      icon: '📐' },
-  { to: '/speaking',    label: 'Speaking',     icon: '🎙' },
-  { to: '/writing',     label: 'Writing',      icon: '✍️' },
-  { to: '/translation', label: 'Translation',  icon: '🔄' },
-  { to: '/users',       label: 'Users',        icon: '👥' },
-  { to: '/records',     label: 'Records',      icon: '📋' },
+  { to: '/words', label: 'Words', icon: '📘' },
+  { to: '/grammar', label: 'Grammar', icon: '📚' },
+  { to: '/speaking', label: 'Speaking', icon: '🎙️' },
+  { to: '/writing', label: 'Writing', icon: '✍️' },
+  { to: '/translation', label: 'Translation', icon: '🔁' },
+  { to: '/shadowing-materials', label: 'Shadowing', icon: '🎬' },
+  { to: '/users', label: 'Users', icon: '👥' },
+  { to: '/records', label: 'Records', icon: '📊' },
 ] as const
 
 export default function Layout() {
@@ -27,7 +28,7 @@ export default function Layout() {
         <div className={styles.brand}>
           <span className={styles.brandIcon}>🎌</span>
           <span className={styles.brandName}>Admin Panel</span>
-          <span className={styles.brandSub}>日本語学習</span>
+          <span className={styles.brandSub}>Japanese Learning</span>
         </div>
         <nav className={styles.nav}>
           {NAV_ITEMS.map((item) => (
@@ -56,7 +57,7 @@ export default function Layout() {
               onClick={() => setCollapsed(!collapsed)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {collapsed ? '☰' : '◁'}
+              {collapsed ? '›' : '‹'}
             </button>
             <h1 className={styles.topTitle}>Admin Panel</h1>
             <span className={styles.topBreadcrumb}>/ Japanese Learning</span>

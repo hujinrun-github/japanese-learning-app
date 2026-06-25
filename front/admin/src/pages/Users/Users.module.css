@@ -1,8 +1,47 @@
-/* Users — page-specific overrides */
+/* Users page-specific overrides */
 .title::before {
   content: '👥';
   display: inline-block;
   margin-right: 8px;
   font-size: 22px;
   opacity: 0.8;
+}
+
+.success {
+  color: #166534;
+  font-size: 13px;
+  margin: 0 0 14px;
+  padding: 10px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+
+.passwordHint {
+  margin: 0;
+  color: #6b6560;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.passwordTools {
+  display: flex;
+  justify-content: flex-end;
+  margin: -2px 0 2px;
+}
+
+.passwordToggle {
+  border: 1px solid #d7ccc1;
+  border-radius: 999px;
+  background: #fffaf2;
+  color: #6d4c41;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  background: #fff3df;
+  border-color: #c9a27d;
 }

@@ -11,6 +11,11 @@ import (
 )
 
 func (h *Handler) bulkImport(w http.ResponseWriter, r *http.Request) {
+	if h.cfg.DB == nil {
+		writeJSON(w, http.StatusNotImplemented, map[string]string{"error": "bulk import is not available in PostgreSQL admin mode"})
+		return
+	}
+
 	module := r.PathValue("module")
 	file, _, err := r.FormFile("file")
 	if err != nil {

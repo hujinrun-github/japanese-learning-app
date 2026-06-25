@@ -1,0 +1,65 @@
+[
+  {
+    "title": "夕方の練習",
+    "jlpt_level": "N5",
+    "tags": ["shadowing"],
+    "audio_url": "",
+    "shadowing_enabled": true,
+    "shadowing_version": 0,
+    "shadowing_config": {
+      "media_type": "audio",
+      "media_duration_ms": 2500,
+      "source": {
+        "source_type": "",
+        "source_name": "Broken fixture",
+        "license": "",
+        "permission_note": "",
+        "subtitle_source": ""
+      }
+    },
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [],
+        "chinese": "晚上好。",
+        "start_ms": 1000,
+        "end_ms": 2200
+      },
+      {
+        "index": 1,
+        "tokens": [{ "surface": "練習", "reading": "れんしゅう" }],
+        "chinese": "",
+        "start_ms": 2000,
+        "end_ms": 4000
+      }
+    ]
+  },
+  {
+    "title": "数字が真偽値",
+    "jlpt_level": "N5",
+    "tags": ["shadowing"],
+    "audio_url": "https://example.com/audio/bool-number.mp3",
+    "shadowing_enabled": true,
+    "shadowing_version": true,
+    "shadowing_config": {
+      "media_type": "audio",
+      "media_duration_ms": true,
+      "source": {
+        "source_type": "manual",
+        "source_name": "Bool numeric fixture",
+        "license": "internal",
+        "permission_note": "Created to verify bool values are rejected as numbers.",
+        "subtitle_source": "manual transcript"
+      }
+    },
+    "sentences": [
+      {
+        "index": 0,
+        "tokens": [{ "surface": "確認", "reading": "かくにん" }],
+        "chinese": "确认。",
+        "start_ms": false,
+        "end_ms": true
+      }
+    ]
+  }
+]

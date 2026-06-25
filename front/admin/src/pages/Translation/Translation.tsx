@@ -35,7 +35,7 @@ export default function TranslationPage() {
       if (sourceId) params.set('source_id', sourceId)
       if (direction) params.set('direction', direction)
       const data = await adminFetch<{ items: TranslationSentence[]; total: number }>('GET', `/translation?${params}`)
-      setItems(data.items); setTotal(data.total)
+      setItems(data.items || []); setTotal(data.total || 0)
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load') }
     finally { setLoading(false) }
   }, [page, sourceId, direction])
