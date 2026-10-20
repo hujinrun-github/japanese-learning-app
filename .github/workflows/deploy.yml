@@ -1,0 +1,228 @@
+name: Deploy to Tencent Cloud
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            front/react/package-lock.json
+            front/admin/package-lock.json
+
+      - name: Install shared frontend dependencies
+        run: npm ci
+
+      - name: Install learner frontend dependencies
+        working-directory: front/react
+        run: npm ci
+
+      - name: Install admin frontend dependencies
+        working-directory: front/admin
+        run: npm ci
+
+      - name: Vet Go code
+        run: make lint
+
+      - name: Run Go tests
+        run: make test
+
+      - name: Test learner frontend
+        working-directory: front/react
+        run: npm test
+
+      - name: Build learner frontend
+        working-directory: front/react
+        run: npm run build
+
+      - name: Build admin frontend
+        working-directory: front/admin
+        run: npm run build
+
+      - name: Build Go services
+        run: |
+          make build
+          make admin-build
+
+  deploy:
+    name: Deploy production
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate deploy configuration
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          APP_DIR: ${{ secrets.APP_DIR || vars.APP_DIR }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          RELATIONAL_STORE: ${{ vars.RELATIONAL_STORE }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUDIO_OBJECT_STORE: ${{ vars.AUDIO_OBJECT_STORE }}
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT || vars.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET_AUDIO: ${{ secrets.MINIO_BUCKET_AUDIO || vars.MINIO_BUCKET_AUDIO }}
+        run: |
+          set -eu
+
+          missing=0
+          for name in SERVER_HOST SERVER_USER APP_DIR ADMIN_TOKEN JWT_SECRET; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error title=Missing deploy configuration::$name is required. Set it as a GitHub Secret or Variable."
+              missing=1
+            fi
+          done
+
+          if [ -z "${SERVER_SSH_KEY:-}" ] && [ -z "${SERVER_PASSWORD:-}" ]; then
+            echo "::error title=Missing deploy credential::Set SERVER_SSH_KEY or SERVER_PASSWORD as a GitHub Secret."
+            missing=1
+          fi
+
+          relational_store="${RELATIONAL_STORE:-sqlite}"
+          if [ "$relational_store" = "postgres" ] && [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error title=Missing PostgreSQL configuration::DATABASE_URL is required when RELATIONAL_STORE=postgres."
+            missing=1
+          fi
+
+          if [ "${AUDIO_OBJECT_STORE:-}" = "s3" ]; then
+            for name in MINIO_ENDPOINT MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_BUCKET_AUDIO; do
+              if [ -z "${!name:-}" ]; then
+                echo "::error title=Missing object storage configuration::$name is required when AUDIO_OBJECT_STORE=s3."
+                missing=1
+              fi
+            done
+          fi
+
+          exit "$missing"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.APP_DIR || vars.APP_DIR }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRE_HOURS: ${{ vars.JWT_EXPIRE_HOURS }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+          RELATIONAL_STORE: ${{ vars.RELATIONAL_STORE }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_TIMEZONE: ${{ vars.APP_TIMEZONE }}
+          AUDIO_OBJECT_STORE: ${{ vars.AUDIO_OBJECT_STORE }}
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT || vars.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET_AUDIO: ${{ secrets.MINIO_BUCKET_AUDIO || vars.MINIO_BUCKET_AUDIO }}
+          MINIO_BUCKET_VIDEO: ${{ secrets.MINIO_BUCKET_VIDEO || vars.MINIO_BUCKET_VIDEO }}
+          MINIO_USE_SSL: ${{ vars.MINIO_USE_SSL }}
+          MINIO_PUBLIC_ENDPOINT: ${{ secrets.MINIO_PUBLIC_ENDPOINT || vars.MINIO_PUBLIC_ENDPOINT }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_API_ENDPOINT: ${{ secrets.AI_API_ENDPOINT || vars.AI_API_ENDPOINT }}
+          AI_MODEL: ${{ vars.AI_MODEL }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL || vars.APP_BASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM || vars.RESEND_FROM }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST || vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM || vars.SMTP_FROM }}
+          SHADOWING_DATABASE_URL: ${{ secrets.SHADOWING_DATABASE_URL }}
+        with:
+          host: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT || vars.SERVER_PORT || '22' }}
+          command_timeout: 60m
+          envs: APP_DIR,DEPLOY_BRANCH,ADMIN_TOKEN,JWT_SECRET,JWT_EXPIRE_HOURS,LOG_LEVEL,RELATIONAL_STORE,DATABASE_URL,APP_TIMEZONE,AUDIO_OBJECT_STORE,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,MINIO_BUCKET_AUDIO,MINIO_BUCKET_VIDEO,MINIO_USE_SSL,MINIO_PUBLIC_ENDPOINT,AI_API_KEY,AI_API_ENDPOINT,AI_MODEL,APP_BASE_URL,RESEND_API_KEY,RESEND_FROM,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM,SHADOWING_DATABASE_URL
+          script: |
+            set -eu
+
+            : "${APP_DIR:?APP_DIR is required}"
+            cd "$APP_DIR"
+
+            echo "Pull latest code"
+            git fetch --all --prune
+            DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
+            git reset --hard "origin/${DEPLOY_BRANCH}"
+            git clean -fd -- front/react/src front/admin/src
+            git rev-parse --short HEAD
+
+            echo "Check deploy dependencies"
+            for command in git go make node npm lsof curl; do
+              if ! command -v "$command" >/dev/null 2>&1; then
+                echo "$command is required on the deploy server."
+                exit 1
+              fi
+            done
+
+            RELATIONAL_STORE="${RELATIONAL_STORE:-sqlite}"
+            APP_TIMEZONE="${APP_TIMEZONE:-Asia/Shanghai}"
+            LOG_LEVEL="${LOG_LEVEL:-INFO}"
+            export RELATIONAL_STORE APP_TIMEZONE LOG_LEVEL
+
+            echo "Install frontend dependencies"
+            npm ci
+            npm --prefix front/react ci
+            npm --prefix front/admin ci
+
+            echo "Build application"
+            npm --prefix front/react run build
+            npm --prefix front/admin run build
+            make build
+            make admin-build
+
+            echo "Restart services"
+            make kill-ports
+            make start-backend
+            sleep 3
+            make start-admin
+            make start-learner-front
+            make start-admin-front
+
+            echo "Verify services"
+            for port in 30081 30082 35173 35174; do
+              if ! lsof -ti ":$port" >/dev/null 2>&1; then
+                echo "Service on port $port failed to start."
+                tail -n 100 logs/*.log || true
+                exit 1
+              fi
+            done
+
+            curl --fail --silent --show-error http://127.0.0.1:30081/ >/dev/null
+            curl --fail --silent --show-error http://127.0.0.1:35173/ >/dev/null
+            curl --fail --silent --show-error http://127.0.0.1:35174/ >/dev/null
+            echo "Deploy success"
