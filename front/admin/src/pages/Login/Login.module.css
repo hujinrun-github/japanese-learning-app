@@ -2,7 +2,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  min-height: 100dvh;
+  padding: 16px;
   background: #f1f5f9;
 }
 
@@ -93,4 +94,11 @@
 .submitBtn:disabled {
   background: #93c5fd;
   cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .card { width: 100%; max-width: 380px; padding: 24px 20px; }
+  .input { min-height: 46px; font-size: 16px; }
+  .tokenToggle { min-width: 54px; min-height: 36px; }
+  .submitBtn { min-height: 48px; }
 }

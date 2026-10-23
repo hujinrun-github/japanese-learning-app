@@ -1,4 +1,4 @@
-.page { max-width: var(--max-width-content); margin: 0 auto; padding: var(--space-4); padding-bottom: calc(var(--height-bottomtab) + var(--space-4)); min-height: 100vh; }
+.page { max-width: var(--max-width-content); margin: 0 auto; padding: var(--space-4); min-height: 100vh; }
 .header { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-8); }
 .backBtn { background: none; border: none; font-size: var(--font-size-md); color: var(--color-brand); cursor: pointer; flex-shrink: 0; font-weight: 600; display: flex; align-items: center; gap: var(--space-1); }
 .backBtn:hover { opacity: 0.7; }
@@ -20,3 +20,11 @@
 .submitBtn { padding: var(--space-4); background: var(--color-brand); color: #fff; border: none; border-radius: var(--radius-sm); font-size: var(--font-size-md); font-weight: 700; cursor: pointer; transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; min-height: 48px; }
 .submitBtn:hover { background: var(--color-brand-hover); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
 .submitBtn:disabled { opacity: 0.5; cursor: default; }
+
+@media (max-width: 640px) {
+  .header { margin-bottom: var(--space-5); }
+  .backBtn,
+  .typeBtn,
+  .tagRemove { min-height: 44px; }
+  .tagRemove { min-width: 44px; margin: calc(var(--space-2) * -1); }
+}

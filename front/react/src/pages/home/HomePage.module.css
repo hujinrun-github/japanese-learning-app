@@ -1,7 +1,6 @@
 .page {
-  --dashboard-width: min(calc(100vw - var(--space-8)), 1280px);
-  width: var(--dashboard-width);
-  margin-left: calc((100% - var(--dashboard-width)) / 2);
+  width: min(calc(100vw - var(--space-8)), var(--max-width-content));
+  margin: 0 auto;
   animation: fadeSlideIn var(--transition-base) ease-out both;
 }
 
@@ -167,7 +166,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 40px;
+  min-height: 44px;
   white-space: nowrap;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
@@ -583,7 +582,6 @@
 }
 
 @media (max-width: 860px) {
-  .statStrip,
   .moduleGrid,
   .sideColumn {
     grid-template-columns: 1fr 1fr;
@@ -603,6 +601,10 @@
 }
 
 @media (max-width: 620px) {
+  .page {
+    width: calc(100vw - var(--space-6));
+  }
+
   .dashboard {
     gap: var(--space-3);
   }
@@ -622,10 +624,39 @@
     padding: var(--space-4);
   }
 
-  .statStrip,
   .moduleGrid,
   .sideColumn {
     grid-template-columns: 1fr;
+  }
+
+  .statStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin-block: var(--space-4);
+  }
+
+  .statTile {
+    display: flex;
+    min-height: 92px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--space-2);
+    text-align: center;
+  }
+
+  .statIcon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: var(--space-1);
+  }
+
+  .statLabel { font-size: 0.68rem; }
+  .statTile strong { font-size: var(--font-size-md); }
+
+  .hero::after {
+    right: var(--space-2);
+    font-size: 6rem;
   }
 
   .moduleCard {
@@ -640,6 +671,7 @@
   .secondaryButton,
   .tipLink {
     width: 100%;
+    min-height: 48px;
   }
 
   .progressSummary {

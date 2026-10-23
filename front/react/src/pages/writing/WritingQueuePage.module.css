@@ -45,3 +45,15 @@
 .recordBottom { display: flex; align-items: center; gap: var(--space-3); }
 .scoreBadge { font-size: var(--font-size-xs); font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); color: #fff; white-space: nowrap; }
 .recordRef { font-size: var(--font-size-sm); color: var(--color-success); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .questionCard,
+  .feedbackCard { padding: var(--space-4); border-radius: var(--radius-lg); }
+  .scoreRow { align-items: flex-start; gap: var(--space-3); }
+  .scoreCircle { width: 64px; height: 64px; }
+  .submitRow,
+  .nextRow { display: block; }
+  .submitRow > button,
+  .nextRow > button { width: 100%; min-height: 48px; }
+  .historyToggle { min-height: 44px; }
+}

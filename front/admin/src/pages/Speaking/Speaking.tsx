@@ -171,6 +171,7 @@ export default function SpeakingPage() {
       {error && <p className="adm-error">{error}</p>}
       {loading ? <p className="adm-loading">Loading speaking questions...</p> : (
         <>
+          <div className="adm-tableWrap">
           <table className="adm-table">
             <thead><tr><th style={{width:'36px'}}><input type="checkbox" checked={allVisibleSelected} disabled={selectableIds.length === 0} onChange={e => toggleSelectAllVisible(e.target.checked)} aria-label="Select visible speaking rows" /></th><th>ID</th><th>Type</th><th>Title</th><th>Text</th><th>Level</th><th>Audio</th><th>Actions</th></tr></thead>
             <tbody>
@@ -201,6 +202,7 @@ export default function SpeakingPage() {
               }
             </tbody>
           </table>
+          </div>
           <div className="adm-pagination">
             <button disabled={page <= 1} onClick={() => { setPage(p => p - 1); setSelectedIds(new Set()) }}>← Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong> <span style={{marginLeft:8,color:'#b8b0a8'}}>·</span> Total <strong>{total}</strong></span>

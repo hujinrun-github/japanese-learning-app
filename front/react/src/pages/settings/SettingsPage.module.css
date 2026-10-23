@@ -27,3 +27,12 @@
 .msgSuccess { color: var(--color-success); }
 .msgError { color: var(--color-error); }
 .goalGrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+@media (max-width: 560px) {
+  .page { padding-block: var(--space-3); }
+  .title { margin-bottom: var(--space-5); }
+  .card { padding: var(--space-4); border-radius: var(--radius-lg); }
+  .goalGrid { grid-template-columns: 1fr; gap: var(--space-2); }
+  .tag { min-height: 44px; }
+  .saveBtn { width: 100%; min-height: 48px; }
+}

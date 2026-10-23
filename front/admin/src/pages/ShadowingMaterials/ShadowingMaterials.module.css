@@ -71,7 +71,8 @@
   font-size: 12px;
   line-height: 1.55;
   resize: vertical;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .hint {
@@ -85,4 +86,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .panel { padding: 14px; }
+  .formRow { align-items: stretch; flex-direction: column; }
+  .formRow input,
+  .formRow button,
+  .draftActions button { width: 100%; min-height: 44px; }
+  .draftGrid { grid-template-columns: 1fr; }
+  .draftActions { display: block; }
+  .draftOutput { min-height: 220px; }
 }

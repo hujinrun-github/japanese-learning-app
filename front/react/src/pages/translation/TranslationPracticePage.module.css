@@ -39,3 +39,13 @@
 .error { color: var(--color-error); font-size: var(--font-size-sm); }
 .empty { color: var(--color-text-muted); font-size: var(--font-size-md); text-align: center; margin-top: var(--space-8); }
 .center { display: flex; justify-content: center; padding-top: 40px; }
+
+@media (max-width: 560px) {
+  .sourceText,
+  .grammarSection,
+  .commentary,
+  .correctedSection { padding: var(--space-4); }
+  .scores { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+  .scoreItem { justify-content: center; padding-inline: var(--space-3); }
+  .backBtn { min-height: 44px; }
+}

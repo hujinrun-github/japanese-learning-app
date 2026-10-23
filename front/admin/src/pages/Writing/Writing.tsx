@@ -106,6 +106,7 @@ export default function WritingPage() {
       {error && <p className="adm-error">{error}</p>}
       {loading ? <p className="adm-loading">Loading writing questions...</p> : (
         <>
+          <div className="adm-tableWrap">
           <table className="adm-table">
             <thead><tr><th>ID</th><th>Type</th><th>Prompt</th><th>Expected Answer</th><th>Level</th><th>Grammar ID</th><th>Actions</th></tr></thead>
             <tbody>
@@ -127,6 +128,7 @@ export default function WritingPage() {
               }
             </tbody>
           </table>
+          </div>
           <div className="adm-pagination">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong> <span style={{marginLeft:8,color:'#b8b0a8'}}>·</span> Total <strong>{total}</strong></span>

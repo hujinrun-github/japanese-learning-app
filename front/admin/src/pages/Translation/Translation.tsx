@@ -85,6 +85,7 @@ export default function TranslationPage() {
       {error && <p className="adm-error">{error}</p>}
       {loading ? <p className="adm-loading">Loading translation sentences...</p> : (
         <>
+          <div className="adm-tableWrap">
           <table className="adm-table">
             <thead><tr><th>ID</th><th>Source ID</th><th>Direction</th><th>Source Text</th><th>Reference</th><th>Pos</th><th>Actions</th></tr></thead>
             <tbody>
@@ -106,6 +107,7 @@ export default function TranslationPage() {
               }
             </tbody>
           </table>
+          </div>
           <div className="adm-pagination">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong> <span style={{marginLeft:8,color:'#b8b0a8'}}>·</span> Total <strong>{total}</strong></span>

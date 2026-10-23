@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import styles from './Layout.module.css'
 
 const NAV_ITEMS = [
@@ -15,7 +15,13 @@ const NAV_ITEMS = [
 
 export default function Layout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
 
   function handleLogout() {
     sessionStorage.removeItem('admin_token')
@@ -23,12 +29,24 @@ export default function Layout() {
   }
 
   return (
-    <div className={`${styles.layout} ${collapsed ? styles.collapsed : ''}`}>
-      <aside className={styles.sidebar}>
+    <div className={`${styles.layout} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}>
+      <div
+        className={styles.backdrop}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
+      <aside className={styles.sidebar} aria-label="Admin navigation">
         <div className={styles.brand}>
           <span className={styles.brandIcon}>🎌</span>
           <span className={styles.brandName}>Admin Panel</span>
           <span className={styles.brandSub}>Japanese Learning</span>
+          <button
+            className={styles.sidebarCloseBtn}
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close navigation"
+          >
+            ✕
+          </button>
         </div>
         <nav className={styles.nav}>
           {NAV_ITEMS.map((item) => (
@@ -36,6 +54,7 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               title={collapsed ? item.label : undefined}
+              onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 isActive ? `${styles.navItem} ${styles.active}` : styles.navItem
               }
@@ -53,11 +72,20 @@ export default function Layout() {
         <header className={styles.topbar}>
           <div className={styles.topLeft}>
             <button
-              className={styles.collapseBtn}
+              className={`${styles.collapseBtn} ${styles.desktopCollapseBtn}`}
               onClick={() => setCollapsed(!collapsed)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {collapsed ? '›' : '‹'}
+            </button>
+            <button
+              className={`${styles.collapseBtn} ${styles.mobileMenuBtn}`}
+              onClick={() => setMobileOpen(true)}
+              title="Open navigation"
+              aria-label="Open navigation"
+              aria-expanded={mobileOpen}
+            >
+              ☰
             </button>
             <h1 className={styles.topTitle}>Admin Panel</h1>
             <span className={styles.topBreadcrumb}>/ Japanese Learning</span>

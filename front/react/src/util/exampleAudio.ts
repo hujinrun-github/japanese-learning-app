@@ -24,6 +24,9 @@ export function getExampleAudioURL(hash: string): string {
 }
 
 export function getWordAudioURL(audioURL: string): string {
+  if (audioURL.startsWith('/') || /^[a-z][a-z\d+.-]*:/i.test(audioURL)) {
+    return audioURL
+  }
   return `/audio/words/${audioURL}`
 }
 

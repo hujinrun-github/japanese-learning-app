@@ -72,6 +72,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	mux.Handle("/api/v1/users/", authenticated)
 
 	registerVideoStreamRoutes(mux, db, cfg)
+	registerAudioStreamRoutes(mux, db, cfg)
 	registerStaticHandlers(mux, staticDir, templateDir)
 	return mux, cleanup, nil
 }

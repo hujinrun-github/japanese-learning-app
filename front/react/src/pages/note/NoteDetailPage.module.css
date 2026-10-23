@@ -1,4 +1,4 @@
-.page { max-width: var(--max-width-content); margin: 0 auto; padding: var(--space-4); padding-bottom: calc(var(--height-bottomtab) + var(--space-4)); min-height: 100vh; }
+.page { max-width: var(--max-width-content); margin: 0 auto; padding: var(--space-4); min-height: 100vh; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); }
 .backLink { background: none; border: none; font-size: var(--font-size-md); color: var(--color-brand); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: var(--space-1); }
 .backLink:hover { opacity: 0.7; }
@@ -61,3 +61,18 @@
 .searchItemTitle { font-size: var(--font-size-md); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .modalCloseBtn { display: block; width: 100%; padding: var(--space-3); margin-top: var(--space-5); border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-surface); font-size: var(--font-size-md); font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
 .modalCloseBtn:hover { border-color: var(--color-brand); color: var(--color-brand); }
+
+@media (max-width: 640px) {
+  .header { align-items: flex-start; gap: var(--space-3); }
+  .headerActions { gap: var(--space-2); }
+  .backLink,
+  .actionBtn,
+  .addLinkBtn,
+  .linkRemoveBtn,
+  .searchBtn,
+  .relationBtn,
+  .modalCloseBtn { min-height: 44px; }
+  .actionBtn { padding-inline: var(--space-3); }
+  .modal { max-height: calc(100dvh - var(--height-bottomtab) - env(safe-area-inset-bottom)); padding: var(--space-4); }
+  .searchRow { flex-direction: column; }
+}

@@ -15,6 +15,10 @@ const ja = {
     logout: 'ログアウト',
     mainNav: 'メインナビゲーション',
     settings: '設定',
+    more: 'その他',
+    moreDescription: '学習メニューとアカウント',
+    closeMenu: 'メニューを閉じる',
+    accountMenu: 'アカウントメニュー',
   },
   settings: {
     title: '設定',
@@ -156,6 +160,27 @@ const ja = {
   word: {
     queue: {
       title: '単語復習',
+      examples: '例文',
+      mode: {
+        label: '単語練習モード',
+        recognition: '読み：漢字からかな',
+        dictation: '書き取り：音声から表記',
+      },
+      dictation: {
+        prompt: '音声を聞いて、単語の表記と読みを入力してください',
+        play: '発音を再生',
+        meaningHint: '中国語のヒント',
+        spellingLabel: '漢字 / 単語表記',
+        kanaSpellingLabel: '単語表記',
+        readingLabel: 'かなの読み',
+        spellingPlaceholder: '単語を入力...',
+        readingPlaceholder: 'かなを入力...',
+        allCorrect: '書き取り正解 ✓',
+        needsReview: '表記を復習しましょう',
+        yourAnswer: 'あなたの回答',
+        correctAnswer: '正解',
+        saving: '保存中...',
+      },
       done: '今日の復習完了 🎉',
       doneDesc: '全ての単語を復習しました。また明日来てください！',
       batchDone: '本日のバッチ完了 📚',

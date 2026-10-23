@@ -37,3 +37,13 @@
 .submitBtn { padding: var(--space-3); border: none; border-radius: var(--radius-sm); background: var(--color-brand); color: #fff; font-size: var(--font-size-sm); font-weight: 700; cursor: pointer; transition: all var(--transition-fast); }
 .submitBtn:hover:not(:disabled) { background: var(--color-brand-hover); }
 .submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 560px) {
+  .cardRow { gap: var(--space-2); }
+  .mainCard { min-height: 118px; padding: var(--space-4) var(--space-2); }
+  .sourceCard,
+  .importDialog { padding: var(--space-4); }
+  .deleteBtn { width: 44px; height: 44px; }
+  .importTab,
+  .submitBtn { min-height: 48px; }
+}

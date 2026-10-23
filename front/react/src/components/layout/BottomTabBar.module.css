@@ -2,13 +2,13 @@
   display: none;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .nav {
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    height: var(--height-bottomtab);
-    background: rgba(255, 255, 255, 0.88);
+    height: calc(var(--height-bottomtab) + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--color-bg-surface) 96%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid var(--color-border);
@@ -16,6 +16,7 @@
     padding-bottom: env(safe-area-inset-bottom);
     align-items: center;
     justify-content: center;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
   }
 }
 
@@ -32,6 +33,10 @@
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast);
   position: relative;
+  min-width: 0;
+  min-height: 52px;
+  border: 0;
+  background: transparent;
 }
 .tab:hover { color: var(--color-text-secondary); text-decoration: none; }
 
@@ -59,7 +64,150 @@
 .tab:active .icon { transform: scale(0.9); }
 
 .label {
-  font-size: 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
   font-weight: var(--font-weight-medium);
-  line-height: 1;
+  line-height: 1.15;
+}
+
+.overlay {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: calc(var(--height-bottomtab) + env(safe-area-inset-bottom));
+    background: var(--color-bg-overlay);
+    z-index: calc(var(--z-sticky) - 1);
+    animation: overlayIn var(--transition-fast) ease-out both;
+  }
+
+  .sheet {
+    width: min(100%, 620px);
+    max-height: min(70dvh, 560px);
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-4) var(--space-5);
+    border: 1px solid var(--color-border);
+    border-bottom: 0;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-xl);
+    animation: sheetIn var(--transition-base) ease-out both;
+  }
+
+  .sheetHandle {
+    width: 42px;
+    height: 4px;
+    margin: 0 auto var(--space-4);
+    border-radius: var(--radius-full);
+    background: var(--color-border-strong);
+  }
+
+  .sheetHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .sheetHeader strong,
+  .sheetHeader span {
+    display: block;
+  }
+
+  .sheetHeader strong {
+    overflow: hidden;
+    color: var(--color-text);
+    font-size: var(--font-size-lg);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sheetHeader span {
+    margin-top: 2px;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .closeButton {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: var(--color-bg);
+    color: var(--color-text-secondary);
+  }
+
+  .moreGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .moreItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 60px;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .moreItem:hover,
+  .moreItem:focus-visible {
+    border-color: var(--color-brand);
+    background: var(--color-brand-subtle);
+  }
+
+  .moreIcon { font-size: var(--font-size-xl); }
+
+  .sheetFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .logoutButton {
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--color-error) 30%, transparent);
+    border-radius: var(--radius-md);
+    background: var(--color-error-light);
+    color: var(--color-error);
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
+@media (max-width: 380px) {
+  .moreGrid { grid-template-columns: 1fr; }
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheetIn {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }

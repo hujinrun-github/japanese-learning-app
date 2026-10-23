@@ -2,6 +2,14 @@
 
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
 .title { font-size: var(--font-size-xl); font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: var(--letter-spacing-tight); }
+.error { color: var(--color-error); margin-bottom: var(--space-4); }
+
+.modeSwitch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); padding: 4px; margin-bottom: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); }
+.modeButton { min-height: 44px; padding: var(--space-2) var(--space-3); border: 0; border-radius: calc(var(--radius-lg) - 4px); background: transparent; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 700; cursor: pointer; transition: all var(--transition-fast); }
+.modeButton:hover { color: var(--color-brand); }
+.modeButtonActive { color: var(--color-brand); background: var(--color-bg-surface); box-shadow: var(--shadow-sm); }
+.modeButton:disabled,
+.tab:disabled { opacity: 0.55; cursor: default; }
 
 /* Level tabs */
 .tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-5); overflow-x: auto; padding-bottom: var(--space-1); }
@@ -16,13 +24,16 @@
 .progress { text-align: center; font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: var(--space-4); }
 
 /* Flashcard */
-.cardScene { perspective: 1000px; width: 100%; height: 360px; margin-bottom: var(--space-6); }
+.cardScene { perspective: 1000px; width: 100%; height: clamp(290px, 48dvh, 360px); margin-bottom: var(--space-6); }
+.dictationCardScene { height: clamp(430px, 62dvh, 540px); }
 .cardInner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 .cardFlipped { transform: rotateY(180deg); }
 .cardFace { position: absolute; inset: 0; backface-visibility: hidden; border-radius: var(--radius-2xl); box-shadow: var(--shadow-md); padding: var(--space-6); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--color-bg-surface); border: 1px solid var(--color-border); }
 .cardBack { transform: rotateY(180deg); align-items: flex-start; justify-content: flex-start; overflow-y: auto; }
 
 .badges { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap; }
+.newBadge { font-size: var(--font-size-xs); background: var(--color-brand); color: #fff; padding: 2px 8px; border-radius: var(--radius-full); font-weight: 600; }
+.partOfSpeech { font-size: var(--font-size-xs); color: var(--color-text-secondary); }
 
 .kanjiRow { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
 .readingTypeBadge { width: 28px; height: 28px; border-radius: 50%; background: var(--color-brand-subtle); border: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: var(--font-size-xs); font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -30,9 +41,21 @@
 .speakBtn { width: 40px; height: 40px; border-radius: var(--radius-full); border: 1.5px solid var(--color-border); background: var(--color-bg-surface); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all var(--transition-fast); }
 .speakBtn:hover { border-color: var(--color-brand); background: var(--color-brand-light); transform: scale(1.05); }
 .speakBtn:active { transform: scale(0.95); }
-.speakBtnSm { width: 30px; height: 30px; font-size: 0.85rem; }
+.speakBtnSm { width: 36px; height: 36px; font-size: 0.85rem; }
 
 .kanji { font-size: 4rem; font-weight: 800; color: var(--color-text); text-align: center; line-height: 1.2; }
+
+.dictationPrompt { margin: 0 0 var(--space-3); color: var(--color-text-secondary); font-size: var(--font-size-sm); text-align: center; }
+.dictationPlayButton { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-width: 190px; min-height: 58px; padding: var(--space-3) var(--space-6); border: 2px solid var(--color-brand); border-radius: var(--radius-full); background: var(--color-brand-light); color: var(--color-brand); font-size: var(--font-size-lg); font-weight: 800; cursor: pointer; transition: all var(--transition-fast); }
+.dictationPlayButton:hover { background: var(--color-brand); color: var(--color-text-inverse); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.dictationPlayButton:active { transform: translateY(0); }
+.meaningHint { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: var(--space-4); text-align: center; }
+.meaningHint span { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.meaningHint strong { color: var(--color-text); font-size: var(--font-size-lg); }
+.dictationInputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); width: 100%; margin-top: var(--space-4); }
+.dictationField { display: flex; flex-direction: column; gap: var(--space-1); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 700; }
+.dictationField:only-child { grid-column: 1 / -1; width: min(100%, 320px); justify-self: center; }
+.dictationCheckButton { min-width: 140px; min-height: 44px; margin-top: var(--space-4); }
 
 /* Input */
 .inputRow { display: flex; gap: var(--space-2); width: 100%; max-width: 340px; margin-top: var(--space-4); }
@@ -49,12 +72,16 @@
 .wrongHint { font-size: var(--font-size-sm); color: var(--color-error); text-align: center; margin: 0; }
 .nextBtn { padding: var(--space-1) var(--space-4); border: 1.5px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-surface); font-size: var(--font-size-sm); color: var(--color-text); cursor: pointer; font-weight: 600; transition: all var(--transition-fast); }
 .nextBtn:hover { border-color: var(--color-brand); color: var(--color-brand); }
+.nextBtn:disabled { opacity: 0.5; cursor: default; }
+.nextRow { display: flex; justify-content: center; }
 
 @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
 
 /* Back face */
 .readingRow { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); width: 100%; }
 .reading { font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-brand); }
+.answerHeading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; margin-bottom: var(--space-1); }
+.answerSpelling { color: var(--color-text); font-size: var(--font-size-2xl); font-weight: 800; }
 .meaning { font-size: var(--font-size-lg); color: var(--color-text); margin-bottom: var(--space-4); }
 .examplesTitle { font-size: var(--font-size-xs); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2); }
 .example { margin-bottom: var(--space-3); padding: var(--space-3); background: var(--color-brand-subtle); border-radius: var(--radius-md); width: 100%; border: 1px solid var(--color-border); }
@@ -64,6 +91,21 @@
 .exampleZh { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
 
 .masteryBar { width: 100%; margin-top: var(--space-2); }
+
+.dictationFeedback { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); width: 100%; margin-bottom: var(--space-4); }
+.dictationFeedback h2 { grid-column: 1 / -1; margin: 0 0 var(--space-1); color: var(--color-text); font-size: var(--font-size-lg); }
+.resultCorrect,
+.resultWrong { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); border: 1px solid; }
+.resultCorrect { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, var(--color-border)); background: var(--color-success-light); }
+.resultWrong { color: var(--color-error); border-color: color-mix(in srgb, var(--color-error) 35%, var(--color-border)); background: var(--color-error-light); }
+.resultCorrect > span,
+.resultWrong > span { font-size: var(--font-size-lg); font-weight: 900; }
+.resultCorrect div,
+.resultWrong div { display: flex; flex-direction: column; min-width: 0; }
+.resultCorrect strong,
+.resultWrong strong { font-size: var(--font-size-xs); }
+.resultCorrect small,
+.resultWrong small { color: var(--color-text); font-size: var(--font-size-md); font-weight: 700; overflow-wrap: anywhere; }
 
 /* Rating */
 .ratingRow { display: flex; gap: var(--space-3); justify-content: center; animation: slideUp 300ms ease-out both; }
@@ -75,4 +117,35 @@
 .ratingNormal:hover { border-color: var(--color-warning); background: var(--color-warning-light); color: var(--color-warning); }
 .ratingEasy:hover { border-color: var(--color-success); background: var(--color-success-light); color: var(--color-success); }
 
-@media (max-width: 767px) { .kanji { font-size: 3rem; } .cardScene { height: 320px; } }
+@media (max-width: 767px) {
+  .tabs { scrollbar-width: none; scroll-snap-type: x proximity; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { min-height: 44px; scroll-snap-align: start; }
+  .cardFace { padding: var(--space-4); }
+  .dictationCardScene { height: min(570px, 68dvh); min-height: 455px; }
+  .kanji { font-size: clamp(2.6rem, 15vw, 3.4rem); }
+  .speakBtn,
+  .speakBtnSm { width: 44px; height: 44px; }
+  .ratingBtn { min-height: 52px; padding-inline: var(--space-2); }
+  .ratingHard { border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-border)); background: var(--color-error-light); }
+  .ratingNormal { border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); background: var(--color-warning-light); }
+  .ratingEasy { border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border)); background: var(--color-success-light); }
+  .dictationInputs { grid-template-columns: 1fr; }
+  .dictationField:only-child { grid-column: auto; width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .inputRow { flex-direction: column; }
+  .checkBtn { min-height: 48px; }
+  .ratingRow { gap: var(--space-2); }
+  .ratingBtn { font-size: var(--font-size-sm); }
+  .modeButton { padding-inline: var(--space-2); }
+  .dictationFeedback { grid-template-columns: 1fr; }
+  .dictationFeedback h2 { grid-column: auto; }
+}
+
+@media (max-height: 700px) and (max-width: 767px) {
+  .cardScene { height: 280px; }
+  .dictationCardScene { height: 455px; }
+  .dictationCardScene .cardFace { overflow-y: auto; justify-content: flex-start; }
+}

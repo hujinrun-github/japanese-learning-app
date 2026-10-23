@@ -7,6 +7,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
+  min-height: 100%;
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -14,19 +15,18 @@ html {
 }
 
 body {
+  min-height: 100%;
   font-family: var(--font-family-base);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-regular);
   line-height: var(--line-height-base);
   color: var(--color-text);
-  background-color: var(--color-bg);
-  background-image:
-    radial-gradient(ellipse at 0% 0%, rgba(79, 70, 229, 0.02) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(180, 130, 80, 0.02) 0%, transparent 50%);
-  background-attachment: fixed;
+  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+#root { min-height: 100%; }
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: var(--font-weight-bold);
@@ -39,6 +39,7 @@ a:hover { text-decoration: none; }
 
 button, input, select, textarea { font-family: inherit; font-size: inherit; line-height: inherit; }
 button { cursor: pointer; border: none; background: none; }
+button, a { touch-action: manipulation; }
 
 input, textarea {
   border: 1.5px solid var(--color-border);
@@ -82,4 +83,21 @@ rt { font-size: 0.55em; color: var(--color-text-secondary); }
 }
 .page-enter {
   animation: fadeSlideIn var(--transition-base) ease-out both;
+}
+
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

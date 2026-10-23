@@ -145,6 +145,102 @@ func TestVideoStreamRouteRequiresMinIOConfig(t *testing.T) {
 	}
 }
 
+func TestNewAudioMinIOClientRequiresConfig(t *testing.T) {
+	if _, err := newAudioMinIOClient(&config.Config{}); err == nil {
+		t.Fatal("newAudioMinIOClient() error = nil, want missing configuration error")
+	}
+}
+
+func TestAudioStreamRouteRequiresMinIOConfig(t *testing.T) {
+	db := newMigratedPostgresServerDB(t)
+	audioObjectID := insertServerTestAudioObject(t, db, "public", nil)
+
+	mux := http.NewServeMux()
+	registerAudioStreamRoutes(mux, db, &config.Config{})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/audio/"+strconv.FormatInt(audioObjectID, 10)+"/stream", nil)
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("audio stream status = %d, want 503; body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "ERR_AUDIO_STORAGE_UNAVAILABLE") {
+		t.Fatalf("audio stream body = %s, want ERR_AUDIO_STORAGE_UNAVAILABLE", rec.Body.String())
+	}
+}
+
+func TestAudioStreamRouteHidesUnavailableObjects(t *testing.T) {
+	tests := []struct {
+		name       string
+		visibility string
+		deletedAt  *time.Time
+	}{
+		{name: "private object", visibility: "private"},
+		{
+			name:       "soft deleted object",
+			visibility: "public",
+			deletedAt: func() *time.Time {
+				value := time.Date(2026, 6, 18, 8, 0, 0, 0, time.UTC)
+				return &value
+			}(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := newMigratedPostgresServerDB(t)
+			audioObjectID := insertServerTestAudioObject(t, db, tt.visibility, tt.deletedAt)
+
+			mux := http.NewServeMux()
+			registerAudioStreamRoutes(mux, db, &config.Config{})
+
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/audio/"+strconv.FormatInt(audioObjectID, 10)+"/stream", nil)
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusNotFound {
+				t.Fatalf("audio stream status = %d, want 404; body = %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestBuildPostgresServerMuxRegistersAudioStreamRoute(t *testing.T) {
+	db := newMigratedPostgresServerDB(t)
+	audioObjectID := insertServerTestAudioObject(t, db, "public", nil)
+
+	templateDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(templateDir, "index.html"), []byte("<html></html>"), 0o644); err != nil {
+		t.Fatalf("write index.html: %v", err)
+	}
+
+	cfg := &config.Config{
+		DatabaseURL:       os.Getenv("DATABASE_URL_TEST"),
+		DBMaxOpenConns:    4,
+		DBMaxIdleConns:    2,
+		DBConnMaxLifetime: time.Minute,
+		AppTimezone:       time.UTC,
+		JWTSecret:         "test-secret",
+	}
+	mux, cleanup, err := buildPostgresServerMux(context.Background(), cfg, t.TempDir(), templateDir, &user.StubMailer{}, "http://localhost:35173")
+	if err != nil {
+		t.Fatalf("buildPostgresServerMux error: %v", err)
+	}
+	defer cleanup()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/audio/"+strconv.FormatInt(audioObjectID, 10)+"/stream", nil)
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("audio stream status = %d, want 503; body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "ERR_AUDIO_STORAGE_UNAVAILABLE") {
+		t.Fatalf("audio stream body = %s, want ERR_AUDIO_STORAGE_UNAVAILABLE", rec.Body.String())
+	}
+}
+
 func TestBuildPostgresServerMuxRegistersVideoStreamRoute(t *testing.T) {
 	db := newMigratedPostgresServerDB(t)
 	videoObjectID := insertServerTestVideoObject(t, db)
@@ -202,6 +298,31 @@ func insertServerTestVideoObject(t *testing.T, db *sql.DB) int64 {
 		t.Fatalf("insert video object: %v", err)
 	}
 	return videoObjectID
+}
+
+func insertServerTestAudioObject(t *testing.T, db *sql.DB, visibility string, deletedAt *time.Time) int64 {
+	t.Helper()
+
+	var audioObjectID int64
+	if err := db.QueryRow(`
+		INSERT INTO audio_objects (
+			bucket, object_key, kind, visibility, content_sha256,
+			size_bytes, mime_type, metadata_json, deleted_at, updated_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, '{}'::jsonb, $8, now())
+		RETURNING id`,
+		"japanese-learning-audio",
+		"tts/words/example.wav",
+		"word",
+		visibility,
+		"sha256-audio",
+		int64(1024),
+		"audio/wav",
+		deletedAt,
+	).Scan(&audioObjectID); err != nil {
+		t.Fatalf("insert audio object: %v", err)
+	}
+	return audioObjectID
 }
 
 func newMigratedPostgresServerDB(t *testing.T) *sql.DB {

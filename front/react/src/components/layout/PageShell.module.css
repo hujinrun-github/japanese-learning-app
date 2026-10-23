@@ -2,6 +2,7 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: var(--color-bg);
 }
 
 .main {
@@ -18,8 +19,8 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .main {
-    padding-bottom: calc(var(--height-bottomtab) + var(--space-4));
+    padding: var(--space-4) 0 calc(var(--height-bottomtab) + env(safe-area-inset-bottom) + var(--space-4));
   }
 }

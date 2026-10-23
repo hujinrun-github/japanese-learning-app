@@ -33,9 +33,17 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 	var item word.Word
 	err := s.db.QueryRowContext(
 		ctx,
-		`SELECT id, kanji_form, reading, part_of_speech, meaning, jlpt_level, reading_type
-		 FROM words
-		 WHERE id = $1`,
+		`SELECT w.id,
+		        w.kanji_form,
+		        w.reading,
+		        w.part_of_speech,
+		        w.meaning,
+		        w.jlpt_level,
+		        w.reading_type,
+		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		 FROM words w
+		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
+		 WHERE w.id = $1`,
 		id,
 	).Scan(
 		&item.ID,
@@ -45,6 +53,7 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 		&item.Meaning,
 		&item.JLPTLevel,
 		&item.ReadingType,
+		&item.AudioURL,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("postgres.WordStore.GetByID: %w", translateError(err))
@@ -64,10 +73,18 @@ func (s *WordStore) ListByLevel(level word.JLPTLevel) ([]word.Word, error) {
 
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT id, kanji_form, reading, part_of_speech, meaning, jlpt_level, reading_type
-		 FROM words
-		 WHERE jlpt_level = $1
-		 ORDER BY id`,
+		`SELECT w.id,
+		        w.kanji_form,
+		        w.reading,
+		        w.part_of_speech,
+		        w.meaning,
+		        w.jlpt_level,
+		        w.reading_type,
+		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		 FROM words w
+		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
+		 WHERE w.jlpt_level = $1
+		 ORDER BY w.id`,
 		level,
 	)
 	if err != nil {
@@ -194,10 +211,18 @@ func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit i
 
 	args = append(args, limit, offset)
 	query := fmt.Sprintf(
-		`SELECT id, kanji_form, reading, part_of_speech, meaning, jlpt_level, reading_type
-		 FROM words
+		`SELECT w.id,
+		        w.kanji_form,
+		        w.reading,
+		        w.part_of_speech,
+		        w.meaning,
+		        w.jlpt_level,
+		        w.reading_type,
+		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		 FROM words w
+		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
 		 %s
-		 ORDER BY updated_at DESC, id DESC
+		 ORDER BY w.updated_at DESC, w.id DESC
 		 LIMIT $%d OFFSET $%d`,
 		where,
 		len(args)-1,
@@ -360,6 +385,7 @@ func (s *WordStore) scanWords(ctx context.Context, rows *sql.Rows) ([]word.Word,
 			&item.Meaning,
 			&item.JLPTLevel,
 			&item.ReadingType,
+			&item.AudioURL,
 		); err != nil {
 			return nil, fmt.Errorf("postgres.WordStore.scanWords scan: %w", translateError(err))
 		}

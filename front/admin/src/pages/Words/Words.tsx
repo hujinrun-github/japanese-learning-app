@@ -176,6 +176,7 @@ export default function WordsPage() {
       {error && <p className="adm-error">{error}</p>}
       {loading ? <p className="adm-loading">Loading words...</p> : (
         <>
+          <div className="adm-tableWrap">
           <table className="adm-table">
             <thead><tr><th style={{width:'36px'}}><input type="checkbox" checked={allVisibleSelected} disabled={selectableIds.length === 0} onChange={e => toggleSelectAllVisible(e.target.checked)} aria-label="Select visible words" /></th><th style={{width:'36px'}}></th><th style={{width:'50px'}}>ID</th><th>Kanji</th><th>Reading</th><th>Meaning</th><th>POS</th><th>Level</th><th style={{width:'90px'}}>Audio</th><th style={{width:'140px'}}>Actions</th></tr></thead>
             <tbody>
@@ -256,6 +257,7 @@ export default function WordsPage() {
               }
             </tbody>
           </table>
+          </div>
           <div className="adm-pagination">
             <button disabled={page <= 1} onClick={() => { setPage(p => p - 1); setSelectedIds(new Set()) }}>← Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong> <span style={{marginLeft:8,color:'#b8b0a8'}}>·</span> Total <strong>{total}</strong></span>

@@ -15,6 +15,10 @@ const zh = {
     logout: '退出登录',
     mainNav: '主导航',
     settings: '设置',
+    more: '更多',
+    moreDescription: '继续学习或管理账号',
+    closeMenu: '关闭菜单',
+    accountMenu: '账号菜单',
   },
   settings: {
     title: '设置',
@@ -163,6 +167,27 @@ const zh = {
   word: {
     queue: {
       title: '单词复习',
+      examples: '例句',
+      mode: {
+        label: '单词练习模式',
+        recognition: '认读：看汉字写假名',
+        dictation: '听写：听读音写单词',
+      },
+      dictation: {
+        prompt: '听读音，写出正确的单词表记和假名',
+        play: '播放读音',
+        meaningHint: '中文提示',
+        spellingLabel: '汉字 / 单词表记',
+        kanaSpellingLabel: '单词表记',
+        readingLabel: '假名读音',
+        spellingPlaceholder: '输入单词表记...',
+        readingPlaceholder: '输入假名...',
+        allCorrect: '听写正确 ✓',
+        needsReview: '需要再巩固',
+        yourAnswer: '你的答案',
+        correctAnswer: '正确答案',
+        saving: '正在保存...',
+      },
       done: '今日复习完成 🎉',
       doneDesc: '所有单词已复习，明天再来继续吧！',
       batchDone: '今日批次完成 📚',

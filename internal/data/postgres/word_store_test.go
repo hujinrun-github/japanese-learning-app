@@ -1,12 +1,102 @@
 package postgres
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
 )
+
+func TestWordStoreReturnsDerivedAudioURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		delete bool
+		want   func(audioObjectID int64) string
+	}{
+		{
+			name: "active audio object",
+			want: func(audioObjectID int64) string {
+				return fmt.Sprintf("/api/v1/audio/%d/stream", audioObjectID)
+			},
+		},
+		{
+			name:   "soft deleted audio object",
+			delete: true,
+			want:   func(int64) string { return "" },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := newMigratedPostgresTestDB(t)
+			store := newPostgresWordStoreForDB(db)
+
+			wordID, err := store.InsertWord(word.Word{
+				KanjiForm: "水", Reading: "みず", Meaning: "水", JLPTLevel: word.LevelN5,
+			})
+			if err != nil {
+				t.Fatalf("InsertWord() error = %v", err)
+			}
+
+			var audioObjectID int64
+			err = db.QueryRow(`
+				INSERT INTO audio_objects (
+					bucket, object_key, kind, visibility, content_sha256,
+					size_bytes, mime_type, metadata_json, deleted_at
+				)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, '{}'::jsonb, $8)
+				RETURNING id`,
+				"japanese-learning-audio",
+				"tts/words/mizu.wav",
+				"word",
+				"public",
+				"sha256-mizu",
+				int64(1024),
+				"audio/wav",
+				func() any {
+					if tt.delete {
+						return time.Date(2026, 6, 18, 8, 0, 0, 0, time.UTC)
+					}
+					return nil
+				}(),
+			).Scan(&audioObjectID)
+			if err != nil {
+				t.Fatalf("insert audio object: %v", err)
+			}
+			if _, err := db.Exec(`UPDATE words SET audio_object_id = $1 WHERE id = $2`, audioObjectID, wordID); err != nil {
+				t.Fatalf("attach audio object: %v", err)
+			}
+
+			want := tt.want(audioObjectID)
+
+			got, err := store.GetByID(wordID)
+			if err != nil {
+				t.Fatalf("GetByID() error = %v", err)
+			}
+			if got.AudioURL != want {
+				t.Fatalf("GetByID() AudioURL = %q, want %q", got.AudioURL, want)
+			}
+
+			byLevel, err := store.ListByLevel(word.LevelN5)
+			if err != nil {
+				t.Fatalf("ListByLevel() error = %v", err)
+			}
+			if len(byLevel) != 1 || byLevel[0].AudioURL != want {
+				t.Fatalf("ListByLevel() words = %+v, want audio URL %q", byLevel, want)
+			}
+
+			all, total, err := store.ListAll(word.LevelN5, "水", 0, 20)
+			if err != nil {
+				t.Fatalf("ListAll() error = %v", err)
+			}
+			if total != 1 || len(all) != 1 || all[0].AudioURL != want {
+				t.Fatalf("ListAll() total/words = %d/%+v, want audio URL %q", total, all, want)
+			}
+		})
+	}
+}
 
 func TestWordStoreGetByID(t *testing.T) {
 	store := newPostgresWordStoreForTest(t)

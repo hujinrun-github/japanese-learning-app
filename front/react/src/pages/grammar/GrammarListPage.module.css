@@ -30,3 +30,13 @@
 .quizFailBadge { font-size: var(--font-size-xs); font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); background: var(--color-error-light); color: var(--color-error); border: 1px solid rgba(220,38,38,0.2); }
 .arrow { color: var(--color-text-muted); font-size: var(--font-size-xl); transition: transform var(--transition-fast); }
 .item:hover .arrow { transform: translateX(3px); color: var(--color-brand); }
+
+@media (max-width: 640px) {
+  .tabs { scrollbar-width: none; scroll-snap-type: x proximity; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { min-height: 44px; scroll-snap-align: start; }
+  .filterBar { overflow-x: auto; scrollbar-width: none; }
+  .filterBar::-webkit-scrollbar { display: none; }
+  .filterBtn { flex: 0 0 auto; min-height: 44px; padding-inline: var(--space-4); }
+  .item { min-height: 76px; padding-inline: var(--space-4); }
+}

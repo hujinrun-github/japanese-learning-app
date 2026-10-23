@@ -35,11 +35,11 @@
 }
 
 .btn:hover {
-  color: var(--color-primary);
-  background-color: var(--color-primary-light);
+  color: var(--color-brand);
+  background-color: var(--color-brand-light);
 }
 
 .btn.active {
-  color: var(--color-primary);
+  color: var(--color-brand);
   font-weight: var(--font-weight-bold);
 }

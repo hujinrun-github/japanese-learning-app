@@ -197,6 +197,7 @@ export default function ShadowingMaterialsPage() {
 
       {loading ? <p className="adm-loading">Loading shadowing lessons...</p> : (
         <>
+          <div className="adm-tableWrap">
           <table className="adm-table">
             <thead>
               <tr>
@@ -236,6 +237,7 @@ export default function ShadowingMaterialsPage() {
               }
             </tbody>
           </table>
+          </div>
           <div className="adm-pagination">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong></span>

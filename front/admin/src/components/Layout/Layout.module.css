@@ -1,6 +1,6 @@
 .layout {
   display: flex;
-  height: 100vh;
+  min-height: 100dvh;
   background: #f5f3f0;
 }
 
@@ -12,7 +12,7 @@
   color: #c4c0ba;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: hidden auto;
   transition: width 0.25s ease, min-width 0.25s ease;
 }
 
@@ -63,6 +63,7 @@
   transition: padding 0.25s ease, align-items 0.25s ease;
   overflow: hidden;
   white-space: nowrap;
+  position: relative;
 }
 
 .brandIcon {
@@ -169,6 +170,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 100dvh;
   overflow: hidden;
 }
 
@@ -181,6 +183,9 @@
   background: #fff;
   border-bottom: 1px solid #e8e4e0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .topLeft {
@@ -190,8 +195,8 @@
 }
 
 .collapseBtn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,4 +253,101 @@
 .content {
   flex: 1;
   overflow-y: auto;
+}
+
+.mobileMenuBtn,
+.sidebarCloseBtn,
+.backdrop {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .layout,
+  .main { min-height: 100dvh; }
+
+  .sidebar,
+  .layout.collapsed .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(82vw, 300px);
+    min-width: min(82vw, 300px);
+    transform: translateX(-105%);
+    visibility: hidden;
+    pointer-events: none;
+    box-shadow: 16px 0 36px rgba(0, 0, 0, 0.24);
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+  }
+
+  .mobileOpen .sidebar {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+
+  .layout.collapsed .brand {
+    padding: 24px 20px;
+    align-items: flex-start;
+  }
+
+  .layout.collapsed .brandName,
+  .layout.collapsed .brandSub,
+  .layout.collapsed .footerText,
+  .layout.collapsed .navLabel {
+    display: inline;
+  }
+
+  .layout.collapsed .navItem,
+  .navItem {
+    min-height: 48px;
+    padding: 12px 20px;
+    justify-content: flex-start;
+    border-left-width: 3px;
+  }
+
+  .layout.collapsed .navIcon { margin: 0; }
+
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    border: 0;
+    background: rgba(0, 0, 0, 0.48);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .mobileOpen .backdrop {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .desktopCollapseBtn { display: none; }
+  .mobileMenuBtn { display: flex; }
+
+  .sidebarCloseBtn {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 16px;
+    right: 14px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #3d3a36;
+    border-radius: 999px;
+    background: #252422;
+    color: #d4d0ca;
+    cursor: pointer;
+  }
+
+  .topbar {
+    padding: 8px 12px;
+  }
+
+  .topBreadcrumb { display: none; }
+  .topTitle { font-size: 14px; }
+  .logoutBtn { min-height: 44px; padding: 8px 12px; }
 }

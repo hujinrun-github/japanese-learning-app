@@ -154,6 +154,7 @@ export default function UsersPage() {
       {passwordNotice && <p className={styles.success}>{passwordNotice}</p>}
       {loading ? <p className="adm-loading">Loading users...</p> : (
         <>
+          <div className="adm-tableWrap">
           <table className="adm-table">
             <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>JLPT Levels</th><th>Streak</th><th>Created</th><th>Actions</th></tr></thead>
             <tbody>
@@ -221,6 +222,7 @@ export default function UsersPage() {
               }
             </tbody>
           </table>
+          </div>
           <div className="adm-pagination">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
             <span className="adm-pageInfo">Page <strong>{page}</strong> / <strong>{totalPages || 1}</strong> <span style={{marginLeft:8,color:'#b8b0a8'}}>·</span> Total <strong>{total}</strong></span>

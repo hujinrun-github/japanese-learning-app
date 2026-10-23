@@ -1,5 +1,13 @@
+.wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 6px;
+  overscroll-behavior-inline: contain;
+}
+
 .table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
   background: #fff;
   border-radius: 6px;

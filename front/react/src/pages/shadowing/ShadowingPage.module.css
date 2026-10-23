@@ -35,8 +35,12 @@
 
 @media (max-width: 640px) {
   .header { flex-direction: column; }
-  .controls { justify-content: stretch; }
-  .controls button { flex: 1 1 42%; }
+  .controls {
+    bottom: calc(var(--height-bottomtab) + env(safe-area-inset-bottom) + var(--space-2));
+    justify-content: stretch;
+    border-radius: var(--radius-lg);
+  }
+  .controls button { flex: 1 1 42%; min-height: 44px; }
   .subtitleItem { grid-template-columns: auto 1fr; }
   .completedMark { grid-column: 2; }
 }

@@ -79,3 +79,19 @@
 .recordDate { font-size: var(--font-size-sm); color: var(--color-text-muted); }
 .scoreBadge { font-size: var(--font-size-sm); font-weight: 700; padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); background: var(--color-brand); color: #fff; }
 .errorMsg { color: var(--color-error); font-size: var(--font-size-sm); margin-bottom: var(--space-3); }
+
+@media (max-width: 640px) {
+  .filterBar,
+  .levelTabs { overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .filterBar::-webkit-scrollbar,
+  .levelTabs::-webkit-scrollbar { display: none; }
+  .filterBtn,
+  .levelTab { flex: 0 0 auto; min-width: 82px; min-height: 44px; scroll-snap-align: start; }
+  .materialCard,
+  .textDisplay { padding: var(--space-4); }
+  .toolbar { flex-direction: column; }
+  .toolBtn,
+  .backBtn,
+  .historyToggle { min-height: 48px; }
+  .star { min-width: 44px; min-height: 44px; }
+}

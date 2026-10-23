@@ -15,6 +15,10 @@ const en = {
     logout: 'Logout',
     mainNav: 'Main navigation',
     settings: 'Settings',
+    more: 'More',
+    moreDescription: 'More practice and account options',
+    closeMenu: 'Close menu',
+    accountMenu: 'Account menu',
   },
   settings: {
     title: 'Settings',
@@ -163,6 +167,27 @@ const en = {
   word: {
     queue: {
       title: 'Word Review',
+      examples: 'Examples',
+      mode: {
+        label: 'Word practice mode',
+        recognition: 'Recognition: kanji to kana',
+        dictation: 'Dictation: audio to spelling',
+      },
+      dictation: {
+        prompt: 'Listen, then write the word and its kana reading',
+        play: 'Play pronunciation',
+        meaningHint: 'Meaning hint',
+        spellingLabel: 'Kanji / word spelling',
+        kanaSpellingLabel: 'Word spelling',
+        readingLabel: 'Kana reading',
+        spellingPlaceholder: 'Type the word...',
+        readingPlaceholder: 'Type the kana reading...',
+        allCorrect: 'Correct dictation ✓',
+        needsReview: 'Review this spelling',
+        yourAnswer: 'Your answer',
+        correctAnswer: 'Correct answer',
+        saving: 'Saving...',
+      },
       done: "Today's Review Complete 🎉",
       doneDesc: 'All words reviewed. Come back tomorrow!',
       batchDone: "Today's Batch Complete 📚",

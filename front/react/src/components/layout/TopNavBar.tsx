@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { DESKTOP_NAV_ITEMS } from './navigation'
 import styles from './TopNavBar.module.css'
 
 export function TopNavBar() {
@@ -25,38 +26,34 @@ export function TopNavBar() {
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        <NavLink to="/" className={styles.logo}>
-          🇯🇵 {t('common.appName')}
+        <NavLink to="/" className={styles.logo} aria-label={t('nav.home')}>
+          <span aria-hidden="true">🇯🇵</span>
+          <span className={styles.logoText}>{t('common.appName')}</span>
         </NavLink>
 
         <nav className={styles.nav}>
-          <NavLink to="/" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`} end>
-            {t('nav.home')}
-          </NavLink>
-          <NavLink to="/words/review" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-            {t('nav.words')}
-          </NavLink>
-          <NavLink to="/grammar" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-            {t('nav.grammar')}
-          </NavLink>
-          <NavLink to="/speaking" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-            {t('nav.speaking')}
-          </NavLink>
-          <NavLink to="/writing" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-            {t('nav.writing')}
-          </NavLink>
-          <NavLink to="/notes" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-            {t('nav.notes')}
-          </NavLink>
-          <NavLink to="/translation" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-            {t('nav.translation')}
-          </NavLink>
+          {DESKTOP_NAV_ITEMS.filter((item) => item.to !== '/settings').map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}
+            >
+              {t(item.labelKey)}
+            </NavLink>
+          ))}
         </nav>
 
         <div className={styles.user}>
-          <LanguageSwitcher />
+          <div className={styles.desktopLanguage}><LanguageSwitcher /></div>
           <div className={styles.userMenu} ref={menuRef}>
-            <button className={styles.userIcon} onClick={() => setMenuOpen(!menuOpen)} title={t('nav.settings')}>
+            <button
+              className={styles.userIcon}
+              onClick={() => setMenuOpen(!menuOpen)}
+              title={t('nav.settings')}
+              aria-label={t('nav.accountMenu')}
+              aria-expanded={menuOpen}
+            >
               👤
             </button>
             {menuOpen && (

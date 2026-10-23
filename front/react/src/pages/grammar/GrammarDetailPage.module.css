@@ -61,3 +61,15 @@
 .scoreLabel { font-size: var(--font-size-sm); color: var(--color-text-muted); margin-top: var(--space-2); }
 
 .navRow { display: flex; justify-content: space-between; margin-top: var(--space-10); padding-top: var(--space-5); border-top: 1px solid var(--color-border); }
+
+@media (max-width: 640px) {
+  .back,
+  .speakBtn,
+  .quizToggle,
+  .option { min-height: 44px; }
+  .speakBtn { width: 44px; }
+  .question { padding: var(--space-4); }
+  .submitRow > button { width: 100%; min-height: 48px; }
+  .navRow { gap: var(--space-2); }
+  .navRow > * { flex: 1; min-height: 44px; }
+}
