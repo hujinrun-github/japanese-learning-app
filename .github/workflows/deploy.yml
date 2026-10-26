@@ -58,6 +58,10 @@ jobs:
         working-directory: front/react
         run: npm test
 
+      - name: Download kuromoji dictionary
+        working-directory: front/react
+        run: npm run prepare:dict
+
       - name: Build learner frontend
         working-directory: front/react
         run: npm run build
@@ -198,6 +202,9 @@ jobs:
             npm ci
             npm --prefix front/react ci
             npm --prefix front/admin ci
+
+            echo "Download kuromoji dictionary"
+            npm --prefix front/react run prepare:dict
 
             echo "Build application"
             npm --prefix front/react run build

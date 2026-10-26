@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "prepare:dict": "node ../../scripts/fetch-kuromoji-dict.mjs",
+    "dev": "npm run prepare:dict && vite",
+    "build": "npm run prepare:dict && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run"
   },

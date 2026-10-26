@@ -11,6 +11,10 @@ logs/
 # Go toolchain vendored into the repo (huge, not source code)
 /.tools/
 
+# kuromoji.js dictionary (~19 MB of .gz), downloaded at deploy time by
+# `npm --prefix front/react run prepare:dict` (scripts/fetch-kuromoji-dict.mjs)
+front/react/public/kuromoji-dict/
+
 # Build artifacts and compiled binaries (regenerate with `make build` / `make admin-build`)
 /bin/
 /front/dist/
