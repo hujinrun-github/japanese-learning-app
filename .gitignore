@@ -7,3 +7,17 @@ node_modules/
 front/admin/dist/
 .worktrees/
 logs/
+
+# Go toolchain vendored into the repo (huge, not source code)
+/.tools/
+
+# Build artifacts and compiled binaries (regenerate with `make build` / `make admin-build`)
+/bin/
+/front/dist/
+/server
+/admin
+/jl-app
+/japanese-learning-app
+/generate_tts_examples
+/backend/server
+/backend/admin
