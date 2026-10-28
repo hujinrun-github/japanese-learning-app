@@ -20,10 +20,8 @@ Actions 需要以下配置：
 - `SERVER_HOST`、`SERVER_USER`、`APP_DIR`
 - `SERVER_SSH_KEY` 或 `SERVER_PASSWORD`
 - `ADMIN_TOKEN`、`JWT_SECRET`
-- `GHCR_READ_TOKEN`：服务器拉取私有 GHCR 镜像的 PAT，至少需要 `read:packages`
-- `GHCR_USERNAME`：可选 Repository Variable，默认使用仓库所有者名称
 
-根据环境继续配置 `RELATIONAL_STORE`、`DATABASE_URL`、`AUDIO_OBJECT_STORE`、`MINIO_*`、邮件和 AI 相关变量。Actions 使用内置 `GITHUB_TOKEN` 推送镜像；服务器使用单独的 `GHCR_READ_TOKEN` 拉取镜像，避免把短期 Actions token 保存到服务器。
+根据环境继续配置 `RELATIONAL_STORE`、`DATABASE_URL`、`AUDIO_OBJECT_STORE`、`MINIO_*`、邮件和 AI 相关变量。Actions 使用本次运行自带的 `GITHUB_TOKEN` 同时推送和拉取镜像，服务器拉取完成后会自动执行 `docker logout ghcr.io`，因此不需要额外配置 `GHCR_READ_TOKEN`。如果需要在服务器上手动拉取私有镜像，再使用具有 `read:packages` 权限的 PAT 执行 `docker login ghcr.io`。
 
 ## 部署流程
 

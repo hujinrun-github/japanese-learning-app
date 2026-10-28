@@ -118,8 +118,6 @@ jobs:
           SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
           APP_DIR: ${{ secrets.APP_DIR || vars.APP_DIR }}
-          GHCR_USERNAME: ${{ vars.GHCR_USERNAME || github.repository_owner }}
-          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           RELATIONAL_STORE: ${{ vars.RELATIONAL_STORE }}
@@ -133,7 +131,7 @@ jobs:
           set -eu
 
           missing=0
-          for name in SERVER_HOST SERVER_USER APP_DIR GHCR_USERNAME GHCR_READ_TOKEN ADMIN_TOKEN JWT_SECRET; do
+          for name in SERVER_HOST SERVER_USER APP_DIR ADMIN_TOKEN JWT_SECRET; do
             if [ -z "${!name:-}" ]; then
               echo "::error title=Missing deploy configuration::$name is required. Set it as a GitHub Secret or Variable."
               missing=1
@@ -169,8 +167,8 @@ jobs:
           DEPLOY_BRANCH: ${{ github.ref_name }}
           REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/japanese-learning-app
           IMAGE_TAG: ${{ github.sha }}
-          GHCR_USERNAME: ${{ vars.GHCR_USERNAME || github.repository_owner }}
-          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRE_HOURS: ${{ vars.JWT_EXPIRE_HOURS }}
@@ -205,7 +203,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || vars.SERVER_PORT || '22' }}
           command_timeout: 60m
-          envs: APP_DIR,DEPLOY_BRANCH,REGISTRY_IMAGE,IMAGE_TAG,GHCR_USERNAME,GHCR_READ_TOKEN,ADMIN_TOKEN,JWT_SECRET,JWT_EXPIRE_HOURS,LOG_LEVEL,RELATIONAL_STORE,DATABASE_URL,APP_TIMEZONE,AUDIO_OBJECT_STORE,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,MINIO_BUCKET_AUDIO,MINIO_BUCKET_VIDEO,MINIO_USE_SSL,MINIO_PUBLIC_ENDPOINT,AI_API_KEY,AI_API_ENDPOINT,AI_MODEL,APP_BASE_URL,RESEND_API_KEY,RESEND_FROM,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM,SHADOWING_DATABASE_URL
+          envs: APP_DIR,DEPLOY_BRANCH,REGISTRY_IMAGE,IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN,ADMIN_TOKEN,JWT_SECRET,JWT_EXPIRE_HOURS,LOG_LEVEL,RELATIONAL_STORE,DATABASE_URL,APP_TIMEZONE,AUDIO_OBJECT_STORE,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,MINIO_BUCKET_AUDIO,MINIO_BUCKET_VIDEO,MINIO_USE_SSL,MINIO_PUBLIC_ENDPOINT,AI_API_KEY,AI_API_ENDPOINT,AI_MODEL,APP_BASE_URL,RESEND_API_KEY,RESEND_FROM,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM,SHADOWING_DATABASE_URL
           script: |
             set -eu
 
@@ -238,7 +236,11 @@ jobs:
             docker compose -f "$COMPOSE_FILE" config >/dev/null
 
             echo "Log in to GitHub Container Registry"
-            printf '%s' "$GHCR_READ_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+            cleanup_registry_login() {
+              docker logout ghcr.io >/dev/null 2>&1 || true
+            }
+            trap cleanup_registry_login EXIT
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
 
             echo "Pull application images"
             docker compose -f "$COMPOSE_FILE" pull
