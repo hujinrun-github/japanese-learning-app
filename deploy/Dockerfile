@@ -6,12 +6,14 @@ WORKDIR /src
 
 # Install frontend dependencies before copying the source so dependency layers
 # remain cacheable when only application code changes.
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+
 COPY front/react/package.json front/react/package-lock.json ./front/react/
 COPY front/admin/package.json front/admin/package-lock.json ./front/admin/
 RUN npm ci --prefix front/react
 RUN npm ci --prefix front/admin
 
-COPY package.json package-lock.json ./
 COPY scripts ./scripts
 COPY front/react ./front/react
 COPY front/admin ./front/admin
