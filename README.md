@@ -173,6 +173,10 @@ npm run dev      # http://localhost:35173，/api 和 /audio 代理至 :30081
 | `SMTP_FROM` | `noreply@japanese-learning.app` | SMTP 发件地址 |
 | `APP_BASE_URL` | `http://localhost:35173` | 密码重置链接前缀 |
 
+### 容器化生产部署
+
+生产环境使用 GitHub Actions 构建并推送 GHCR 镜像，再由服务器上的 Docker Compose 拉取和启动四个应用容器。配置要求和切换步骤见 [容器化部署文档](docs/container-deployment.md)。
+
 #### Resend 密码重置邮件
 
 本项目支持用 Resend 的免费额度发送真实密码重置邮件。先在 Resend 验证你的域名，并把 `RESEND_FROM` 设置为已验证域名下的发件地址。

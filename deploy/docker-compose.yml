@@ -1,0 +1,119 @@
+name: japanese-learning-app
+
+services:
+  server:
+    image: ${REGISTRY_IMAGE:?REGISTRY_IMAGE is required}-server:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    environment:
+      LISTEN_ADDR: ":30081"
+      RELATIONAL_STORE: ${RELATIONAL_STORE:-sqlite}
+      DATABASE_URL: ${DATABASE_URL:-}
+      DB_PATH: /app/data/app.db
+      AUDIO_STORE_PATH: /app/data/audio
+      DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS:-25}
+      DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS:-25}
+      DB_CONN_MAX_LIFETIME: ${DB_CONN_MAX_LIFETIME:-5m}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Shanghai}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-72}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_API_ENDPOINT: ${AI_API_ENDPOINT:-}
+      AI_TIMEOUT_SEC: ${AI_TIMEOUT_SEC:-15}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:35173}
+      AUDIO_OBJECT_STORE: ${AUDIO_OBJECT_STORE:-}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
+      MINIO_BUCKET_AUDIO: ${MINIO_BUCKET_AUDIO:-}
+      MINIO_BUCKET_VIDEO: ${MINIO_BUCKET_VIDEO:-}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-}
+      MINIO_PRESIGN_TTL_SECONDS: ${MINIO_PRESIGN_TTL_SECONDS:-900}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@japanese-learning.app}
+      SHADOWING_DATABASE_URL: ${SHADOWING_DATABASE_URL:-}
+    volumes:
+      - ${APP_DATA_DIR:-../data}:/app/data
+    ports:
+      - "${MAIN_PORT:-30081}:30081"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:30081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  admin-api:
+    image: ${REGISTRY_IMAGE:?REGISTRY_IMAGE is required}-admin-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    environment:
+      LISTEN_ADDR: ":30082"
+      RELATIONAL_STORE: ${RELATIONAL_STORE:-sqlite}
+      DATABASE_URL: ${DATABASE_URL:-}
+      DB_PATH: /app/data/app.db
+      DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS:-25}
+      DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS:-25}
+      DB_CONN_MAX_LIFETIME: ${DB_CONN_MAX_LIFETIME:-5m}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Shanghai}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?ADMIN_TOKEN is required}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_API_ENDPOINT: ${AI_API_ENDPOINT:-}
+      AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      AUDIO_OBJECT_STORE: ${AUDIO_OBJECT_STORE:-}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
+      MINIO_BUCKET_AUDIO: ${MINIO_BUCKET_AUDIO:-}
+      MINIO_BUCKET_VIDEO: ${MINIO_BUCKET_VIDEO:-}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-}
+      MINIO_PRESIGN_TTL_SECONDS: ${MINIO_PRESIGN_TTL_SECONDS:-900}
+      SHADOWING_DATABASE_URL: ${SHADOWING_DATABASE_URL:-}
+    volumes:
+      - ${APP_DATA_DIR:-../data}:/app/data
+    ports:
+      - "${ADMIN_PORT:-30082}:30082"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:30082/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  learner-web:
+    image: ${REGISTRY_IMAGE:?REGISTRY_IMAGE is required}-learner-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - "${LEARNER_PORT:-35173}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  admin-web:
+    image: ${REGISTRY_IMAGE:?REGISTRY_IMAGE is required}-admin-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+      admin-api:
+        condition: service_healthy
+    ports:
+      - "${ADMIN_FRONT_PORT:-35174}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
