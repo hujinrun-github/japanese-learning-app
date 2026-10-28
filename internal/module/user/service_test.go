@@ -112,7 +112,7 @@ func (f *fakeUserStore) GetDailyGoals(userID int64) (map[string]int, error) {
 
 func TestUserService_Register(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	req := user.RegisterReq{
 		Email:     "alice@example.com",
@@ -133,7 +133,7 @@ func TestUserService_Register(t *testing.T) {
 
 func TestUserService_Register_DuplicateEmail(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	req := user.RegisterReq{Email: "bob@example.com", Password: "pw", GoalLevel: user.LevelN5}
 	_, _ = svc.Register(req)
@@ -145,7 +145,7 @@ func TestUserService_Register_DuplicateEmail(t *testing.T) {
 
 func TestUserService_Login(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	req := user.RegisterReq{Email: "carol@example.com", Password: "mypassword", GoalLevel: user.LevelN4}
 	_, _ = svc.Register(req)
@@ -162,9 +162,54 @@ func TestUserService_Login(t *testing.T) {
 	}
 }
 
+func TestUserService_Login_TokenTTL(t *testing.T) {
+	const tolerance = 5 * time.Second
+
+	tests := []struct {
+		name     string
+		tokenTTL time.Duration
+		wantTTL  time.Duration
+	}{
+		{name: "configured 72h", tokenTTL: 72 * time.Hour, wantTTL: 72 * time.Hour},
+		{name: "configured 1h", tokenTTL: time.Hour, wantTTL: time.Hour},
+		{name: "configured 30m", tokenTTL: 30 * time.Minute, wantTTL: 30 * time.Minute},
+		{name: "zero falls back to default", tokenTTL: 0, wantTTL: user.DefaultTokenTTL},
+		{name: "negative falls back to default", tokenTTL: -time.Hour, wantTTL: user.DefaultTokenTTL},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeUserStore()
+			svc := user.NewUserService(store, "jwt-secret", tt.tokenTTL, &user.StubMailer{}, "http://localhost")
+
+			email := tt.name + "@example.com"
+			_, err := svc.Register(user.RegisterReq{Email: email, Password: "pw", GoalLevel: user.LevelN5})
+			if err != nil {
+				t.Fatalf("Register error: %v", err)
+			}
+
+			before := time.Now()
+			resp, err := svc.Login(user.LoginReq{Email: email, Password: "pw"})
+			if err != nil {
+				t.Fatalf("Login error: %v", err)
+			}
+
+			got := resp.ExpiresAt.Sub(before)
+			if diff := got - tt.wantTTL; diff > tolerance || diff < -tolerance {
+				t.Errorf("token TTL = %v, want %v (tolerance %v)", got, tt.wantTTL, tolerance)
+			}
+
+			// The issued token must still verify against the configured expiry.
+			if _, err := user.VerifyToken(resp.Token, "jwt-secret"); err != nil {
+				t.Errorf("VerifyToken on issued token: %v", err)
+			}
+		})
+	}
+}
+
 func TestUserService_Login_WrongPassword(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	_, _ = svc.Register(user.RegisterReq{Email: "dave@example.com", Password: "correct", GoalLevel: user.LevelN5})
 
@@ -176,7 +221,7 @@ func TestUserService_Login_WrongPassword(t *testing.T) {
 
 func TestUserService_Login_UnknownEmail(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	_, err := svc.Login(user.LoginReq{Email: "nobody@example.com", Password: "pw"})
 	if err == nil {
@@ -186,7 +231,7 @@ func TestUserService_Login_UnknownEmail(t *testing.T) {
 
 func TestUserService_GetProfile(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	u, _ := svc.Register(user.RegisterReq{Email: "eve@example.com", Password: "pw", GoalLevel: user.LevelN2})
 
@@ -201,7 +246,7 @@ func TestUserService_GetProfile(t *testing.T) {
 
 func TestUserService_ForgotPassword_UnknownEmail(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	// Should succeed silently even for unknown email (anti-enumeration)
 	err := svc.ForgotPassword("unknown@example.com")
@@ -212,7 +257,7 @@ func TestUserService_ForgotPassword_UnknownEmail(t *testing.T) {
 
 func TestUserService_ForgotPassword_KnownEmail(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	_, _ = svc.Register(user.RegisterReq{Email: "frank@example.com", Password: "pw", GoalLevel: user.LevelN5})
 
@@ -227,7 +272,7 @@ func TestUserService_ForgotPassword_KnownEmail(t *testing.T) {
 
 func TestUserService_ResetPassword(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	u, _ := svc.Register(user.RegisterReq{Email: "grace@example.com", Password: "oldpw", GoalLevel: user.LevelN5})
 
@@ -249,7 +294,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 
 func TestUserService_ResetPassword_ExpiredToken(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	u, _ := svc.Register(user.RegisterReq{Email: "henry@example.com", Password: "pw", GoalLevel: user.LevelN5})
 
@@ -265,7 +310,7 @@ func TestUserService_ResetPassword_ExpiredToken(t *testing.T) {
 
 func TestUserService_ResetPassword_UsedToken(t *testing.T) {
 	store := newFakeUserStore()
-	svc := user.NewUserService(store, "jwt-secret", &user.StubMailer{}, "http://localhost")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 
 	u, _ := svc.Register(user.RegisterReq{Email: "iris@example.com", Password: "pw", GoalLevel: user.LevelN5})
 

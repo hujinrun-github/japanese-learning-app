@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"japanese-learning-app/internal/config"
 	"japanese-learning-app/internal/data"
@@ -134,7 +135,7 @@ func main() {
 	lessonSvc := lesson.NewLessonService(lessonAdapter)
 	speakingSvc := speaking.NewSpeakingService(speakingStore, speaking.NewWaveformScorer())
 	writingSvc := writing.NewWritingService(writingStore, aiReviewer)
-	userSvc := user.NewUserService(userAdapter, jwtSecret, mailer, appBaseURL)
+	userSvc := user.NewUserService(userAdapter, jwtSecret, time.Duration(cfg.JWTExpireHours)*time.Hour, mailer, appBaseURL)
 	summarySvc := summary.NewSummaryService(sessionAdapter)
 	noteSvc := note.NewNoteService(noteAdapter)
 	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)

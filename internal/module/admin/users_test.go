@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"japanese-learning-app/internal/data"
 	"japanese-learning-app/internal/module/user"
@@ -111,7 +112,7 @@ func TestUpdateUserPassword(t *testing.T) {
 
 			if tt.wantLogin {
 				adapter := data.NewUserStoreAdapter(store)
-				svc := user.NewUserService(adapter, "test-secret", &user.StubMailer{}, "http://localhost")
+				svc := user.NewUserService(adapter, "test-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
 				if _, err := svc.Login(user.LoginReq{Email: created.Email, Password: tt.body["new_password"]}); err != nil {
 					t.Fatalf("Login with new password: %v", err)
 				}
