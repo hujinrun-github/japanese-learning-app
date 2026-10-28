@@ -173,9 +173,9 @@ npm run dev      # http://localhost:35173，/api 和 /audio 代理至 :30081
 | `SMTP_FROM` | `noreply@japanese-learning.app` | SMTP 发件地址 |
 | `APP_BASE_URL` | `http://localhost:35173` | 密码重置链接前缀 |
 
-### 容器化生产部署
+### 二进制生产部署
 
-生产环境使用 GitHub Actions 构建并推送 GHCR 镜像，再由服务器上的 Docker Compose 拉取和启动四个应用容器。配置要求和切换步骤见 [容器化部署文档](docs/container-deployment.md)。
+生产环境使用 GitHub Actions 构建 Linux amd64 Go 二进制和前端静态文件，再通过 SSH/SCP 直接发布到服务器。服务器只需解压发布包并重启进程，不需要从镜像仓库下载镜像。配置要求和切换步骤见 [二进制部署文档](docs/binary-deployment.md)。
 
 #### Resend 密码重置邮件
 
