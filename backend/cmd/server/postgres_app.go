@@ -55,6 +55,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	shadowingH := shadowing.NewHandler(shadowingSvc)
 
 	mux := http.NewServeMux()
+	registerHealthRoute(mux)
 	userH.RegisterPublicRoutes(mux)
 
 	protectedMux := http.NewServeMux()

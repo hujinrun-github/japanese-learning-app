@@ -159,6 +159,7 @@ func main() {
 	})
 
 	mux := h.RegisterRoutes()
+	registerHealthRoute(mux)
 
 	addr := envOrDefault("LISTEN_ADDR", ":30082")
 	slog.Info("admin server starting", "addr", addr)

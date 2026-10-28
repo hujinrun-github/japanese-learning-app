@@ -157,6 +157,7 @@ func main() {
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
+	registerHealthRoute(mux)
 
 	// Public auth routes (no middleware)
 	userH.RegisterPublicRoutes(mux)
