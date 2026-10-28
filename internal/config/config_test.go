@@ -36,20 +36,21 @@ func TestLoad(t *testing.T) {
 	}
 
 	cases := []struct {
-		name             string
-		env              map[string]string
-		wantListenAddr   string
-		wantStore        string
-		wantDBURL        string
-		wantTZ           string
-		wantAudioStore   string
-		wantMinIOUseSSL  bool
-		wantPresignTTL   int
-		wantDBPath       string
-		wantAudioPath    string
-		wantMaxOpenConns int
-		wantMaxIdleConns int
-		wantConnLife     time.Duration
+		name               string
+		env                map[string]string
+		wantListenAddr     string
+		wantStore          string
+		wantDBURL          string
+		wantTZ             string
+		wantAudioStore     string
+		wantMinIOUseSSL    bool
+		wantPresignTTL     int
+		wantDBPath         string
+		wantAudioPath      string
+		wantMaxOpenConns   int
+		wantMaxIdleConns   int
+		wantConnLife       time.Duration
+		wantJWTExpireHours int
 	}{
 		{
 			name: "postgres and minio config",
@@ -69,35 +70,38 @@ func TestLoad(t *testing.T) {
 				"MINIO_USE_SSL":             "true",
 				"MINIO_PUBLIC_ENDPOINT":     "https://cdn.example.com",
 				"MINIO_PRESIGN_TTL_SECONDS": "600",
+				"JWT_EXPIRE_HOURS":          "48",
 			},
-			wantListenAddr:   ":9090",
-			wantStore:        "postgres",
-			wantDBURL:        "postgres://u:p@localhost:5432/app?sslmode=disable",
-			wantTZ:           "Asia/Shanghai",
-			wantAudioStore:   "s3",
-			wantMinIOUseSSL:  true,
-			wantPresignTTL:   600,
-			wantDBPath:       "./data/app.db",
-			wantAudioPath:    "./data/audio",
-			wantMaxOpenConns: 12,
-			wantMaxIdleConns: 6,
-			wantConnLife:     7 * time.Minute,
+			wantListenAddr:     ":9090",
+			wantStore:          "postgres",
+			wantDBURL:          "postgres://u:p@localhost:5432/app?sslmode=disable",
+			wantTZ:             "Asia/Shanghai",
+			wantAudioStore:     "s3",
+			wantMinIOUseSSL:    true,
+			wantPresignTTL:     600,
+			wantDBPath:         "./data/app.db",
+			wantAudioPath:      "./data/audio",
+			wantMaxOpenConns:   12,
+			wantMaxIdleConns:   6,
+			wantConnLife:       7 * time.Minute,
+			wantJWTExpireHours: 48,
 		},
 		{
-			name:             "defaults",
-			env:              map[string]string{},
-			wantListenAddr:   ":30081",
-			wantStore:        "",
-			wantDBURL:        "",
-			wantTZ:           time.Local.String(),
-			wantAudioStore:   "",
-			wantMinIOUseSSL:  false,
-			wantPresignTTL:   900,
-			wantDBPath:       "./data/app.db",
-			wantAudioPath:    "./data/audio",
-			wantMaxOpenConns: 25,
-			wantMaxIdleConns: 25,
-			wantConnLife:     5 * time.Minute,
+			name:               "defaults",
+			env:                map[string]string{},
+			wantListenAddr:     ":30081",
+			wantStore:          "",
+			wantDBURL:          "",
+			wantTZ:             time.Local.String(),
+			wantAudioStore:     "",
+			wantMinIOUseSSL:    false,
+			wantPresignTTL:     900,
+			wantDBPath:         "./data/app.db",
+			wantAudioPath:      "./data/audio",
+			wantMaxOpenConns:   25,
+			wantMaxIdleConns:   25,
+			wantConnLife:       5 * time.Minute,
+			wantJWTExpireHours: 72,
 		},
 	}
 
@@ -154,7 +158,22 @@ func TestLoad(t *testing.T) {
 			if cfg.DBConnMaxLifetime != tt.wantConnLife {
 				t.Fatalf("DBConnMaxLifetime = %s, want %s", cfg.DBConnMaxLifetime, tt.wantConnLife)
 			}
+			if cfg.JWTExpireHours != tt.wantJWTExpireHours {
+				t.Fatalf("JWTExpireHours = %d, want %d", cfg.JWTExpireHours, tt.wantJWTExpireHours)
+			}
 		})
+	}
+}
+
+func TestLoad_InvalidJWTExpireHours(t *testing.T) {
+	t.Setenv("JWT_EXPIRE_HOURS", "not-a-number")
+
+	_, err := Load("")
+	if err == nil {
+		t.Fatal("Load(\"\") expected error for invalid JWT_EXPIRE_HOURS")
+	}
+	if !strings.Contains(err.Error(), "JWT_EXPIRE_HOURS") {
+		t.Fatalf("Load(\"\") error = %v, want JWT_EXPIRE_HOURS context", err)
 	}
 }
 

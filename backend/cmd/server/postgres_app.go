@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"japanese-learning-app/internal/config"
 	pgdata "japanese-learning-app/internal/data/postgres"
@@ -41,7 +42,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 		return nil, nil, fmt.Errorf("buildPostgresServerMux store runtime: %w", err)
 	}
 
-	userSvc := user.NewUserService(runtime.App.Users, cfg.JWTSecret, mailer, appBaseURL)
+	userSvc := user.NewUserService(runtime.App.Users, cfg.JWTSecret, time.Duration(cfg.JWTExpireHours)*time.Hour, mailer, appBaseURL)
 	wordSvc := word.NewWordService(runtime.App.Words)
 	grammarSvc := grammar.NewGrammarService(runtime.App.Grammar)
 	lessonSvc := lesson.NewLessonService(runtime.App.Lessons)

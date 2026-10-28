@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// DefaultTokenTTL is the login token lifetime used when no positive TTL is configured.
+const DefaultTokenTTL = 24 * time.Hour
+
 // ErrEmailTaken is returned when a registration attempt uses an already-registered email.
 var ErrEmailTaken = errors.New("email already registered")
 
@@ -40,13 +43,20 @@ type UserStoreInterface interface {
 type UserService struct {
 	store      UserStoreInterface
 	jwtSecret  string
+	tokenTTL   time.Duration
 	mailer     Mailer
 	appBaseURL string
 }
 
 // NewUserService creates a UserService instance.
-func NewUserService(store UserStoreInterface, jwtSecret string, mailer Mailer, appBaseURL string) *UserService {
-	return &UserService{store: store, jwtSecret: jwtSecret, mailer: mailer, appBaseURL: appBaseURL}
+// tokenTTL is the login token lifetime; values <= 0 fall back to DefaultTokenTTL.
+func NewUserService(store UserStoreInterface, jwtSecret string, tokenTTL time.Duration, mailer Mailer, appBaseURL string) *UserService {
+	if tokenTTL <= 0 {
+		slog.Warn("NewUserService: non-positive token TTL, falling back to default",
+			"token_ttl", tokenTTL, "default", DefaultTokenTTL)
+		tokenTTL = DefaultTokenTTL
+	}
+	return &UserService{store: store, jwtSecret: jwtSecret, tokenTTL: tokenTTL, mailer: mailer, appBaseURL: appBaseURL}
 }
 
 // Register creates a new user account.
@@ -92,13 +102,13 @@ func (s *UserService) Login(req LoginReq) (TokenResp, error) {
 		return TokenResp{}, fmt.Errorf("user.UserService.Login: invalid credentials")
 	}
 
-	token, expiresAt, err := SignToken(u.ID, s.jwtSecret, 24*time.Hour)
+	token, expiresAt, err := SignToken(u.ID, s.jwtSecret, s.tokenTTL)
 	if err != nil {
 		slog.Error("UserService.Login: SignToken failed", "err", err)
 		return TokenResp{}, fmt.Errorf("user.UserService.Login SignToken: %w", err)
 	}
 
-	slog.Debug("UserService.Login done", "user_id", u.ID)
+	slog.Debug("UserService.Login done", "user_id", u.ID, "token_ttl", s.tokenTTL, "expires_at", expiresAt)
 	return TokenResp{Token: token, ExpiresAt: expiresAt, User: *u}, nil
 }
 
