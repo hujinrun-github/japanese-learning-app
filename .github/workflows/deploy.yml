@@ -334,7 +334,7 @@ jobs:
               TEMPLATE_DIR="$RELEASE_DIR/front/dist" \
               AI_API_KEY="${AI_API_KEY:-}" \
               AI_API_ENDPOINT="${AI_API_ENDPOINT:-}" \
-              APP_BASE_URL="${APP_BASE_URL:-http://localhost:35173}" \
+              APP_BASE_URL="${APP_BASE_URL:-https://japanese.jinrunlab.site}" \
               AUDIO_OBJECT_STORE="${AUDIO_OBJECT_STORE:-}" \
               MINIO_ENDPOINT="${MINIO_ENDPOINT:-}" \
               MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-}" \
