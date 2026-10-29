@@ -24,6 +24,8 @@ Actions 需要以下配置：
 
 根据环境继续配置 `RELATIONAL_STORE`、`DATABASE_URL`、`AUDIO_OBJECT_STORE`、`MINIO_*`、邮件和 AI 相关变量。
 
+生产学习端通过 `https://japanese.jinrunlab.site` 访问，管理端通过 `https://japanese-admin.jinrunlab.site` 访问。未配置 `APP_BASE_URL` 时，部署脚本默认使用学习端公网地址。
+
 线上机器首次部署还需要安装：
 
 - `tar`、`curl`、`lsof`

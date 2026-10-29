@@ -177,6 +177,13 @@ npm run dev      # http://localhost:35173，/api 和 /audio 代理至 :30081
 
 生产环境使用 GitHub Actions 构建 Linux amd64 Go 二进制和前端静态文件，再通过 SSH/SCP 直接发布到服务器。服务器只需解压发布包并重启进程，不需要从镜像仓库下载镜像。配置要求和切换步骤见 [二进制部署文档](docs/binary-deployment.md)。
 
+生产公网入口：
+
+- 学习端：<https://japanese.jinrunlab.site>
+- 管理端：<https://japanese-admin.jinrunlab.site>
+
+部署流水线未配置 `APP_BASE_URL` 时默认使用学习端公网地址，确保密码重置邮件中的链接可以从外网访问。
+
 #### Resend 密码重置邮件
 
 本项目支持用 Resend 的免费额度发送真实密码重置邮件。先在 Resend 验证你的域名，并把 `RESEND_FROM` 设置为已验证域名下的发件地址。
