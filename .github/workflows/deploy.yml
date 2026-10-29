@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: deploy-production
@@ -16,7 +15,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Quality gates
+    name: Quality gates and release build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -71,45 +70,56 @@ jobs:
         working-directory: front/admin
         run: npm run build
 
-      - name: Build Go services
+      - name: Build Linux amd64 Go services
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
         run: |
           make build
           make admin-build
+
+      - name: Package binary release
+        env:
+          RELEASE_ARCHIVE: japanese-learning-app-${{ github.sha }}.tar.gz
+        run: |
+          set -eu
+
+          release_dir="$RUNNER_TEMP/japanese-learning-app-release"
+          rm -rf "$release_dir"
+          mkdir -p "$release_dir/bin" "$release_dir/front/react" "$release_dir/front/admin"
+
+          install -m 0755 bin/server "$release_dir/bin/server"
+          install -m 0755 bin/admin "$release_dir/bin/admin"
+          cp -a front/dist "$release_dir/front/dist"
+          cp -a front/admin/dist "$release_dir/front/admin/dist"
+          cp front/react/package.json front/react/package-lock.json front/react/vite.config.ts "$release_dir/front/react/"
+          cp front/admin/package.json front/admin/package-lock.json front/admin/vite.config.ts "$release_dir/front/admin/"
+
+          tar -C "$release_dir" -czf "$RELEASE_ARCHIVE" .
+          tar -tzf "$RELEASE_ARCHIVE" | sort
+
+      - name: Upload binary release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: japanese-learning-app-release-${{ github.sha }}
+          path: japanese-learning-app-${{ github.sha }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
 
   deploy:
     name: Deploy production
     needs: quality
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Download binary release artifact
+        uses: actions/download-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: japanese-learning-app-release-${{ github.sha }}
+          path: artifact
 
-      - name: Build and push application images
-        env:
-          REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/japanese-learning-app
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          set -eu
-          for target in server admin-api learner-web admin-web; do
-            docker buildx build \
-              --platform linux/amd64 \
-              --file deploy/Dockerfile \
-              --target "$target" \
-              --tag "$REGISTRY_IMAGE-$target:$IMAGE_TAG" \
-              --tag "$REGISTRY_IMAGE-$target:latest" \
-              --push \
-              .
-          done
+      - name: Prepare release archive
+        run: cp "artifact/japanese-learning-app-${{ github.sha }}.tar.gz" release.tar.gz
 
       - name: Validate deploy configuration
         env:
@@ -160,15 +170,24 @@ jobs:
 
           exit "$missing"
 
+      - name: Upload binary release
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT || vars.SERVER_PORT || '22' }}
+          source: release.tar.gz
+          target: /tmp
+          overwrite: true
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
           APP_DIR: ${{ secrets.APP_DIR || vars.APP_DIR }}
-          DEPLOY_BRANCH: ${{ github.ref_name }}
-          REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/japanese-learning-app
-          IMAGE_TAG: ${{ github.sha }}
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ github.sha }}
+          RELEASE_ARCHIVE: /tmp/release.tar.gz
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_EXPIRE_HOURS: ${{ vars.JWT_EXPIRE_HOURS }}
@@ -202,51 +221,68 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || vars.SERVER_PORT || '22' }}
-          command_timeout: 60m
-          envs: APP_DIR,DEPLOY_BRANCH,REGISTRY_IMAGE,IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN,ADMIN_TOKEN,JWT_SECRET,JWT_EXPIRE_HOURS,LOG_LEVEL,RELATIONAL_STORE,DATABASE_URL,APP_TIMEZONE,AUDIO_OBJECT_STORE,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,MINIO_BUCKET_AUDIO,MINIO_BUCKET_VIDEO,MINIO_USE_SSL,MINIO_PUBLIC_ENDPOINT,AI_API_KEY,AI_API_ENDPOINT,AI_MODEL,APP_BASE_URL,RESEND_API_KEY,RESEND_FROM,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM,SHADOWING_DATABASE_URL
+          command_timeout: 15m
+          envs: APP_DIR,RELEASE_ID,RELEASE_ARCHIVE,ADMIN_TOKEN,JWT_SECRET,JWT_EXPIRE_HOURS,LOG_LEVEL,RELATIONAL_STORE,DATABASE_URL,APP_TIMEZONE,AUDIO_OBJECT_STORE,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,MINIO_BUCKET_AUDIO,MINIO_BUCKET_VIDEO,MINIO_USE_SSL,MINIO_PUBLIC_ENDPOINT,AI_API_KEY,AI_API_ENDPOINT,AI_MODEL,APP_BASE_URL,RESEND_API_KEY,RESEND_FROM,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM,SHADOWING_DATABASE_URL
           script: |
             set -eu
 
             : "${APP_DIR:?APP_DIR is required}"
-            cd "$APP_DIR"
+            : "${RELEASE_ID:?RELEASE_ID is required}"
+            : "${RELEASE_ARCHIVE:?RELEASE_ARCHIVE is required}"
 
-            echo "Pull latest code"
-            git fetch --all --prune
-            DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
-            git reset --hard "origin/${DEPLOY_BRANCH}"
-            git clean -fd -- front/react/src front/admin/src
-            git rev-parse --short HEAD
+            RELEASES_DIR="$APP_DIR/releases"
+            RELEASE_DIR="$RELEASES_DIR/$RELEASE_ID"
+            STAGING_DIR="$RELEASES_DIR/.${RELEASE_ID}.staging.$$"
+            CURRENT_LINK="$APP_DIR/current"
+            LOG_DIR="$APP_DIR/logs"
+            DATA_DIR="$APP_DIR/data"
+
+            cleanup_staging() {
+              rm -rf "$STAGING_DIR"
+            }
+            trap cleanup_staging EXIT
 
             echo "Check deploy dependencies"
-            for command in git docker curl lsof; do
+            for command in tar curl lsof node; do
               if ! command -v "$command" >/dev/null 2>&1; then
                 echo "$command is required on the deploy server."
                 exit 1
               fi
             done
-            if ! docker compose version >/dev/null 2>&1; then
-              echo "docker compose v2 is required on the deploy server."
-              exit 1
+            cd "$APP_DIR"
+
+            echo "Extract release $RELEASE_ID"
+            mkdir -p "$RELEASES_DIR" "$LOG_DIR" "$DATA_DIR/audio"
+            rm -rf "$STAGING_DIR"
+            mkdir -p "$STAGING_DIR"
+            tar -xzf "$RELEASE_ARCHIVE" -C "$STAGING_DIR"
+            test -x "$STAGING_DIR/bin/server"
+            test -x "$STAGING_DIR/bin/admin"
+            test -f "$STAGING_DIR/front/dist/index.html"
+            test -f "$STAGING_DIR/front/admin/dist/index.html"
+
+            learner_vite="$APP_DIR/front/react/node_modules/.bin/vite"
+            admin_vite="$APP_DIR/front/admin/node_modules/.bin/vite"
+            learner_vite_from_release=0
+            admin_vite_from_release=0
+            if [ ! -x "$learner_vite" ]; then
+              command -v npm >/dev/null 2>&1 || { echo "npm is required to install learner frontend preview dependencies."; exit 1; }
+              echo "Installing learner frontend preview dependencies once"
+              npm ci --prefix "$STAGING_DIR/front/react" --ignore-scripts
+              learner_vite="$STAGING_DIR/front/react/node_modules/.bin/vite"
+              learner_vite_from_release=1
             fi
+            if [ ! -x "$admin_vite" ]; then
+              command -v npm >/dev/null 2>&1 || { echo "npm is required to install admin frontend preview dependencies."; exit 1; }
+              echo "Installing admin frontend preview dependencies once"
+              npm ci --prefix "$STAGING_DIR/front/admin" --ignore-scripts
+              admin_vite="$STAGING_DIR/front/admin/node_modules/.bin/vite"
+              admin_vite_from_release=1
+            fi
+            test -x "$learner_vite"
+            test -x "$admin_vite"
 
-            COMPOSE_FILE=deploy/docker-compose.yml
-            export REGISTRY_IMAGE IMAGE_TAG
-
-            echo "Validate Docker Compose configuration"
-            docker compose -f "$COMPOSE_FILE" config >/dev/null
-
-            echo "Log in to GitHub Container Registry"
-            cleanup_registry_login() {
-              docker logout ghcr.io >/dev/null 2>&1 || true
-            }
-            trap cleanup_registry_login EXIT
-            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
-
-            echo "Pull application images"
-            docker compose -f "$COMPOSE_FILE" pull
-
-            echo "Stop legacy host processes and old containers"
-            docker compose -f "$COMPOSE_FILE" down --remove-orphans || true
+            echo "Stop legacy host processes"
             for port in 30081 30082 35173 35174; do
               pids="$(lsof -ti ":$port" || true)"
               if [ -n "$pids" ]; then
@@ -261,22 +297,110 @@ jobs:
               fi
             done
 
-            echo "Start application containers"
-            docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+            rm -rf "$RELEASE_DIR"
+            mv "$STAGING_DIR" "$RELEASE_DIR"
+            rm -f "$RELEASE_ARCHIVE"
+            ln -sfn "$RELEASE_DIR" "$APP_DIR/.current.new"
+            mv -Tf "$APP_DIR/.current.new" "$CURRENT_LINK"
+            if [ "$learner_vite_from_release" = "1" ]; then
+              learner_vite="$RELEASE_DIR/front/react/node_modules/.bin/vite"
+            fi
+            if [ "$admin_vite_from_release" = "1" ]; then
+              admin_vite="$RELEASE_DIR/front/admin/node_modules/.bin/vite"
+            fi
+            if [ "$learner_vite_from_release" = "0" ]; then
+              ln -s "$APP_DIR/front/react/node_modules" "$RELEASE_DIR/front/react/node_modules"
+            fi
+            if [ "$admin_vite_from_release" = "0" ]; then
+              ln -s "$APP_DIR/front/admin/node_modules" "$RELEASE_DIR/front/admin/node_modules"
+            fi
+
+            RELATIONAL_STORE="${RELATIONAL_STORE:-sqlite}"
+            APP_TIMEZONE="${APP_TIMEZONE:-Asia/Shanghai}"
+            LOG_LEVEL="${LOG_LEVEL:-INFO}"
+
+            echo "Start main API binary"
+            nohup env \
+              LISTEN_ADDR=:30081 \
+              RELATIONAL_STORE="$RELATIONAL_STORE" \
+              DATABASE_URL="${DATABASE_URL:-}" \
+              DB_PATH="$DATA_DIR/app.db" \
+              AUDIO_STORE_PATH="$DATA_DIR/audio" \
+              APP_TIMEZONE="$APP_TIMEZONE" \
+              JWT_SECRET="$JWT_SECRET" \
+              JWT_EXPIRE_HOURS="${JWT_EXPIRE_HOURS:-72}" \
+              LOG_LEVEL="$LOG_LEVEL" \
+              STATIC_DIR="$RELEASE_DIR/front/dist/assets" \
+              TEMPLATE_DIR="$RELEASE_DIR/front/dist" \
+              AI_API_KEY="${AI_API_KEY:-}" \
+              AI_API_ENDPOINT="${AI_API_ENDPOINT:-}" \
+              APP_BASE_URL="${APP_BASE_URL:-http://localhost:35173}" \
+              AUDIO_OBJECT_STORE="${AUDIO_OBJECT_STORE:-}" \
+              MINIO_ENDPOINT="${MINIO_ENDPOINT:-}" \
+              MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-}" \
+              MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-}" \
+              MINIO_BUCKET_AUDIO="${MINIO_BUCKET_AUDIO:-}" \
+              MINIO_BUCKET_VIDEO="${MINIO_BUCKET_VIDEO:-}" \
+              MINIO_USE_SSL="${MINIO_USE_SSL:-false}" \
+              MINIO_PUBLIC_ENDPOINT="${MINIO_PUBLIC_ENDPOINT:-}" \
+              RESEND_API_KEY="${RESEND_API_KEY:-}" \
+              RESEND_FROM="${RESEND_FROM:-}" \
+              SMTP_HOST="${SMTP_HOST:-}" \
+              SMTP_PORT="${SMTP_PORT:-587}" \
+              SMTP_USER="${SMTP_USER:-}" \
+              SMTP_PASS="${SMTP_PASS:-}" \
+              SMTP_FROM="${SMTP_FROM:-noreply@japanese-learning.app}" \
+              SHADOWING_DATABASE_URL="${SHADOWING_DATABASE_URL:-}" \
+              "$RELEASE_DIR/bin/server" > "$LOG_DIR/server.log" 2>&1 &
+
+            sleep 3
+            echo "Start admin API binary"
+            nohup env \
+              LISTEN_ADDR=:30082 \
+              RELATIONAL_STORE="$RELATIONAL_STORE" \
+              DATABASE_URL="${DATABASE_URL:-}" \
+              DB_PATH="$DATA_DIR/app.db" \
+              APP_TIMEZONE="$APP_TIMEZONE" \
+              ADMIN_TOKEN="$ADMIN_TOKEN" \
+              AI_API_KEY="${AI_API_KEY:-}" \
+              AI_API_ENDPOINT="${AI_API_ENDPOINT:-}" \
+              AI_MODEL="${AI_MODEL:-deepseek-chat}" \
+              AUDIO_OBJECT_STORE="${AUDIO_OBJECT_STORE:-}" \
+              MINIO_ENDPOINT="${MINIO_ENDPOINT:-}" \
+              MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-}" \
+              MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-}" \
+              MINIO_BUCKET_AUDIO="${MINIO_BUCKET_AUDIO:-}" \
+              MINIO_BUCKET_VIDEO="${MINIO_BUCKET_VIDEO:-}" \
+              MINIO_USE_SSL="${MINIO_USE_SSL:-false}" \
+              MINIO_PUBLIC_ENDPOINT="${MINIO_PUBLIC_ENDPOINT:-}" \
+              SHADOWING_DATABASE_URL="${SHADOWING_DATABASE_URL:-}" \
+              "$RELEASE_DIR/bin/admin" > "$LOG_DIR/admin.log" 2>&1 &
+
+            echo "Start learner frontend preview"
+            nohup "$learner_vite" preview "$RELEASE_DIR/front/react" \
+              --config "$RELEASE_DIR/front/react/vite.config.ts" \
+              --host 0.0.0.0 --port 35173 --outDir "$RELEASE_DIR/front/dist" \
+              > "$LOG_DIR/learner-front.log" 2>&1 &
+
+            echo "Start admin frontend preview"
+            nohup "$admin_vite" preview "$RELEASE_DIR/front/admin" \
+              --config "$RELEASE_DIR/front/admin/vite.config.ts" \
+              --host 0.0.0.0 --port 35174 --outDir "$RELEASE_DIR/front/admin/dist" \
+              > "$LOG_DIR/admin-front.log" 2>&1 &
 
             echo "Verify services"
             for attempt in $(seq 1 30); do
               if curl --fail --silent --show-error http://127.0.0.1:30081/healthz >/dev/null \
                 && curl --fail --silent --show-error http://127.0.0.1:30082/healthz >/dev/null \
-                && curl --fail --silent --show-error http://127.0.0.1:35173/healthz >/dev/null \
-                && curl --fail --silent --show-error http://127.0.0.1:35174/healthz >/dev/null; then
+                && curl --fail --silent --show-error http://127.0.0.1:35173/ >/dev/null \
+                && curl --fail --silent --show-error http://127.0.0.1:35174/ >/dev/null; then
                 echo "Deploy success"
-                docker compose -f "$COMPOSE_FILE" ps
+                printf '  current: %s\n' "$(readlink -f "$CURRENT_LINK")"
                 exit 0
               fi
               sleep 2
             done
 
-            docker compose -f "$COMPOSE_FILE" ps
-            docker compose -f "$COMPOSE_FILE" logs --tail=100
+            echo "Service verification failed"
+            tail -n 100 "$LOG_DIR"/*.log || true
             exit 1
