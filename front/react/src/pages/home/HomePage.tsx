@@ -6,8 +6,9 @@ import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
-import type { JLPTLevel, ModuleStat, UserStats } from '@/types/api'
+import type { DailyPlan, JLPTLevel, ModuleStat, UserStats } from '@/types/api'
 import { getDailyProgress, getMasteryProgress, hasDailyGoal, percent } from './progress'
+import { DailyPlanCard } from './DailyPlanCard'
 import styles from './HomePage.module.css'
 
 const MODULE_CONFIG = [
@@ -55,6 +56,7 @@ export function HomePage() {
   const { user } = useAuth()
   const { t } = useTranslation()
   const [stats, setStats] = useState<UserStats>(EMPTY_STATS)
+  const [plan, setPlan] = useState<DailyPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const jlptLevel = primaryJLPTLevel(user?.jlpt_levels)
   const primaryStats = ['word', 'grammar', 'speaking', 'writing'].map(key => getModuleStat(stats, key))
@@ -76,8 +78,15 @@ export function HomePage() {
 
   useEffect(() => {
     let cancelled = false
-    apiFetch<UserStats>('GET', '/api/v1/users/stats')
-      .then(s => { if (!cancelled) setStats(s ?? EMPTY_STATS) })
+    Promise.all([
+      apiFetch<UserStats>('GET', '/api/v1/users/stats'),
+      apiFetch<DailyPlan>('GET', '/api/v1/daily-plan'),
+    ])
+      .then(([s, p]) => {
+        if (cancelled) return
+        setStats(s ?? EMPTY_STATS)
+        setPlan(p ?? null)
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -125,6 +134,8 @@ export function HomePage() {
               </Link>
             </div>
           </section>
+
+          <DailyPlanCard plan={plan} loading={loading} />
 
           <section className={styles.section}>
             <div className={styles.sectionHeader}>

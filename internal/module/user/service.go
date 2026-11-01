@@ -30,6 +30,8 @@ type UserStoreInterface interface {
 	GetStats(userID int64) (*UserStats, error)
 	UpdateDailyGoals(userID int64, goals map[string]int) error
 	GetDailyGoals(userID int64) (map[string]int, error)
+	// RecordStudyDay marks a study day and returns the resulting streak.
+	RecordStudyDay(userID int64) (int, error)
 	// Password reset methods
 	GetUserIDByEmail(email string) (int64, error)
 	CreateResetToken(token string, userID int64, expiresAt time.Time) error
@@ -280,6 +282,23 @@ func (s *UserService) UpdateDailyGoals(userID int64, req DailyGoalsReq) error {
 	}
 	slog.Debug("UserService.UpdateDailyGoals done", "user_id", userID)
 	return nil
+}
+
+// RecordStudyDay marks the user as having studied today and returns the
+// resulting consecutive-day streak. It satisfies StreakRecorder, which the
+// practice modules use to keep the streak honest without knowing how it is
+// computed.
+func (s *UserService) RecordStudyDay(userID int64) (int, error) {
+	slog.Debug("UserService.RecordStudyDay called", "user_id", userID)
+
+	streak, err := s.store.RecordStudyDay(userID)
+	if err != nil {
+		slog.Error("UserService.RecordStudyDay failed", "err", err, "user_id", userID)
+		return 0, fmt.Errorf("user.UserService.RecordStudyDay: %w", err)
+	}
+
+	slog.Debug("UserService.RecordStudyDay done", "user_id", userID, "streak_days", streak)
+	return streak, nil
 }
 
 // generateToken creates a 32-byte cryptographically random hex token.

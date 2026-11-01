@@ -42,6 +42,33 @@ export interface DailyGoals {
   writing: number
 }
 
+// Daily plan — GET /api/v1/daily-plan
+export type DailyPlanModuleKey = 'word' | 'grammar' | 'speaking' | 'writing'
+export type DailyPlanItemStatus = 'done' | 'in_progress' | 'todo'
+
+export interface DailyPlanItem {
+  key: DailyPlanModuleKey
+  path: string
+  goal: number
+  completed: number
+  remaining: number
+  due_count: number
+  status: DailyPlanItemStatus
+  percent: number
+}
+
+export interface DailyPlan {
+  date: string
+  timezone: string
+  streak_days: number
+  total_goal: number
+  total_completed: number
+  remaining: number
+  percent: number
+  completed: boolean
+  items: DailyPlanItem[]
+}
+
 // Word
 export interface WordExample {
   japanese: string

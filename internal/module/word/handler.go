@@ -33,6 +33,7 @@ type WordHandler struct {
 	svc       *WordService
 	noteSvc   NoteDigestProvider
 	dailyGoal DailyGoalProvider
+	streak    user.StreakRecorder
 }
 
 // NewWordHandler creates a WordHandler.
@@ -48,6 +49,12 @@ func NewWordHandlerWithNotes(svc *WordService, noteSvc NoteDigestProvider) *Word
 // SetDailyGoalProvider sets an optional provider for the user's daily word goal.
 func (h *WordHandler) SetDailyGoalProvider(p DailyGoalProvider) {
 	h.dailyGoal = p
+}
+
+// SetStreakRecorder sets an optional recorder used to keep the study streak
+// current after a rating. Nil disables check-ins.
+func (h *WordHandler) SetStreakRecorder(r user.StreakRecorder) {
+	h.streak = r
 }
 
 // RegisterRoutes registers routes onto the provided mux.
@@ -133,6 +140,8 @@ func (h *WordHandler) handleSubmitRating(w http.ResponseWriter, r *http.Request)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to save rating", "")
 		return
 	}
+
+	user.RecordStudyDayBestEffort(h.streak, userID)
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{"status": "ok"}})
 }

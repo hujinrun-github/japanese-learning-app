@@ -1,7 +1,9 @@
 package postgres
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -187,5 +189,72 @@ func TestUserStoreUpdatePasswordNotFound(t *testing.T) {
 	err := store.UpdatePassword(999999, "new-hash")
 	if !errors.Is(err, storepkg.ErrNotFound) {
 		t.Fatalf("UpdatePassword() error = %v, want ErrNotFound", err)
+	}
+}
+
+// TestUserStoreRecordStudyDay pins the streak transition rules on PostgreSQL.
+// The test store uses a fixed clock (2026-06-17 09:00 UTC) and UTC, so
+// "today" is 2026-06-17 throughout.
+func TestUserStoreRecordStudyDay(t *testing.T) {
+	db := newMigratedPostgresTestDB(t)
+	store := newPostgresUserStoreForDB(db)
+
+	cases := []struct {
+		name       string
+		seedDate   any // nil means no previous check-in
+		seedStreak int
+		wantStreak int
+	}{
+		{name: "first ever check-in starts at one", seedStreak: 5, wantStreak: 1},
+		{name: "repeat check-in holds the streak", seedDate: "2026-06-17", seedStreak: 4, wantStreak: 4},
+		{name: "consecutive day advances", seedDate: "2026-06-16", seedStreak: 4, wantStreak: 5},
+		{name: "gap restarts at one", seedDate: "2026-06-12", seedStreak: 9, wantStreak: 1},
+	}
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			created, err := store.CreateUser(user.User{
+				Email: fmt.Sprintf("streak-%d@example.com", i),
+				Name:  "streak",
+			}, "hash")
+			if err != nil {
+				t.Fatalf("CreateUser error: %v", err)
+			}
+
+			if _, err := db.Exec(
+				`UPDATE users SET streak_days = $1, last_study_date = $2 WHERE id = $3`,
+				tc.seedStreak, tc.seedDate, created.ID,
+			); err != nil {
+				t.Fatalf("seed user: %v", err)
+			}
+
+			got, err := store.RecordStudyDay(created.ID)
+			if err != nil {
+				t.Fatalf("RecordStudyDay error: %v", err)
+			}
+			if got != tc.wantStreak {
+				t.Errorf("RecordStudyDay = %d, want %d", got, tc.wantStreak)
+			}
+
+			var stored sql.NullString
+			if err := db.QueryRow(
+				`SELECT last_study_date::text FROM users WHERE id = $1`, created.ID,
+			).Scan(&stored); err != nil {
+				t.Fatalf("read back last_study_date: %v", err)
+			}
+			if !stored.Valid || stored.String != "2026-06-17" {
+				t.Errorf("last_study_date = %v, want 2026-06-17", stored)
+			}
+		})
+	}
+}
+
+// TestUserStoreRecordStudyDayUnknownUser keeps a missing user from silently
+// reporting a streak.
+func TestUserStoreRecordStudyDayUnknownUser(t *testing.T) {
+	store := newPostgresUserStoreForTest(t)
+
+	if _, err := store.RecordStudyDay(999999); err == nil {
+		t.Fatal("RecordStudyDay error = nil, want an error for an unknown user")
 	}
 }

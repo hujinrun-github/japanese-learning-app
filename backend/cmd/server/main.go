@@ -15,6 +15,7 @@ import (
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/note"
 	"japanese-learning-app/internal/module/notesync"
+	"japanese-learning-app/internal/module/plan"
 	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/shadowing"
 	"japanese-learning-app/internal/module/speaking"
@@ -143,14 +144,19 @@ func main() {
 	noteSyncSvc := notesync.NewService(noteSyncStore, noteStore, notesync.NewEnvClientFactory(envOrDefault("NOTION_API_BASE_URL", "")))
 	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)
 	shadowingSvc := shadowing.NewService(lessonAdapter, shadowingStore)
+	planSvc := plan.NewPlanService(userSvc, cfg.AppTimezone)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	wordH := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
 	wordH.SetDailyGoalProvider(&wordGoalProvider{store: userStore})
+	wordH.SetStreakRecorder(userSvc)
 	grammarH := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
+	grammarH.SetStreakRecorder(userSvc)
 	lessonH := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
+	speakingH.SetStreakRecorder(userSvc)
 	writingH := writing.NewWritingHandler(writingSvc)
+	writingH.SetStreakRecorder(userSvc)
 	userH := user.NewUserHandler(userSvc)
 	summaryH := summary.NewSummaryHandler(summarySvc)
 	noteH := note.NewNoteHandler(noteSvc)
@@ -158,6 +164,7 @@ func main() {
 	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)
 	shadowingH := shadowing.NewHandler(shadowingSvc)
+	planH := plan.NewPlanHandler(planSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
@@ -180,6 +187,7 @@ func main() {
 	reviewH.RegisterRoutes(protectedMux)
 	translationH.RegisterRoutes(protectedMux)
 	shadowingH.RegisterRoutes(protectedMux)
+	planH.RegisterRoutes(protectedMux)
 
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
@@ -196,6 +204,7 @@ func main() {
 	mux.Handle("/api/v1/note-sync/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/daily-plan", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Audio files (TTS-generated example audio)
 	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir("./data/audio"))))
@@ -329,8 +338,14 @@ func (p *wordNoteProvider) ListByReference(userID int64, refType string, refID i
 }
 
 // wordGoalProvider adapts data.UserStore to word.DailyGoalProvider.
+// dailyGoalStore is the minimal contract needed to read a user's daily goals.
+// Both the SQLite (*data.UserStore) and PostgreSQL store implementations satisfy it.
+type dailyGoalStore interface {
+	GetDailyGoals(userID int64) (map[string]int, error)
+}
+
 type wordGoalProvider struct {
-	store *data.UserStore
+	store dailyGoalStore
 }
 
 func (p *wordGoalProvider) GetWordDailyGoal(userID int64) int {

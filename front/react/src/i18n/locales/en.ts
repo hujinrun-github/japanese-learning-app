@@ -157,6 +157,20 @@ const en = {
     tips: 'Study Tips',
     tipText: 'Use spaced review instead of cramming. A simple 1, 3, 7, and 15 day review rhythm keeps memory much steadier.',
     viewReviewPlan: 'View Review Plan',
+    dailyPlan: {
+      title: "Today's Plan",
+      empty: 'No daily goals set yet. Pick a target to get started.',
+      setGoals: 'Set daily goals',
+      allDone: "Today's plan is complete. Nice work!",
+      remaining: '{{count}} to go',
+      due: '{{count}} due',
+      continueNext: 'Continue: {{module}}',
+      status: {
+        done: 'Done',
+        in_progress: 'In progress',
+        todo: 'Not started',
+      },
+    },
     jlptProgress: 'JLPT Progress',
     totalProgress: 'Overall',
     modules: {

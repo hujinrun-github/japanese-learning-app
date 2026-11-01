@@ -157,6 +157,20 @@ const zh = {
     tips: '学习技巧',
     tipText: '艾宾浩斯遗忘曲线表明，复习间隔越合理，记忆越牢固。建议在 1 天、3 天、7 天、15 天后回顾。',
     viewReviewPlan: '查看复习计划',
+    dailyPlan: {
+      title: '今日计划',
+      empty: '还没有设置每日目标，先去设定一个吧。',
+      setGoals: '去设置每日目标',
+      allDone: '今日计划已全部完成，太棒了！',
+      remaining: '还差 {{count}}',
+      due: '{{count}} 个到期',
+      continueNext: '继续：{{module}}',
+      status: {
+        done: '已完成',
+        in_progress: '进行中',
+        todo: '未开始',
+      },
+    },
     jlptProgress: 'JLPT 学习进度',
     totalProgress: '总体进度',
     modules: {

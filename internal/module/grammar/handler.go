@@ -29,6 +29,7 @@ type NoteDigest struct {
 type GrammarHandler struct {
 	svc     *GrammarService
 	noteSvc NoteDigestProvider
+	streak  user.StreakRecorder
 }
 
 // NewGrammarHandler creates a GrammarHandler.
@@ -39,6 +40,18 @@ func NewGrammarHandler(svc *GrammarService) *GrammarHandler {
 // NewGrammarHandlerWithNotes creates a GrammarHandler with optional note enrichment.
 func NewGrammarHandlerWithNotes(svc *GrammarService, noteSvc NoteDigestProvider) *GrammarHandler {
 	return &GrammarHandler{svc: svc, noteSvc: noteSvc}
+}
+
+// RegisterRoutes registers grammar routes onto the provided mux.
+// Routes:
+//   GET  /api/v1/grammar?level=N5              → ListByLevel
+//   GET  /api/v1/grammar/{id}                  → GetPoint
+//   POST /api/v1/grammar/{id}/quiz             → ScoreQuiz
+
+// SetStreakRecorder sets an optional recorder used to keep the study streak
+// current after a quiz is scored. Nil disables check-ins.
+func (h *GrammarHandler) SetStreakRecorder(r user.StreakRecorder) {
+	h.streak = r
 }
 
 // RegisterRoutes registers grammar routes onto the provided mux.
@@ -135,6 +148,8 @@ func (h *GrammarHandler) handleScoreQuiz(w http.ResponseWriter, r *http.Request)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to score quiz", "")
 		return
 	}
+
+	user.RecordStudyDayBestEffort(h.streak, userID)
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: result})
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -11,9 +12,17 @@ import (
 	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/note"
+	"japanese-learning-app/internal/module/notesync"
+	"japanese-learning-app/internal/module/plan"
+	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/shadowing"
+	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/module/summary"
+	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
+	"japanese-learning-app/internal/module/writing"
 	"japanese-learning-app/internal/store"
 )
 
@@ -42,17 +51,58 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 		return nil, nil, fmt.Errorf("buildPostgresServerMux store runtime: %w", err)
 	}
 
+	// ── AI reviewers ─────────────────────────────────────────────────────────
+	aiAPIKey := cfg.AIAPIKey
+	aiEndpoint := cfg.AIAPIEndpoint
+
+	var aiReviewer writing.AIReviewer
+	if aiAPIKey != "" {
+		slog.Info("using ClaudeClient for AI writing review", "endpoint", aiEndpoint)
+		aiReviewer = writing.NewClaudeClient(aiAPIKey)
+	} else {
+		slog.Warn("AI_API_KEY not set — using StubReviewer (no real AI feedback)")
+		aiReviewer = &writing.StubReviewer{}
+	}
+
+	var translationReviewer translation.TranslationReviewer
+	if aiAPIKey != "" {
+		translationReviewer = translation.NewClaudeTranslationReviewer(aiAPIKey)
+	} else {
+		slog.Warn("AI_API_KEY not set — using StubReviewer for translation (no real AI feedback)")
+		translationReviewer = &translation.StubReviewer{}
+	}
+
 	userSvc := user.NewUserService(runtime.App.Users, cfg.JWTSecret, time.Duration(cfg.JWTExpireHours)*time.Hour, mailer, appBaseURL)
 	wordSvc := word.NewWordService(runtime.App.Words)
 	grammarSvc := grammar.NewGrammarService(runtime.App.Grammar)
 	lessonSvc := lesson.NewLessonService(runtime.App.Lessons)
+	speakingSvc := speaking.NewSpeakingService(runtime.App.Speaking, speaking.NewWaveformScorer())
+	writingSvc := writing.NewWritingService(runtime.App.Writing, aiReviewer)
+	translationSvc := translation.NewTranslationService(runtime.App.Translation, translationReviewer)
+	noteSvc := note.NewNoteService(runtime.App.Notes)
+	noteSyncSvc := notesync.NewService(runtime.App.NoteSync, runtime.App.Notes, notesync.NewEnvClientFactory(envOrDefault("NOTION_API_BASE_URL", "")))
+	summarySvc := summary.NewSummaryService(runtime.App.Sessions)
 	shadowingSvc := shadowing.NewService(runtime.App.Lessons, pgdata.NewShadowingStore(db))
+	planSvc := plan.NewPlanService(userSvc, cfg.AppTimezone)
 
 	userH := user.NewUserHandler(userSvc)
-	wordH := word.NewWordHandler(wordSvc)
-	grammarH := grammar.NewGrammarHandler(grammarSvc)
+	wordH := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
+	wordH.SetDailyGoalProvider(&wordGoalProvider{store: runtime.App.Users})
+	wordH.SetStreakRecorder(userSvc)
+	grammarH := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
+	grammarH.SetStreakRecorder(userSvc)
 	lessonH := lesson.NewLessonHandler(lessonSvc)
+	speakingH := speaking.NewSpeakingHandler(speakingSvc)
+	speakingH.SetStreakRecorder(userSvc)
+	writingH := writing.NewWritingHandler(writingSvc)
+	writingH.SetStreakRecorder(userSvc)
+	translationH := translation.NewTranslationHandler(translationSvc)
+	noteH := note.NewNoteHandler(noteSvc)
+	noteSyncH := notesync.NewHandler(noteSyncSvc)
+	summaryH := summary.NewSummaryHandler(summarySvc)
+	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
 	shadowingH := shadowing.NewHandler(shadowingSvc)
+	planH := plan.NewPlanHandler(planSvc)
 
 	mux := http.NewServeMux()
 	registerHealthRoute(mux)
@@ -63,7 +113,15 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
 	lessonH.RegisterRoutes(protectedMux)
+	speakingH.RegisterRoutes(protectedMux)
+	writingH.RegisterRoutes(protectedMux)
+	translationH.RegisterRoutes(protectedMux)
+	noteH.RegisterRoutes(protectedMux)
+	noteSyncH.RegisterRoutes(protectedMux)
+	summaryH.RegisterRoutes(protectedMux)
+	reviewH.RegisterRoutes(protectedMux)
 	shadowingH.RegisterRoutes(protectedMux)
+	planH.RegisterRoutes(protectedMux)
 
 	authenticated := user.AuthMiddleware(cfg.JWTSecret, protectedMux)
 	mux.Handle("/api/v1/words/", authenticated)
@@ -71,7 +129,17 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	mux.Handle("/api/v1/grammar/", authenticated)
 	mux.Handle("/api/v1/lessons", authenticated)
 	mux.Handle("/api/v1/lessons/", authenticated)
+	mux.Handle("/api/v1/speaking/", authenticated)
+	mux.Handle("/api/v1/writing/", authenticated)
+	mux.Handle("/api/v1/translation/", authenticated)
+	mux.Handle("/api/v1/notes", authenticated)
+	mux.Handle("/api/v1/notes/", authenticated)
+	mux.Handle("/api/v1/note-sync/", authenticated)
+	mux.Handle("/api/v1/summary", authenticated)
+	mux.Handle("/api/v1/summary/", authenticated)
+	mux.Handle("/api/v1/review/", authenticated)
 	mux.Handle("/api/v1/users/", authenticated)
+	mux.Handle("/api/v1/daily-plan", authenticated)
 
 	registerVideoStreamRoutes(mux, db, cfg)
 	registerAudioStreamRoutes(mux, db, cfg)

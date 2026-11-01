@@ -150,6 +150,20 @@ const ja = {
     tips: '学習のコツ',
     tipText: '詰め込みより間隔復習が効果的です。1日後、3日後、7日後、15日後に見直すリズムを作りましょう。',
     viewReviewPlan: '復習計画を見る',
+    dailyPlan: {
+      title: '今日の計画',
+      empty: 'まだ毎日の目標が設定されていません。',
+      setGoals: '目標を設定する',
+      allDone: '今日の計画はすべて完了しました！',
+      remaining: '残り {{count}}',
+      due: '{{count}} 件が期限',
+      continueNext: '続ける：{{module}}',
+      status: {
+        done: '完了',
+        in_progress: '進行中',
+        todo: '未着手',
+      },
+    },
     jlptProgress: 'JLPT 学習進度',
     totalProgress: '全体進度',
     modules: {

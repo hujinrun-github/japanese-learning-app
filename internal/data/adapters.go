@@ -201,6 +201,11 @@ func (a *UserStoreAdapter) GetDailyGoals(userID int64) (map[string]int, error) {
 	return a.s.GetDailyGoals(userID)
 }
 
+// RecordStudyDay delegates to UserStore.RecordStudyDay.
+func (a *UserStoreAdapter) RecordStudyDay(userID int64) (int, error) {
+	return a.s.RecordStudyDay(userID)
+}
+
 // ── SessionStoreAdapter ──────────────────────────────────────────────────────
 // Bridges *SessionStore (CreateSession returning sessionID, GetSessionData) to
 // summary.SummaryStoreInterface (SaveSession, GetSession).
@@ -270,6 +275,10 @@ func (a *NoteStoreAdapter) Update(n *note.Note) error {
 
 func (a *NoteStoreAdapter) SoftDelete(userID, noteID int64) error {
 	return a.s.SoftDelete(userID, noteID)
+}
+
+func (a *NoteStoreAdapter) Restore(userID, noteID int64) error {
+	return a.s.Restore(userID, noteID)
 }
 
 func (a *NoteStoreAdapter) Search(userID int64, query string, limit int) ([]note.Note, error) {

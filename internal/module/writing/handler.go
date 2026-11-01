@@ -11,12 +11,19 @@ import (
 
 // WritingHandler handles HTTP requests for the writing module.
 type WritingHandler struct {
-	svc *WritingService
+	svc    *WritingService
+	streak user.StreakRecorder
 }
 
 // NewWritingHandler creates a WritingHandler.
 func NewWritingHandler(svc *WritingService) *WritingHandler {
 	return &WritingHandler{svc: svc}
+}
+
+// SetStreakRecorder sets an optional recorder used to keep the study streak
+// current after an answer is submitted. Nil disables check-ins.
+func (h *WritingHandler) SetStreakRecorder(r user.StreakRecorder) {
+	h.streak = r
 }
 
 // RegisterRoutes registers writing routes.
@@ -83,6 +90,8 @@ func (h *WritingHandler) handleSubmitInput(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	user.RecordStudyDayBestEffort(h.streak, userID)
+
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: rec})
 }
 
@@ -116,6 +125,8 @@ func (h *WritingHandler) handleSubmitSentence(w http.ResponseWriter, r *http.Req
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to submit sentence answer", "")
 		return
 	}
+
+	user.RecordStudyDayBestEffort(h.streak, userID)
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: rec})
 }

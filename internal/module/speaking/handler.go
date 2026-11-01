@@ -12,12 +12,19 @@ import (
 
 // SpeakingHandler handles HTTP requests for the speaking module.
 type SpeakingHandler struct {
-	svc *SpeakingService
+	svc    *SpeakingService
+	streak user.StreakRecorder
 }
 
 // NewSpeakingHandler creates a SpeakingHandler.
 func NewSpeakingHandler(svc *SpeakingService) *SpeakingHandler {
 	return &SpeakingHandler{svc: svc}
+}
+
+// SetStreakRecorder sets an optional recorder used to keep the study streak
+// current after a practice is recorded. Nil disables check-ins.
+func (h *SpeakingHandler) SetStreakRecorder(r user.StreakRecorder) {
+	h.streak = r
 }
 
 // RegisterRoutes registers speaking routes.
@@ -71,6 +78,8 @@ func (h *SpeakingHandler) handlePractice(w http.ResponseWriter, r *http.Request)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to save practice record", "")
 		return
 	}
+
+	user.RecordStudyDayBestEffort(h.streak, userID)
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: record})
 }

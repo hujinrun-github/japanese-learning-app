@@ -6,8 +6,10 @@ import (
 
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/note"
 	"japanese-learning-app/internal/module/notesync"
 	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
@@ -69,6 +71,7 @@ type UserStoreInterface interface {
 	GetStats(userID int64) (*user.UserStats, error)
 	UpdateDailyGoals(userID int64, goals map[string]int) error
 	GetDailyGoals(userID int64) (map[string]int, error)
+	RecordStudyDay(userID int64) (int, error)
 	GetUserIDByEmail(email string) (int64, error)
 	CreateResetToken(token string, userID int64, expiresAt time.Time) error
 	GetResetToken(token string) (*user.ResetToken, error)
@@ -97,11 +100,11 @@ type LessonStoreInterface interface {
 	GetDetail(id int64) (*lesson.Lesson, error)
 	GetSentences(lessonID int64) ([]lesson.Sentence, error)
 }
-type NoteStoreInterface interface{}
-type SpeakingStoreInterface interface{}
-type WritingStoreInterface interface{}
-type TranslationStoreInterface interface{}
-type SessionStoreInterface interface{}
+type NoteStoreInterface = note.NoteStoreInterface
+type SpeakingStoreInterface = speaking.SpeakingStoreInterface
+type WritingStoreInterface = writing.WritingStoreInterface
+type TranslationStoreInterface = translation.StoreInterface
+type SessionStoreInterface = summary.SummaryStoreInterface
 type AudioObjectStoreInterface interface{}
 
 type AdminUserStoreInterface interface {

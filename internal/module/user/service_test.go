@@ -12,10 +12,12 @@ import (
 // --- fake store ---
 
 type fakeUserStore struct {
-	users       map[string]*user.User // keyed by email
-	nextID      int64
-	hashes      map[int64]string // userID → password hash
-	resetTokens map[string]*user.ResetToken
+	users         map[string]*user.User // keyed by email
+	nextID        int64
+	hashes        map[int64]string // userID → password hash
+	resetTokens   map[string]*user.ResetToken
+	studyDayCalls []int64
+	studyDayErr   error
 }
 
 func newFakeUserStore() *fakeUserStore {
@@ -106,6 +108,14 @@ func (f *fakeUserStore) UpdateDailyGoals(userID int64, goals map[string]int) err
 
 func (f *fakeUserStore) GetDailyGoals(userID int64) (map[string]int, error) {
 	return map[string]int{"word": 20, "grammar": 5, "speaking": 3, "writing": 3}, nil
+}
+
+func (f *fakeUserStore) RecordStudyDay(userID int64) (int, error) {
+	if f.studyDayErr != nil {
+		return 0, f.studyDayErr
+	}
+	f.studyDayCalls = append(f.studyDayCalls, userID)
+	return len(f.studyDayCalls), nil
 }
 
 // --- tests ---
@@ -322,4 +332,49 @@ func TestUserService_ResetPassword_UsedToken(t *testing.T) {
 	if !errors.Is(err, user.ErrTokenInvalid) {
 		t.Errorf("expected ErrTokenInvalid, got %v", err)
 	}
+}
+
+func TestUserService_RecordStudyDayDelegatesToStore(t *testing.T) {
+	store := newFakeUserStore()
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
+
+	streak, err := svc.RecordStudyDay(42)
+	if err != nil {
+		t.Fatalf("RecordStudyDay error: %v", err)
+	}
+	if streak != 1 {
+		t.Errorf("streak = %d, want 1 for the first check-in", streak)
+	}
+	if len(store.studyDayCalls) != 1 || store.studyDayCalls[0] != 42 {
+		t.Errorf("studyDayCalls = %v, want [42]", store.studyDayCalls)
+	}
+}
+
+func TestUserService_RecordStudyDayWrapsStoreError(t *testing.T) {
+	store := newFakeUserStore()
+	store.studyDayErr = errors.New("db down")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
+
+	if _, err := svc.RecordStudyDay(42); err == nil {
+		t.Fatal("RecordStudyDay error = nil, want wrapped store error")
+	}
+}
+
+func TestRecordStudyDayBestEffortSwallowsErrors(t *testing.T) {
+	store := newFakeUserStore()
+	store.studyDayErr = errors.New("db down")
+	svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
+
+	// Must not panic and must not surface an error: a streak failure cannot
+	// fail a submission the learner already completed.
+	user.RecordStudyDayBestEffort(svc, 42)
+
+	// A nil recorder is a no-op, so modules work without streak wiring.
+	user.RecordStudyDayBestEffort(nil, 42)
+}
+
+func TestUserServiceSatisfiesStreakRecorder(t *testing.T) {
+	var _ user.StreakRecorder = user.NewUserService(
+		newFakeUserStore(), "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost",
+	)
 }

@@ -135,6 +135,41 @@ func (s *UserStore) GetPasswordHash(email string) (string, error) {
 	return hash, nil
 }
 
+// RecordStudyDay marks the user as having studied today and returns the
+// resulting streak length. Mirrors the PostgreSQL implementation: hold when
+// already checked in today, advance by one when the previous check-in was
+// yesterday, otherwise restart at one.
+//
+// SQLite has no RETURNING support we can rely on across drivers, so the read
+// back is a second statement; SQLite's single-writer model makes that safe.
+// The day is UTC, matching the existing date('now') counters in this store.
+func (s *UserStore) RecordStudyDay(userID int64) (int, error) {
+	today := time.Now().UTC().Format("2006-01-02")
+
+	if _, err := s.db.Exec(
+		`UPDATE users SET
+		     streak_days = CASE
+		         WHEN last_study_date = ?         THEN streak_days
+		         WHEN last_study_date = date(?, '-1 day') THEN streak_days + 1
+		         ELSE 1
+		     END,
+		     last_study_date = ?
+		 WHERE id = ?`,
+		today, today, today, userID,
+	); err != nil {
+		return 0, fmt.Errorf("data.UserStore.RecordStudyDay exec: %w", err)
+	}
+
+	var streak int
+	if err := s.db.QueryRow(
+		`SELECT streak_days FROM users WHERE id = ?`, userID,
+	).Scan(&streak); err != nil {
+		return 0, fmt.Errorf("data.UserStore.RecordStudyDay read back: %w", err)
+	}
+
+	return streak, nil
+}
+
 // UpdateStreak 更新用户的连续学习天数。
 func (s *UserStore) UpdateStreak(userID int64, streakDays int) error {
 	slog.Debug("UserStore.UpdateStreak called", "user_id", userID, "streak_days", streakDays)
@@ -397,15 +432,30 @@ func (s *UserStore) countTodayCompleted(userID int64, module string) int {
 	var count int
 	switch module {
 	case "word":
+		// Count real review events for today. updated_at also moves on
+		// bookmarks and interval-only writes, which inflated the counter.
 		s.db.QueryRow(
-			`SELECT COUNT(*) FROM word_records
-			 WHERE user_id = ? AND date(updated_at) = date('now')`,
+			`SELECT COUNT(DISTINCT r.id)
+			   FROM word_records r, json_each(
+			       CASE WHEN json_type(r.review_history_json) = 'array'
+			            THEN r.review_history_json ELSE '[]' END
+			   ) AS ev
+			  WHERE r.user_id = ?
+			    AND json_extract(ev.value, '$.reviewed_at') IS NOT NULL
+			    AND date(json_extract(ev.value, '$.reviewed_at')) = date('now')`,
 			userID,
 		).Scan(&count)
 	case "grammar":
+		// Mirrors the word counter: real quiz attempts, not updated_at.
 		s.db.QueryRow(
-			`SELECT COUNT(*) FROM grammar_records
-			 WHERE user_id = ? AND date(updated_at) = date('now')`,
+			`SELECT COUNT(DISTINCT r.id)
+			   FROM grammar_records r, json_each(
+			       CASE WHEN json_type(r.quiz_history_json) = 'array'
+			            THEN r.quiz_history_json ELSE '[]' END
+			   ) AS ev
+			  WHERE r.user_id = ?
+			    AND json_extract(ev.value, '$.attempted_at') IS NOT NULL
+			    AND date(json_extract(ev.value, '$.attempted_at')) = date('now')`,
 			userID,
 		).Scan(&count)
 	case "speaking":

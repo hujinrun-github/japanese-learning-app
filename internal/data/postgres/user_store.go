@@ -129,8 +129,20 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Today's word count is derived from the real review events recorded in
+	// review_history_json, not from updated_at: updated_at also moves on
+	// bookmarks and interval-only writes, which used to inflate the counter.
 	wordToday, err := s.countRows(
-		`SELECT COUNT(*) FROM word_records WHERE user_id = $1 AND updated_at >= $2 AND updated_at < $3`,
+		`SELECT COUNT(DISTINCT r.id)
+		   FROM word_records r
+		   CROSS JOIN LATERAL jsonb_array_elements(
+		       CASE WHEN jsonb_typeof(r.review_history_json) = 'array'
+		            THEN r.review_history_json ELSE '[]'::jsonb END
+		   ) AS ev
+		  WHERE r.user_id = $1
+		    AND NULLIF(ev->>'reviewed_at', '') IS NOT NULL
+		    AND (ev->>'reviewed_at')::timestamptz >= $2
+		    AND (ev->>'reviewed_at')::timestamptz < $3`,
 		userID, start.UTC(), end.UTC(),
 	)
 	if err != nil {
@@ -162,8 +174,19 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Mirrors the word counter: count real quiz attempts for today instead of
+	// trusting updated_at, which also moves on plain status changes.
 	grammarToday, err := s.countRows(
-		`SELECT COUNT(*) FROM grammar_records WHERE user_id = $1 AND updated_at >= $2 AND updated_at < $3`,
+		`SELECT COUNT(DISTINCT r.id)
+		   FROM grammar_records r
+		   CROSS JOIN LATERAL jsonb_array_elements(
+		       CASE WHEN jsonb_typeof(r.quiz_history_json) = 'array'
+		            THEN r.quiz_history_json ELSE '[]'::jsonb END
+		   ) AS ev
+		  WHERE r.user_id = $1
+		    AND NULLIF(ev->>'attempted_at', '') IS NOT NULL
+		    AND (ev->>'attempted_at')::timestamptz >= $2
+		    AND (ev->>'attempted_at')::timestamptz < $3`,
 		userID, start.UTC(), end.UTC(),
 	)
 	if err != nil {
@@ -230,6 +253,58 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	}
 
 	return stats, nil
+}
+
+// RecordStudyDay marks the user as having studied on the given day and returns
+// the resulting streak length.
+//
+// The whole transition happens in one statement so concurrent submissions
+// cannot double-count:
+//   - already checked in today → streak holds
+//   - last check-in was yesterday → streak advances by one
+//   - anything else (first ever, or a gap) → streak restarts at one
+//
+// The day is resolved in the store's configured location, so "today" matches
+// the learner's calendar day rather than the server's UTC date.
+func (s *UserStore) RecordStudyDay(userID int64) (int, error) {
+	today := s.now().In(s.location).Format("2006-01-02")
+
+	var streak int
+	err := s.db.QueryRowContext(
+		context.Background(),
+		`UPDATE users SET
+		     streak_days = CASE
+		         WHEN last_study_date = $2::date      THEN streak_days
+		         WHEN last_study_date = $2::date - 1  THEN streak_days + 1
+		         ELSE 1
+		     END,
+		     last_study_date = $2::date
+		 WHERE id = $1
+		 RETURNING streak_days`,
+		userID,
+		today,
+	).Scan(&streak)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("postgres.UserStore.RecordStudyDay: user %d not found", userID)
+		}
+		return 0, fmt.Errorf("postgres.UserStore.RecordStudyDay: %w", translateError(err))
+	}
+
+	return streak, nil
+}
+
+// UpdateStreak sets the streak counter directly. Prefer RecordStudyDay, which
+// keeps last_study_date in sync; this exists for admin-driven corrections.
+func (s *UserStore) UpdateStreak(userID int64, streakDays int) error {
+	if _, err := s.db.ExecContext(
+		context.Background(),
+		`UPDATE users SET streak_days = $2 WHERE id = $1`,
+		userID, streakDays,
+	); err != nil {
+		return fmt.Errorf("postgres.UserStore.UpdateStreak: %w", translateError(err))
+	}
+	return nil
 }
 
 func (s *UserStore) UpdateDailyGoals(userID int64, goals map[string]int) error {
