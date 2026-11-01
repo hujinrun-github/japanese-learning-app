@@ -14,6 +14,7 @@ import (
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/note"
+	"japanese-learning-app/internal/module/notesync"
 	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/shadowing"
 	"japanese-learning-app/internal/module/speaking"
@@ -97,6 +98,7 @@ func main() {
 	userStore := data.NewUserStore(db)
 	sessionStore := data.NewSessionStore(db)
 	noteStore := data.NewNoteStore(db)
+	noteSyncStore := data.NewNoteSyncStore(db)
 	translationStore := data.NewTranslationStore(db)
 	shadowingStore := data.NewShadowingStore(db)
 
@@ -138,6 +140,7 @@ func main() {
 	userSvc := user.NewUserService(userAdapter, jwtSecret, time.Duration(cfg.JWTExpireHours)*time.Hour, mailer, appBaseURL)
 	summarySvc := summary.NewSummaryService(sessionAdapter)
 	noteSvc := note.NewNoteService(noteAdapter)
+	noteSyncSvc := notesync.NewService(noteSyncStore, noteStore, notesync.NewEnvClientFactory(envOrDefault("NOTION_API_BASE_URL", "")))
 	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)
 	shadowingSvc := shadowing.NewService(lessonAdapter, shadowingStore)
 
@@ -151,6 +154,7 @@ func main() {
 	userH := user.NewUserHandler(userSvc)
 	summaryH := summary.NewSummaryHandler(summarySvc)
 	noteH := note.NewNoteHandler(noteSvc)
+	noteSyncH := notesync.NewHandler(noteSyncSvc)
 	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)
 	shadowingH := shadowing.NewHandler(shadowingSvc)
@@ -172,6 +176,7 @@ func main() {
 	writingH.RegisterRoutes(protectedMux)
 	summaryH.RegisterRoutes(protectedMux)
 	noteH.RegisterRoutes(protectedMux)
+	noteSyncH.RegisterRoutes(protectedMux)
 	reviewH.RegisterRoutes(protectedMux)
 	translationH.RegisterRoutes(protectedMux)
 	shadowingH.RegisterRoutes(protectedMux)
@@ -188,6 +193,7 @@ func main() {
 	mux.Handle("/api/v1/users/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/notes", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/notes/", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/note-sync/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
 

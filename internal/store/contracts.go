@@ -6,6 +6,7 @@ import (
 
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/notesync"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
@@ -41,6 +42,7 @@ type AppStores struct {
 	Grammar      GrammarStoreInterface
 	Lessons      LessonStoreInterface
 	Notes        NoteStoreInterface
+	NoteSync     notesync.Store
 	Speaking     SpeakingStoreInterface
 	Writing      WritingStoreInterface
 	Translation  TranslationStoreInterface

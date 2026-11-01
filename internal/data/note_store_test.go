@@ -257,6 +257,24 @@ func TestNoteStore_SoftDelete(t *testing.T) {
 	_ = notes
 }
 
+func TestNoteStore_Restore(t *testing.T) {
+	insertTestUser(t, 12, "note_restore@example.com")
+	store := NewNoteStore(testDB)
+	n := &note.Note{UserID: 12, Type: note.TypeSentence, Title: "restore me"}
+	if err := store.Create(n); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	if err := store.SoftDelete(12, n.ID); err != nil {
+		t.Fatalf("SoftDelete failed: %v", err)
+	}
+	if err := store.Restore(12, n.ID); err != nil {
+		t.Fatalf("Restore failed: %v", err)
+	}
+	if got, err := store.GetByID(12, n.ID); err != nil || got.Title != "restore me" {
+		t.Fatalf("restored note = %+v, err=%v", got, err)
+	}
+}
+
 func TestNoteStore_Links(t *testing.T) {
 	insertTestUser(t, 20, "note_links@example.com")
 

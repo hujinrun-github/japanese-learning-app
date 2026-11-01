@@ -296,6 +296,25 @@ func (s *NoteStore) SoftDelete(userID, noteID int64) error {
 	return nil
 }
 
+// Restore clears a soft-delete marker after an external sync deletion was
+// explicitly reversed by the user.
+func (s *NoteStore) Restore(userID, noteID int64) error {
+	slog.Debug("NoteStore.Restore called", "user_id", userID, "note_id", noteID)
+	result, err := s.db.Exec(
+		`UPDATE notes SET deleted_at = NULL, updated_at = datetime('now') WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+		noteID, userID,
+	)
+	if err != nil {
+		slog.Error("NoteStore.Restore failed", "err", err)
+		return fmt.Errorf("NoteStore.Restore exec: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("NoteStore.Restore: note %d not found or not deleted", noteID)
+	}
+	return nil
+}
+
 // AddLink creates a link between two notes.
 func (s *NoteStore) AddLink(userID, noteID, targetNoteID int64, relation note.LinkRelation) (*note.NoteLink, error) {
 	slog.Debug("NoteStore.AddLink called", "user_id", userID)

@@ -17,6 +17,16 @@
 .section { margin-bottom: var(--space-8); }
 .sectionHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
 .sectionTitle { font-size: var(--font-size-xs); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--space-3); }
+.syncSection { margin-bottom: var(--space-8); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-surface); }
+.syncRow { display: flex; align-items: center; gap: var(--space-2); }
+.syncRow .input { flex: 1; min-width: 0; }
+.syncBtn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); min-height: 42px; padding: var(--space-2) var(--space-4); border: 1px solid var(--color-brand); border-radius: var(--radius-sm); background: var(--color-brand); color: #fff; font-size: var(--font-size-sm); font-weight: 700; cursor: pointer; white-space: nowrap; transition: all var(--transition-fast); }
+.syncBtn:hover:not(:disabled) { background: var(--color-brand-hover); }
+.syncBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+.syncMeta { margin: var(--space-2) 0 0; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.syncMessage { margin: var(--space-2) 0 0; font-size: var(--font-size-sm); color: var(--color-error); overflow-wrap: anywhere; }
+.notionLink { font-size: var(--font-size-sm); color: var(--color-brand); text-decoration: none; white-space: nowrap; }
+.notionLink:hover { text-decoration: underline; }
 .content { font-size: var(--font-size-md); line-height: var(--line-height-relaxed); white-space: pre-wrap; }
 .sourceText { font-size: var(--font-size-lg); line-height: var(--line-height-japanese); }
 .reference { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
@@ -75,4 +85,6 @@
   .actionBtn { padding-inline: var(--space-3); }
   .modal { max-height: calc(100dvh - var(--height-bottomtab) - env(safe-area-inset-bottom)); padding: var(--space-4); }
   .searchRow { flex-direction: column; }
+  .syncRow { align-items: stretch; flex-direction: column; }
+  .syncBtn { width: 100%; }
 }

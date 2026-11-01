@@ -56,6 +56,10 @@ func (f *fakeNoteStore) SoftDelete(userID, noteID int64) error {
 	return nil
 }
 
+func (f *fakeNoteStore) Restore(userID, noteID int64) error {
+	return nil
+}
+
 func (f *fakeNoteStore) Search(userID int64, query string, limit int) ([]note.Note, error) {
 	return nil, nil
 }
@@ -97,10 +101,10 @@ func (f *fakeNoteStore) GetIncomingLinks(userID, noteID int64) ([]note.NoteLink,
 	return result, nil
 }
 
-func (f *fakeNoteStore) Promote(userID, noteID int64) error  { return nil }
-func (f *fakeNoteStore) Demote(userID, noteID int64) error   { return nil }
+func (f *fakeNoteStore) Promote(userID, noteID int64) error                 { return nil }
+func (f *fakeNoteStore) Demote(userID, noteID int64) error                  { return nil }
 func (f *fakeNoteStore) SaveReview(userID, noteID int64, n note.Note) error { return nil }
-func (f *fakeNoteStore) ListDueNotes(userID int64) ([]note.Note, error)      { return nil, nil }
+func (f *fakeNoteStore) ListDueNotes(userID int64) ([]note.Note, error)     { return nil, nil }
 func (f *fakeNoteStore) ListArchived(userID int64, params note.NoteListParams) ([]note.Note, int, error) {
 	return nil, 0, nil
 }

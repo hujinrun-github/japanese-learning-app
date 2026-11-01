@@ -260,6 +260,75 @@ export interface PaginatedNotes {
   size: number
 }
 
+// Notion note synchronization
+export interface NoteSyncTarget {
+  id: number
+  type: 'notion'
+  name: string
+  data_source_id: string
+  token_env: string
+  title_property: string
+  tags_property: string
+  flow_id_property: string
+  sync_tags: string[]
+  enabled: boolean
+  auto_push: boolean
+  has_token: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface NoteSyncTargetInput {
+  name: string
+  data_source_id: string
+  token_env?: string
+  title_property?: string
+  tags_property?: string
+  flow_id_property?: string
+  sync_tags?: string[]
+  enabled?: boolean
+  auto_push?: boolean
+}
+
+export interface NoteSyncBinding {
+  note_id: number
+  target_id: number
+  created_at: string
+  updated_at: string
+}
+
+export interface NoteSyncState {
+  note_id: number
+  target_id: number
+  external_page_id: string
+  external_url: string
+  local_hash: string
+  external_hash: string
+  last_direction?: 'push' | 'pull' | 'delete' | 'restore'
+  last_synced_at?: string
+  last_error?: string
+  pending_delete: boolean
+  updated_at: string
+}
+
+export interface NoteSyncResult {
+  created: number
+  updated: number
+  imported: number
+  skipped: number
+  pending_delete: number
+  errors?: Array<{ note_id?: number; page_id?: string; message: string }>
+}
+
+export interface NoteSyncResult {
+  created: number
+  updated: number
+  imported: number
+  skipped: number
+  pending_delete: number
+  errors?: Array<{ note_id?: number; page_id?: string; message: string }>
+}
+
 // Summary
 export interface SessionSummary {
   session_id: string

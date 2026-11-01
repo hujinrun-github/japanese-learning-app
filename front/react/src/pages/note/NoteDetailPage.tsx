@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
-
-
 import { Spinner } from '@/components/ui/Spinner'
-import type { Note, NoteDetail, NoteLink, LinkRelation, PaginatedNotes } from '@/types/api'
+import { clearNoteSyncBinding, getNoteSyncBinding, getNoteSyncState, listNoteSyncTargets, pushNoteToNotion, setNoteSyncBinding } from '@/api/noteSync'
+import type { Note, NoteDetail, NoteLink, LinkRelation, NoteSyncBinding, NoteSyncState, NoteSyncTarget, PaginatedNotes } from '@/types/api'
 import styles from './NoteDetailPage.module.css'
 
 const TYPE_COLORS: Record<string, string> = {
@@ -44,9 +43,36 @@ export function NoteDetailPage() {
   // Delete state
   const [deleting, setDeleting] = useState(false)
 
+  // Notion synchronization state
+  const [syncTargets, setSyncTargets] = useState<NoteSyncTarget[]>([])
+  const [syncBinding, setSyncBinding] = useState<NoteSyncBinding | null>(null)
+  const [syncState, setSyncState] = useState<NoteSyncState | null>(null)
+  const [syncBusy, setSyncBusy] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
+
   useEffect(() => {
     loadNote()
+    loadSync()
   }, [id])
+
+  async function loadSync() {
+    const noteID = Number(id)
+    if (!Number.isFinite(noteID)) return
+    try {
+      const [targets, binding, state] = await Promise.all([
+        listNoteSyncTargets(),
+        getNoteSyncBinding(noteID),
+        getNoteSyncState(noteID),
+      ])
+      setSyncTargets(targets ?? [])
+      setSyncBinding(binding ?? null)
+      setSyncState(state ?? null)
+    } catch {
+      setSyncTargets([])
+      setSyncBinding(null)
+      setSyncState(null)
+    }
+  }
 
   async function loadNote() {
     setLoading(true)
@@ -157,6 +183,38 @@ export function NoteDetailPage() {
       await loadNote()
     } catch {
       // ignore
+    }
+  }
+
+  async function handleSyncBindingChange(value: string) {
+    const noteID = Number(id)
+    if (!Number.isFinite(noteID)) return
+    setSyncBusy(true)
+    setSyncMessage('')
+    try {
+      const binding = value ? await setNoteSyncBinding(noteID, Number(value)) : await clearNoteSyncBinding(noteID)
+      setSyncBinding(value ? (binding ?? null) : null)
+      if (!value) setSyncState(null)
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : t('notes.notionSyncError'))
+    } finally {
+      setSyncBusy(false)
+    }
+  }
+
+  async function handlePushToNotion() {
+    const noteID = Number(id)
+    if (!Number.isFinite(noteID) || !syncBinding) return
+    setSyncBusy(true)
+    setSyncMessage('')
+    try {
+      const state = await pushNoteToNotion(noteID)
+      setSyncState(state)
+      setSyncMessage(t('notes.notionSyncSuccess'))
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : t('notes.notionSyncError'))
+    } finally {
+      setSyncBusy(false)
     }
   }
 
@@ -306,6 +364,40 @@ export function NoteDetailPage() {
               </p>
             </section>
           ) : null}
+
+          {/* Notion synchronization */}
+          <section className={styles.syncSection}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>🔗 {t('notes.notionSync')}</h2>
+              {syncState?.external_url && (
+                <a className={styles.notionLink} href={syncState.external_url} target="_blank" rel="noreferrer">
+                  {t('notes.notionOpen')}
+                </a>
+              )}
+            </div>
+            <div className={styles.syncRow}>
+              <select
+                className={styles.input}
+                value={syncBinding?.target_id ?? ''}
+                onChange={(e) => handleSyncBindingChange(e.target.value)}
+                disabled={syncBusy}
+                aria-label={t('notes.notionSyncTarget')}
+              >
+                <option value="">{t('notes.notionSyncNone')}</option>
+                {syncTargets.map(target => (
+                  <option key={target.id} value={target.id} disabled={!target.enabled}>
+                    {target.name}{!target.has_token ? ` (${t('notes.notionTokenMissing')})` : ''}
+                  </option>
+                ))}
+              </select>
+              <button className={styles.syncBtn} onClick={handlePushToNotion} disabled={syncBusy || !syncBinding}>
+                {syncBusy ? <Spinner size="sm" /> : `☁️ ${t('notes.notionSyncPush')}`}
+              </button>
+            </div>
+            {syncState && <p className={styles.syncMeta}>{t('notes.notionLastSync')}: {syncState.last_synced_at ? new Date(syncState.last_synced_at).toLocaleString() : '—'} · {syncState.last_direction ?? '—'}</p>}
+            {syncState?.last_error && <p className={styles.syncMessage}>{syncState.last_error}</p>}
+            {syncMessage && <p className={styles.syncMessage}>{syncMessage}</p>}
+          </section>
 
           {/* Linked notes */}
           <section className={styles.section}>
