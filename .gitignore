@@ -11,6 +11,9 @@ logs/
 # Go toolchain vendored into the repo (huge, not source code)
 /.tools/
 
+# WorkBuddy session memory (local working notes, not source code)
+/.workbuddy/
+
 # kuromoji.js dictionary (~19 MB of .gz), downloaded at deploy time by
 # `npm --prefix front/react run prepare:dict` (scripts/fetch-kuromoji-dict.mjs)
 front/react/public/kuromoji-dict/
