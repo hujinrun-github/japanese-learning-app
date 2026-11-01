@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
+	"strings"
+	"time"
 
 	"japanese-learning-app/internal/data"
 	pgdata "japanese-learning-app/internal/data/postgres"
@@ -52,6 +55,10 @@ func Run(args []string) int {
 		return runImportWriting(args[1:])
 	case "import-translation-api":
 		return runImportTranslationAPI(args[1:])
+	case "import-translation-bank":
+		return runImportTranslationBank(args[1:])
+	case "enrich-grammar-llm":
+		return runEnrichGrammarLLM(args[1:])
 	case "generate-word-audio":
 		return runGenerateWordAudio(args[1:])
 	case "migrate-sqlite-to-pg":
@@ -77,6 +84,11 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-speaking --file <path> | --json <json>  import speaking materials")
 	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")
 	fmt.Fprintln(os.Stderr, "  import-translation-api    --file <config.json>           import translation sentences from API")
+	fmt.Fprintln(os.Stderr, "  import-translation-bank   --file <bank.json> --database-url <url> [--replace] [--default-level N3]")
+	fmt.Fprintln(os.Stderr, "                        import a 言叶日课 question bank (sentences + grammar) into PostgreSQL")
+	fmt.Fprintln(os.Stderr, "  enrich-grammar-llm  --database-url <url> [--llm-endpoint <url>] [--llm-key <key>] [--llm-model <name>]")
+	fmt.Fprintln(os.Stderr, "                        [--level N3] [--limit 20] [--concurrency 4] [--examples-per-point 3]")
+	fmt.Fprintln(os.Stderr, "                        [--force] [--dry-run]  fill 接续/用法/例句 for grammar points via LLM")
 	fmt.Fprintln(os.Stderr, "  generate-word-audio --db <path> --level <N5-N1>  regenerate word audio via TTS")
 	fmt.Fprintln(os.Stderr, "  migrate-sqlite-to-pg --database-url <url> [--sqlite-db <path>] [--audio-dir <dir>]")
 	fmt.Fprintln(os.Stderr, "                        [--minio-endpoint <url>] [--dry-run] [--skip-audio] [--phase <name>]")
@@ -619,6 +631,151 @@ func runImportTranslationAPI(args []string) int {
 	}
 
 	fmt.Printf("import-translation-api: imported %d sentence(s) from config %s\n", n, *configPath)
+	return 0
+}
+
+func runImportTranslationBank(args []string) int {
+	fs := flag.NewFlagSet("import-translation-bank", flag.ContinueOnError)
+	filePath := fs.String("file", "", "path to the question bank JSON file (言叶日课 bank.json)")
+	databaseURL := fs.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL database URL")
+	replace := fs.Bool("replace", false, "re-import sources that already exist (drops their sentences first)")
+	defaultLevel := fs.String("default-level", "N3", "JLPT level used for grammar points with no inferable level")
+	examplesPerPoint := fs.Int("examples-per-point", 3, "how many bank sentences to attach as grammar_examples per grammar point")
+
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "import-translation-bank: %v\n", err)
+		return 1
+	}
+	if *filePath == "" {
+		fmt.Fprintln(os.Stderr, "import-translation-bank: --file is required")
+		fs.Usage()
+		return 1
+	}
+	if *databaseURL == "" {
+		fmt.Fprintln(os.Stderr, "import-translation-bank: --database-url or DATABASE_URL is required")
+		return 1
+	}
+
+	ctx := context.Background()
+	adapter := pgdata.Adapter{}
+	db, err := adapter.Open(ctx, store.DatabaseConfig{
+		DatabaseURL:  *databaseURL,
+		MaxOpenConns: 4,
+		MaxIdleConns: 2,
+	})
+	if err != nil {
+		slog.Error("import-translation-bank: failed to open database", "err", err)
+		fmt.Fprintf(os.Stderr, "import-translation-bank: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := adapter.RunMigrations(ctx, db); err != nil {
+		slog.Error("import-translation-bank: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "import-translation-bank: run migrations: %v\n", err)
+		return 1
+	}
+
+	result, err := ImportTranslationBankFile(ctx, db, *filePath, TranslationBankOptions{
+		DefaultLevel:     strings.ToUpper(strings.TrimSpace(*defaultLevel)),
+		Replace:          *replace,
+		ExamplesPerPoint: *examplesPerPoint,
+	})
+	if err != nil {
+		slog.Error("import-translation-bank: import failed", "file", *filePath, "err", err)
+		fmt.Fprintf(os.Stderr, "import-translation-bank: %v\n", err)
+		return 1
+	}
+
+	levels := make([]string, 0, len(result.Levels))
+	for level := range result.Levels {
+		levels = append(levels, level)
+	}
+	sort.Strings(levels)
+
+	fmt.Printf("import-translation-bank: sources=%d sentences=%d skipped_sources=%d\n",
+		result.Sources, result.Sentences, result.SkippedSources)
+	for _, level := range levels {
+		fmt.Printf("  %s: %d sentence(s)\n", level, result.Levels[level])
+	}
+	fmt.Printf("import-translation-bank: grammar inserted=%d skipped=%d level_fallback=%d examples=%d\n",
+		result.GrammarInserted, result.GrammarSkipped, result.GrammarFallback, result.GrammarExamples)
+	return 0
+}
+
+func runEnrichGrammarLLM(args []string) int {
+	fs := flag.NewFlagSet("enrich-grammar-llm", flag.ContinueOnError)
+	databaseURL := fs.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL database URL")
+	env := grammarLLMConfigFromEnv()
+	llmEndpoint := fs.String("llm-endpoint", env.Endpoint, "OpenAI-compatible chat completions URL")
+	llmKey := fs.String("llm-key", env.APIKey, "LLM API key (or set AI_API_KEY)")
+	llmModel := fs.String("llm-model", env.Model, "LLM model name")
+	llmTimeout := fs.Int("llm-timeout", 60, "per-request timeout in seconds")
+	level := fs.String("level", "", "only enrich a single JLPT level (N5..N1)")
+	limit := fs.Int("limit", 0, "stop after N grammar points (0 = no limit)")
+	concurrency := fs.Int("concurrency", 4, "parallel LLM requests")
+	examplesPerPoint := fs.Int("examples-per-point", 3, "target number of examples per grammar point")
+	force := fs.Bool("force", false, "overwrite existing 接续/用法 and examples")
+	dryRun := fs.Bool("dry-run", false, "call the LLM but do not write to the database")
+
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "enrich-grammar-llm: %v\n", err)
+		return 1
+	}
+	if *databaseURL == "" {
+		fmt.Fprintln(os.Stderr, "enrich-grammar-llm: --database-url or DATABASE_URL is required")
+		return 1
+	}
+	if *llmEndpoint == "" {
+		fmt.Fprintln(os.Stderr, "enrich-grammar-llm: --llm-endpoint or AI_API_ENDPOINT is required")
+		return 1
+	}
+
+	ctx := context.Background()
+	adapter := pgdata.Adapter{}
+	db, err := adapter.Open(ctx, store.DatabaseConfig{
+		DatabaseURL:  *databaseURL,
+		MaxOpenConns: 8,
+		MaxIdleConns: 4,
+	})
+	if err != nil {
+		slog.Error("enrich-grammar-llm: failed to open database", "err", err)
+		fmt.Fprintf(os.Stderr, "enrich-grammar-llm: open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	if err := adapter.RunMigrations(ctx, db); err != nil {
+		slog.Error("enrich-grammar-llm: failed to run migrations", "err", err)
+		fmt.Fprintf(os.Stderr, "enrich-grammar-llm: run migrations: %v\n", err)
+		return 1
+	}
+
+	result, err := EnrichGrammarWithLLM(ctx, db, GrammarEnrichOptions{
+		LLM: GrammarLLMConfig{
+			Endpoint: *llmEndpoint,
+			APIKey:   *llmKey,
+			Model:    *llmModel,
+			Timeout:  time.Duration(*llmTimeout) * time.Second,
+		},
+		Level:            strings.ToUpper(strings.TrimSpace(*level)),
+		Limit:            *limit,
+		Concurrency:      *concurrency,
+		ExamplesPerPoint: *examplesPerPoint,
+		Force:            *force,
+		DryRun:           *dryRun,
+	})
+	if err != nil {
+		slog.Error("enrich-grammar-llm: enrichment failed", "err", err)
+		fmt.Fprintf(os.Stderr, "enrich-grammar-llm: %v\n", err)
+		return 1
+	}
+
+	fmt.Printf("enrich-grammar-llm: selected=%d updated=%d unchanged=%d failed=%d examples_added=%d\n",
+		result.Selected, result.Updated, result.Unchanged, result.Failed, result.Examples)
+	for _, f := range result.Failures {
+		fmt.Printf("  ! %s\n", f)
+	}
 	return 0
 }
 
