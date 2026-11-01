@@ -166,6 +166,145 @@ func (s *SpeakingStore) ListAllRecords(userID int64, offset, limit int) ([]speak
 	return records, total, nil
 }
 
+// ── App-side methods (speaking.SpeakingStoreInterface) ─────────────────────
+
+func (s *SpeakingStore) SaveRecord(r speaking.SpeakingRecord) (int64, error) {
+	practicedAt := r.PracticedAt
+	if practicedAt.IsZero() {
+		practicedAt = s.now().UTC()
+	}
+
+	var id int64
+	err := s.db.QueryRowContext(
+		context.Background(),
+		`INSERT INTO speaking_records (user_id, type, material_id, score, audio_ref_legacy, practiced_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 RETURNING id`,
+		r.UserID,
+		r.Type,
+		r.MaterialID,
+		r.Score,
+		r.AudioRef,
+		practicedAt.UTC(),
+	).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("postgres.SpeakingStore.SaveRecord: %w", translateError(err))
+	}
+	return id, nil
+}
+
+func (s *SpeakingStore) ListRecords(userID int64) ([]speaking.SpeakingRecord, error) {
+	rows, err := s.db.QueryContext(
+		context.Background(),
+		`SELECT id, user_id, type, material_id, score, audio_ref_legacy, practiced_at
+		 FROM speaking_records WHERE user_id = $1
+		 ORDER BY practiced_at DESC, id DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.SpeakingStore.ListRecords query: %w", translateError(err))
+	}
+	defer rows.Close()
+
+	records, err := scanSpeakingRecords(rows)
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (s *SpeakingStore) GetRecord(id int64) (*speaking.SpeakingRecord, error) {
+	rows, err := s.db.QueryContext(
+		context.Background(),
+		`SELECT id, user_id, type, material_id, score, audio_ref_legacy, practiced_at
+		 FROM speaking_records WHERE id = $1`,
+		id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.SpeakingStore.GetRecord query: %w", translateError(err))
+	}
+	defer rows.Close()
+
+	records, err := scanSpeakingRecords(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(records) == 0 {
+		return nil, fmt.Errorf("postgres.SpeakingStore.GetRecord %d: %w", id, sql.ErrNoRows)
+	}
+	record := records[0]
+	return &record, nil
+}
+
+func (s *SpeakingStore) ListMaterials(practiceType, level string) ([]speaking.SpeakingMaterial, error) {
+	where, args := buildSpeakingMaterialFilter(practiceType, level)
+
+	rows, err := s.db.QueryContext(
+		context.Background(),
+		`SELECT id, type, title, text, COALESCE(audio_url_legacy, ''), jlpt_level
+		 FROM speaking_materials
+		 `+where+`
+		 ORDER BY id ASC`,
+		args...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.SpeakingStore.ListMaterials query: %w", translateError(err))
+	}
+	defer rows.Close()
+
+	items, err := scanSpeakingMaterials(rows)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (s *SpeakingStore) GetMaterialByID(id int64) (*speaking.SpeakingMaterial, error) {
+	rows, err := s.db.QueryContext(
+		context.Background(),
+		`SELECT id, type, title, text, COALESCE(audio_url_legacy, ''), jlpt_level
+		 FROM speaking_materials WHERE id = $1`,
+		id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.SpeakingStore.GetMaterialByID query: %w", translateError(err))
+	}
+	defer rows.Close()
+
+	items, err := scanSpeakingMaterials(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) == 0 {
+		return nil, nil
+	}
+	material := items[0]
+	return &material, nil
+}
+
+func scanSpeakingRecords(rows *sql.Rows) ([]speaking.SpeakingRecord, error) {
+	records := make([]speaking.SpeakingRecord, 0)
+	for rows.Next() {
+		var record speaking.SpeakingRecord
+		if err := rows.Scan(
+			&record.ID,
+			&record.UserID,
+			&record.Type,
+			&record.MaterialID,
+			&record.Score,
+			&record.AudioRef,
+			&record.PracticedAt,
+		); err != nil {
+			return nil, fmt.Errorf("postgres.scanSpeakingRecords scan: %w", translateError(err))
+		}
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres.scanSpeakingRecords rows: %w", translateError(err))
+	}
+	return records, nil
+}
+
 func buildSpeakingMaterialFilter(practiceType, level string) (string, []any) {
 	var clauses []string
 	var args []any

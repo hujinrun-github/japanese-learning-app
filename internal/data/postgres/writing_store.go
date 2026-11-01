@@ -176,6 +176,131 @@ func (s *WritingStore) ListAllRecords(userID int64, offset, limit int) ([]writin
 	return records, total, nil
 }
 
+// ── App-side methods (writing.WritingStoreInterface) ───────────────────────
+
+func (s *WritingStore) GetDailyQueue(userID int64) ([]writing.WritingQuestion, error) {
+	rows, err := s.db.QueryContext(
+		context.Background(),
+		`SELECT id, type, prompt, grammar_point_id, jlpt_level, expected_answer
+		 FROM writing_questions
+		 ORDER BY RANDOM()
+		 LIMIT 5`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.WritingStore.GetDailyQueue query: %w", translateError(err))
+	}
+	defer rows.Close()
+
+	items, err := scanWritingQuestions(rows)
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		items = make([]writing.WritingQuestion, 0)
+	}
+	return items, nil
+}
+
+func (s *WritingStore) GetQuestionByID(id int64) (*writing.WritingQuestion, error) {
+	rows, err := s.db.QueryContext(
+		context.Background(),
+		`SELECT id, type, prompt, grammar_point_id, jlpt_level, expected_answer
+		 FROM writing_questions WHERE id = $1`,
+		id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.WritingStore.GetQuestionByID query: %w", translateError(err))
+	}
+	defer rows.Close()
+
+	items, err := scanWritingQuestions(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) == 0 {
+		return nil, fmt.Errorf("postgres.WritingStore.GetQuestionByID %d: %w", id, sql.ErrNoRows)
+	}
+	question := items[0]
+	return &question, nil
+}
+
+func (s *WritingStore) SaveRecord(r writing.WritingRecord) error {
+	feedbackJSON := "null"
+	if r.AIFeedback != nil {
+		raw, err := json.Marshal(r.AIFeedback)
+		if err != nil {
+			return fmt.Errorf("postgres.WritingStore.SaveRecord marshal ai_feedback: %w", err)
+		}
+		feedbackJSON = string(raw)
+	}
+
+	practicedAt := r.PracticedAt
+	if practicedAt.IsZero() {
+		practicedAt = s.now().UTC()
+	}
+
+	_, err := s.db.ExecContext(
+		context.Background(),
+		`INSERT INTO writing_records (user_id, type, question, user_answer, ai_feedback_json, score, practiced_at)
+		 VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)`,
+		r.UserID,
+		r.Type,
+		r.Question,
+		r.UserAnswer,
+		feedbackJSON,
+		r.Score,
+		practicedAt.UTC(),
+	)
+	if err != nil {
+		return fmt.Errorf("postgres.WritingStore.SaveRecord: %w", translateError(err))
+	}
+	return nil
+}
+
+func (s *WritingStore) ListRecords(userID int64) ([]writing.WritingRecord, error) {
+	rows, err := s.db.QueryContext(
+		context.Background(),
+		`SELECT id, user_id, type, question, user_answer, ai_feedback_json::text, score, practiced_at
+		 FROM writing_records WHERE user_id = $1
+		 ORDER BY practiced_at DESC, id DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.WritingStore.ListRecords query: %w", translateError(err))
+	}
+	defer rows.Close()
+
+	records := make([]writing.WritingRecord, 0)
+	for rows.Next() {
+		var record writing.WritingRecord
+		var feedbackJSON string
+		if err := rows.Scan(
+			&record.ID,
+			&record.UserID,
+			&record.Type,
+			&record.Question,
+			&record.UserAnswer,
+			&feedbackJSON,
+			&record.Score,
+			&record.PracticedAt,
+		); err != nil {
+			return nil, fmt.Errorf("postgres.WritingStore.ListRecords scan: %w", translateError(err))
+		}
+		if feedbackJSON != "" && feedbackJSON != "null" {
+			var feedback writing.AIFeedback
+			if err := json.Unmarshal([]byte(feedbackJSON), &feedback); err != nil {
+				return nil, fmt.Errorf("postgres.WritingStore.ListRecords unmarshal feedback: %w", err)
+			}
+			record.AIFeedback = &feedback
+		}
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres.WritingStore.ListRecords rows: %w", translateError(err))
+	}
+	return records, nil
+}
+
 func buildWritingQuestionFilter(level, qtype string) (string, []any) {
 	var clauses []string
 	var args []any

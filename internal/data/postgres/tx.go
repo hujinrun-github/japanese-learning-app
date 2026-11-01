@@ -27,13 +27,22 @@ func newRuntime(db queryer, deps store.StoreDeps, transact func(context.Context,
 	speakingStore := NewSpeakingStore(db, deps)
 	writingStore := NewWritingStore(db, deps)
 	translationStore := NewTranslationStore(db, deps)
+	noteStore := NewNoteStore(db, deps)
+	noteSyncStore := NewNoteSyncStore(db, deps)
+	sessionStore := NewSessionStore(db, deps)
 
 	return store.NewStoreRuntime(
 		store.AppStores{
-			Users:   userStore,
-			Words:   wordStore,
-			Grammar: grammarStore,
-			Lessons: lessonStore,
+			Users:       userStore,
+			Words:       wordStore,
+			Grammar:     grammarStore,
+			Lessons:     lessonStore,
+			Speaking:    speakingStore,
+			Writing:     writingStore,
+			Translation: translationStore,
+			Notes:       noteStore,
+			NoteSync:    noteSyncStore,
+			Sessions:    sessionStore,
 		},
 		store.AdminStores{
 			Users:       userStore,
