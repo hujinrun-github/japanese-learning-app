@@ -8,7 +8,12 @@ import type {
 } from '../types/api'
 
 export function listNoteSyncTargets() {
-  return apiFetch<NoteSyncTarget[]>('GET', '/api/v1/note-sync/targets')
+  return apiFetch<NoteSyncTarget[] | null>('GET', '/api/v1/note-sync/targets')
+    .then(normalizeNoteSyncTargets)
+}
+
+export function normalizeNoteSyncTargets(targets: NoteSyncTarget[] | null | undefined): NoteSyncTarget[] {
+  return targets ?? []
 }
 
 export function createNoteSyncTarget(input: NoteSyncTargetInput) {

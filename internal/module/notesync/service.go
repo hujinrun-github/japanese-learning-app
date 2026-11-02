@@ -102,6 +102,9 @@ func (s *Service) ListTargets(userID int64) ([]SyncTarget, error) {
 	if err != nil {
 		return nil, fmt.Errorf("notesync list targets: %w", err)
 	}
+	if targets == nil {
+		targets = make([]SyncTarget, 0)
+	}
 	for i := range targets {
 		targets[i].HasToken = s.hasToken(targets[i])
 	}

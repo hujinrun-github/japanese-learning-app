@@ -50,6 +50,46 @@ func TestServicePushNoteCreatesThenUpdatesSamePage(t *testing.T) {
 	}
 }
 
+func TestServiceListTargetsReturnsJSONSafeCollection(t *testing.T) {
+	tests := []struct {
+		name    string
+		prepare func(*fakeSyncStore)
+		wantLen int
+	}{
+		{
+			name:    "empty store returns an empty collection",
+			prepare: func(*fakeSyncStore) {},
+			wantLen: 0,
+		},
+		{
+			name: "populated store keeps its targets",
+			prepare: func(store *fakeSyncStore) {
+				store.targets[1] = &SyncTarget{ID: 1, UserID: 7, Name: "Notion"}
+			},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeSyncStore()
+			tt.prepare(store)
+			service := NewService(store, &fakeNoteStore{}, nil)
+
+			targets, err := service.ListTargets(7)
+			if err != nil {
+				t.Fatalf("ListTargets() error = %v", err)
+			}
+			if targets == nil {
+				t.Fatal("ListTargets() = nil, want a JSON-safe empty collection")
+			}
+			if len(targets) != tt.wantLen {
+				t.Fatalf("len(ListTargets()) = %d, want %d", len(targets), tt.wantLen)
+			}
+		})
+	}
+}
+
 func TestServicePushTargetClassifiesCreatedAndUpdated(t *testing.T) {
 	store := newFakeSyncStore()
 	store.targets[1] = &SyncTarget{ID: 1, UserID: 7, Type: TargetTypeNotion, Name: "Notion", DataSourceID: "source", TokenEnv: notion.DefaultTokenEnv, Enabled: true}

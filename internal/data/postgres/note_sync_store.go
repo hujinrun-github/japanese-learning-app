@@ -64,7 +64,7 @@ func (s *NoteSyncStore) ListTargets(userID int64) ([]notesync.SyncTarget, error)
 		return nil, fmt.Errorf("postgres.NoteSyncStore.ListTargets: %w", translateError(err))
 	}
 	defer rows.Close()
-	var result []notesync.SyncTarget
+	result := make([]notesync.SyncTarget, 0)
 	for rows.Next() {
 		item, scanErr := scanSyncTarget(rows)
 		if scanErr != nil {
