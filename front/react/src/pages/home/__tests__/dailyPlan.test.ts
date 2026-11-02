@@ -49,6 +49,11 @@ describe('pickNextPlanItem', () => {
     expect(next?.key).toBe('grammar')
   })
 
+  it('places translation after the existing practice modules', () => {
+    const next = pickNextPlanItem(plan([item('translation', 'todo'), item('writing', 'todo')]))
+    expect(next?.key).toBe('writing')
+  })
+
   it('keeps canonical order among started modules', () => {
     const next = pickNextPlanItem(plan([item('writing', 'in_progress'), item('word', 'in_progress')]))
     expect(next?.key).toBe('word')

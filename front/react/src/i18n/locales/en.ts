@@ -41,6 +41,7 @@ const en = {
     dailyGoalGrammar: 'Grammar',
     dailyGoalSpeaking: 'Speaking',
     dailyGoalWriting: 'Writing',
+    dailyGoalTranslation: 'Translation Questions',
     saveDailyGoals: 'Save Goals',
     saveDailyGoalsSuccess: 'Daily goals updated',
     audio: 'Audio Settings',

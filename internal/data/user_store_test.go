@@ -219,6 +219,86 @@ func TestUserStore_CountTodayCompleted_GrammarUsesQuizAttempts(t *testing.T) {
 	}
 }
 
+func TestUserStoreGetStatsIncludesTranslation(t *testing.T) {
+	store := &UserStore{db: testDB}
+	created, err := store.Create("", "translation-stats@example.com", "hash", `["N5"]`)
+	if err != nil {
+		t.Fatalf("Create error: %v", err)
+	}
+
+	result, err := testDB.Exec(
+		`INSERT INTO translation_sources (title, source_type, raw_content)
+		 VALUES ('Daily goal test', 'manual', '')`,
+	)
+	if err != nil {
+		t.Fatalf("insert translation source: %v", err)
+	}
+	sourceID, err := result.LastInsertId()
+	if err != nil {
+		t.Fatalf("translation source LastInsertId: %v", err)
+	}
+
+	records := []struct {
+		name         string
+		score        int
+		dateModifier string
+	}{
+		{name: "mastered today", score: 90, dateModifier: "0 days"},
+		{name: "attempted today", score: 70, dateModifier: "0 days"},
+		{name: "mastered before today", score: 85, dateModifier: "-2 days"},
+	}
+	for position, record := range records {
+		t.Run(record.name, func(t *testing.T) {
+			result, insertErr := testDB.Exec(
+				`INSERT INTO translation_sentences (source_id, direction, source_text, position)
+				 VALUES (?, 'cn2jp', ?, ?)`,
+				sourceID, record.name, position,
+			)
+			if insertErr != nil {
+				t.Fatalf("insert translation sentence: %v", insertErr)
+			}
+			sentenceID, insertErr := result.LastInsertId()
+			if insertErr != nil {
+				t.Fatalf("translation sentence LastInsertId: %v", insertErr)
+			}
+			if _, insertErr = testDB.Exec(
+				`INSERT INTO translation_records
+				 (user_id, sentence_id, user_translation, score, rule_score, practiced_at)
+				 VALUES (?, ?, '訳文', ?, ?, datetime('now', ?))`,
+				created.ID, sentenceID, record.score, record.score, record.dateModifier,
+			); insertErr != nil {
+				t.Fatalf("insert translation record: %v", insertErr)
+			}
+		})
+	}
+
+	var total int
+	if err := testDB.QueryRow(`SELECT COUNT(*) FROM translation_sentences`).Scan(&total); err != nil {
+		t.Fatalf("count translation sentences: %v", err)
+	}
+
+	stats, err := store.GetStats(created.ID)
+	if err != nil {
+		t.Fatalf("GetStats error: %v", err)
+	}
+	translation, ok := stats.ModuleStats["translation"]
+	if !ok {
+		t.Fatal("GetStats modules does not contain translation")
+	}
+	if translation.TotalCount != total {
+		t.Errorf("translation TotalCount = %d, want %d", translation.TotalCount, total)
+	}
+	if translation.MasteredCount != 2 {
+		t.Errorf("translation MasteredCount = %d, want 2", translation.MasteredCount)
+	}
+	if translation.TodayCompleted != 2 {
+		t.Errorf("translation TodayCompleted = %d, want 2", translation.TodayCompleted)
+	}
+	if translation.DailyGoal != 5 {
+		t.Errorf("translation DailyGoal = %d, want 5", translation.DailyGoal)
+	}
+}
+
 // TestUserStore_RecordStudyDay pins the streak transition rules:
 // hold on a repeat check-in, advance on a consecutive day, restart after a gap.
 func TestUserStore_RecordStudyDay(t *testing.T) {

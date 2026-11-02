@@ -36,10 +36,11 @@ type UpdatePasswordReq struct {
 
 // DailyGoalsReq 每日学习目标请求
 type DailyGoalsReq struct {
-	Word     int `json:"word"`
-	Grammar  int `json:"grammar"`
-	Speaking int `json:"speaking"`
-	Writing  int `json:"writing"`
+	Word        int `json:"word"`
+	Grammar     int `json:"grammar"`
+	Speaking    int `json:"speaking"`
+	Writing     int `json:"writing"`
+	Translation int `json:"translation"`
 }
 
 // JLPTLevel 表示 JLPT 等级（独立定义，避免循环依赖）
@@ -55,19 +56,19 @@ const (
 
 // User 用户账户
 type User struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Email       string    `json:"email"`
-	JLPTLevels  []string  `json:"jlpt_levels"`
-	StreakDays  int       `json:"streak_days"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	JLPTLevels []string  `json:"jlpt_levels"`
+	StreakDays int       `json:"streak_days"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 // RegisterReq 注册请求
 type RegisterReq struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
-	Password  string    `json:"password"`   // 明文，服务端立即哈希，不持久化
+	Password  string    `json:"password"` // 明文，服务端立即哈希，不持久化
 	GoalLevel JLPTLevel `json:"goal_level"`
 }
 

@@ -40,10 +40,11 @@ export interface DailyGoals {
   grammar: number
   speaking: number
   writing: number
+  translation: number
 }
 
 // Daily plan — GET /api/v1/daily-plan
-export type DailyPlanModuleKey = 'word' | 'grammar' | 'speaking' | 'writing'
+export type DailyPlanModuleKey = 'word' | 'grammar' | 'speaking' | 'writing' | 'translation'
 export type DailyPlanItemStatus = 'done' | 'in_progress' | 'todo'
 
 export interface DailyPlanItem {

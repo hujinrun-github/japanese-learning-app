@@ -252,6 +252,35 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 		DailyGoal:      goals["writing"],
 	}
 
+	translationTotal, err := s.countRows(`SELECT COUNT(*) FROM translation_sentences`)
+	if err != nil {
+		return nil, err
+	}
+	translationMastered, err := s.countRows(
+		`SELECT COUNT(DISTINCT sentence_id)
+		 FROM translation_records
+		 WHERE user_id = $1 AND score >= 80`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	translationToday, err := s.countRows(
+		`SELECT COUNT(*) FROM translation_records
+		 WHERE user_id = $1 AND practiced_at >= $2 AND practiced_at < $3`,
+		userID, start.UTC(), end.UTC(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	stats.ModuleStats["translation"] = user.ModuleStat{
+		DueCount:       translationTotal - translationMastered,
+		MasteredCount:  translationMastered,
+		TotalCount:     translationTotal,
+		TodayCompleted: translationToday,
+		DailyGoal:      goals["translation"],
+	}
+
 	return stats, nil
 }
 
@@ -583,10 +612,11 @@ func parseJLPTLevels(jsonStr string) []string {
 
 func parseDailyGoals(jsonStr string) map[string]int {
 	goals := map[string]int{
-		"word":     20,
-		"grammar":  5,
-		"speaking": 3,
-		"writing":  3,
+		"word":        20,
+		"grammar":     5,
+		"speaking":    3,
+		"writing":     3,
+		"translation": 5,
 	}
 
 	if jsonStr == "" || jsonStr == "{}" {

@@ -275,6 +275,7 @@ func (s *UserService) UpdateDailyGoals(userID int64, req DailyGoalsReq) error {
 	goals := map[string]int{
 		"word": req.Word, "grammar": req.Grammar,
 		"speaking": req.Speaking, "writing": req.Writing,
+		"translation": req.Translation,
 	}
 	if err := s.store.UpdateDailyGoals(userID, goals); err != nil {
 		slog.Error("UserService.UpdateDailyGoals failed", "err", err, "user_id", userID)

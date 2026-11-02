@@ -12,10 +12,11 @@ import "time"
 type ModuleKey string
 
 const (
-	ModuleWord     ModuleKey = "word"
-	ModuleGrammar  ModuleKey = "grammar"
-	ModuleSpeaking ModuleKey = "speaking"
-	ModuleWriting  ModuleKey = "writing"
+	ModuleWord        ModuleKey = "word"
+	ModuleGrammar     ModuleKey = "grammar"
+	ModuleSpeaking    ModuleKey = "speaking"
+	ModuleWriting     ModuleKey = "writing"
+	ModuleTranslation ModuleKey = "translation"
 )
 
 // PlanItemStatus is the completion state of a single plan item.
@@ -44,6 +45,7 @@ var moduleDescriptors = []moduleDescriptor{
 	{Key: ModuleGrammar, Path: "/grammar"},
 	{Key: ModuleSpeaking, Path: "/speaking"},
 	{Key: ModuleWriting, Path: "/writing"},
+	{Key: ModuleTranslation, Path: "/translation"},
 }
 
 // DailyPlanItem is one module's slice of today's plan.

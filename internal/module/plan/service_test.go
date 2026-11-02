@@ -154,11 +154,35 @@ func TestGetDailyPlanBuildsItemsFromGoals(t *testing.T) {
 	}
 }
 
+func TestGetDailyPlanIncludesTranslation(t *testing.T) {
+	svc, _ := newTestService(statsWith(map[string]user.ModuleStat{
+		"translation": {DailyGoal: 5, TodayCompleted: 2},
+	}), nil)
+
+	got, err := svc.GetDailyPlan(7)
+	if err != nil {
+		t.Fatalf("GetDailyPlan error: %v", err)
+	}
+	if len(got.Items) != 1 {
+		t.Fatalf("Items length = %d, want 1", len(got.Items))
+	}
+	item := got.Items[0]
+	if item.Key != ModuleTranslation {
+		t.Errorf("item Key = %q, want %q", item.Key, ModuleTranslation)
+	}
+	if item.Path != "/translation" {
+		t.Errorf("item Path = %q, want /translation", item.Path)
+	}
+	if item.Goal != 5 || item.Completed != 2 || item.Remaining != 3 {
+		t.Errorf("translation item = %+v, want goal/completed/remaining 5/2/3", item)
+	}
+}
+
 func TestGetDailyPlanSkipsModulesWithoutGoal(t *testing.T) {
 	svc, _ := newTestService(statsWith(map[string]user.ModuleStat{
 		"word":        {DailyGoal: 20, TodayCompleted: 20},
 		"grammar":     {DailyGoal: 0, TodayCompleted: 9},
-		"translation": {DailyGoal: 10, TodayCompleted: 1},
+		"translation": {DailyGoal: 0, TodayCompleted: 1},
 	}), nil)
 
 	got, err := svc.GetDailyPlan(1)
@@ -166,7 +190,7 @@ func TestGetDailyPlanSkipsModulesWithoutGoal(t *testing.T) {
 		t.Fatalf("GetDailyPlan error: %v", err)
 	}
 	if len(got.Items) != 1 {
-		t.Fatalf("Items length = %d, want 1 (goal-less and non-plan modules skipped)", len(got.Items))
+		t.Fatalf("Items length = %d, want 1 (goal-less modules skipped)", len(got.Items))
 	}
 	if got.Items[0].Key != ModuleWord {
 		t.Errorf("Items[0].Key = %q, want word", got.Items[0].Key)

@@ -33,6 +33,7 @@ export default function SettingsPage() {
   const [dailyGrammar, setDailyGrammar] = useState(5)
   const [dailySpeaking, setDailySpeaking] = useState(3)
   const [dailyWriting, setDailyWriting] = useState(3)
+  const [dailyTranslation, setDailyTranslation] = useState(5)
   const [dailyGoalMsg, setDailyGoalMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   // Notion sync target
@@ -56,6 +57,7 @@ export default function SettingsPage() {
       setDailyGrammar(stats.modules.grammar?.daily_goal ?? 5)
       setDailySpeaking(stats.modules.speaking?.daily_goal ?? 3)
       setDailyWriting(stats.modules.writing?.daily_goal ?? 5)
+      setDailyTranslation(stats.modules.translation?.daily_goal ?? 5)
     }).catch(() => {})
   }, [])
 
@@ -71,7 +73,13 @@ export default function SettingsPage() {
 
   const handleSaveDailyGoals = async () => {
     try {
-      await updateDailyGoals({ word: dailyWord, grammar: dailyGrammar, speaking: dailySpeaking, writing: dailyWriting })
+      await updateDailyGoals({
+        word: dailyWord,
+        grammar: dailyGrammar,
+        speaking: dailySpeaking,
+        writing: dailyWriting,
+        translation: dailyTranslation,
+      })
       setDailyGoalMsg({ text: t('settings.saveDailyGoalsSuccess'), ok: true })
     } catch {
       setDailyGoalMsg({ text: 'Error', ok: false })
@@ -365,6 +373,10 @@ export default function SettingsPage() {
           <div className={styles.field}>
             <label className={styles.label}>{t('settings.dailyGoalWriting')}</label>
             <input className={styles.input} type="number" min={0} max={20} value={dailyWriting} onChange={e => setDailyWriting(Number(e.target.value))} />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('settings.dailyGoalTranslation')}</label>
+            <input className={styles.input} type="number" min={0} max={50} value={dailyTranslation} onChange={e => setDailyTranslation(Number(e.target.value))} />
           </div>
         </div>
         <button className={styles.saveBtn} onClick={handleSaveDailyGoals}>

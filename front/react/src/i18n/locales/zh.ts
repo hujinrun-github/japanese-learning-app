@@ -41,6 +41,7 @@ const zh = {
     dailyGoalGrammar: '语法',
     dailyGoalSpeaking: '口语',
     dailyGoalWriting: '写作',
+    dailyGoalTranslation: '翻译题',
     saveDailyGoals: '保存目标',
     saveDailyGoalsSuccess: '每日目标已更新',
     audio: '音频设置',

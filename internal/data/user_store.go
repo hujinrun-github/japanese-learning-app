@@ -376,6 +376,13 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 		TodayCompleted: s.countTodayCompleted(userID, "writing"), DailyGoal: goals["writing"],
 	}
 
+	// translation
+	translationTotal, translationMastered := s.countTranslation(userID)
+	stats.ModuleStats["translation"] = user.ModuleStat{
+		DueCount: translationTotal - translationMastered, MasteredCount: translationMastered, TotalCount: translationTotal,
+		TodayCompleted: s.countTodayCompleted(userID, "translation"), DailyGoal: goals["translation"],
+	}
+
 	slog.Debug("UserStore.GetStats done", "user_id", userID)
 	return stats, nil
 }
@@ -424,8 +431,18 @@ func (s *UserStore) countWriting(userID int64) (total, mastered int) {
 	return
 }
 
+func (s *UserStore) countTranslation(userID int64) (total, mastered int) {
+	s.db.QueryRow(`SELECT COUNT(*) FROM translation_sentences`).Scan(&total)
+	s.db.QueryRow(
+		`SELECT COUNT(DISTINCT sentence_id) FROM translation_records
+		 WHERE user_id = ? AND score >= 80`,
+		userID,
+	).Scan(&mastered)
+	return
+}
+
 func defaultDailyGoals() map[string]int {
-	return map[string]int{"word": 20, "grammar": 5, "speaking": 3, "writing": 3}
+	return map[string]int{"word": 20, "grammar": 5, "speaking": 3, "writing": 3, "translation": 5}
 }
 
 func (s *UserStore) countTodayCompleted(userID int64, module string) int {
@@ -467,6 +484,12 @@ func (s *UserStore) countTodayCompleted(userID int64, module string) int {
 	case "writing":
 		s.db.QueryRow(
 			`SELECT COUNT(*) FROM writing_records
+			 WHERE user_id = ? AND date(practiced_at) = date('now')`,
+			userID,
+		).Scan(&count)
+	case "translation":
+		s.db.QueryRow(
+			`SELECT COUNT(*) FROM translation_records
 			 WHERE user_id = ? AND date(practiced_at) = date('now')`,
 			userID,
 		).Scan(&count)

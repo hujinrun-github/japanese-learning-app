@@ -7,6 +7,7 @@ const moduleOrder: Record<string, number> = {
   grammar: 1,
   speaking: 2,
   writing: 3,
+  translation: 4,
 }
 
 /**

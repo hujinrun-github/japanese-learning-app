@@ -3,6 +3,7 @@ package user_test
 import (
 	"database/sql"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -18,6 +19,8 @@ type fakeUserStore struct {
 	resetTokens   map[string]*user.ResetToken
 	studyDayCalls []int64
 	studyDayErr   error
+	dailyGoals    map[string]int
+	dailyGoalsUID int64
 }
 
 func newFakeUserStore() *fakeUserStore {
@@ -103,11 +106,16 @@ func (f *fakeUserStore) UpdateUser(id int64, name, email string, jlptLevels []st
 }
 
 func (f *fakeUserStore) UpdateDailyGoals(userID int64, goals map[string]int) error {
+	f.dailyGoalsUID = userID
+	f.dailyGoals = make(map[string]int, len(goals))
+	for key, value := range goals {
+		f.dailyGoals[key] = value
+	}
 	return nil
 }
 
 func (f *fakeUserStore) GetDailyGoals(userID int64) (map[string]int, error) {
-	return map[string]int{"word": 20, "grammar": 5, "speaking": 3, "writing": 3}, nil
+	return map[string]int{"word": 20, "grammar": 5, "speaking": 3, "writing": 3, "translation": 5}, nil
 }
 
 func (f *fakeUserStore) RecordStudyDay(userID int64) (int, error) {
@@ -119,6 +127,50 @@ func (f *fakeUserStore) RecordStudyDay(userID int64) (int, error) {
 }
 
 // --- tests ---
+
+func TestUserServiceUpdateDailyGoalsIncludesTranslation(t *testing.T) {
+	tests := []struct {
+		name string
+		req  user.DailyGoalsReq
+		want map[string]int
+	}{
+		{
+			name: "configured translation target is persisted",
+			req: user.DailyGoalsReq{
+				Word: 20, Grammar: 5, Speaking: 3, Writing: 3, Translation: 5,
+			},
+			want: map[string]int{
+				"word": 20, "grammar": 5, "speaking": 3, "writing": 3, "translation": 5,
+			},
+		},
+		{
+			name: "translation target can be disabled",
+			req: user.DailyGoalsReq{
+				Word: 20, Grammar: 5, Speaking: 3, Writing: 3, Translation: 0,
+			},
+			want: map[string]int{
+				"word": 20, "grammar": 5, "speaking": 3, "writing": 3, "translation": 0,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeUserStore()
+			svc := user.NewUserService(store, "jwt-secret", 24*time.Hour, &user.StubMailer{}, "http://localhost")
+
+			if err := svc.UpdateDailyGoals(7, tt.req); err != nil {
+				t.Fatalf("UpdateDailyGoals() error = %v", err)
+			}
+			if store.dailyGoalsUID != 7 {
+				t.Fatalf("UpdateDailyGoals() user ID = %d, want 7", store.dailyGoalsUID)
+			}
+			if !reflect.DeepEqual(store.dailyGoals, tt.want) {
+				t.Fatalf("UpdateDailyGoals() goals = %v, want %v", store.dailyGoals, tt.want)
+			}
+		})
+	}
+}
 
 func TestUserService_Register(t *testing.T) {
 	store := newFakeUserStore()

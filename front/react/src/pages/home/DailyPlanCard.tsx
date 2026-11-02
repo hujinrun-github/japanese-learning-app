@@ -10,6 +10,7 @@ const MODULE_META: Record<DailyPlanModuleKey, { icon: string; labelKey: string; 
   grammar: { icon: '📗', labelKey: 'home.modules.grammar', tone: 'green' },
   speaking: { icon: '🎙', labelKey: 'home.modules.speaking', tone: 'violet' },
   writing: { icon: '✍️', labelKey: 'home.modules.writing', tone: 'amber' },
+  translation: { icon: '🌐', labelKey: 'home.modules.translation', tone: 'teal' },
 }
 
 const STATUS_CLASS: Record<DailyPlanItemStatus, string> = {

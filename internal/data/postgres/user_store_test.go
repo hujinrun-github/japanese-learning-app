@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
 	storepkg "japanese-learning-app/internal/store"
 )
@@ -189,6 +190,76 @@ func TestUserStoreUpdatePasswordNotFound(t *testing.T) {
 	err := store.UpdatePassword(999999, "new-hash")
 	if !errors.Is(err, storepkg.ErrNotFound) {
 		t.Fatalf("UpdatePassword() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestUserStoreGetStatsIncludesTranslation(t *testing.T) {
+	db := newMigratedPostgresTestDB(t)
+	userStore := newPostgresUserStoreForDB(db)
+	translationStore := NewTranslationStore(db, storepkg.StoreDeps{
+		Clock:       fixedClock{now: time.Date(2026, 6, 17, 9, 0, 0, 0, time.UTC)},
+		AppTimezone: time.UTC,
+	})
+
+	created, err := userStore.CreateUser(user.User{
+		Name:  "Translation Stats",
+		Email: "translation-stats@example.com",
+	}, "hash")
+	if err != nil {
+		t.Fatalf("CreateUser error: %v", err)
+	}
+	sourceID, err := translationStore.SaveSource(translation.TranslationSource{
+		Title: "Daily goal test", SourceType: "manual",
+	})
+	if err != nil {
+		t.Fatalf("SaveSource error: %v", err)
+	}
+
+	records := []struct {
+		name        string
+		score       int
+		practicedAt time.Time
+	}{
+		{name: "mastered today", score: 90, practicedAt: time.Date(2026, 6, 17, 8, 0, 0, 0, time.UTC)},
+		{name: "attempted today", score: 70, practicedAt: time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC)},
+		{name: "mastered before today", score: 85, practicedAt: time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC)},
+	}
+	for position, record := range records {
+		t.Run(record.name, func(t *testing.T) {
+			sentenceID, saveErr := translationStore.SaveSentence(translation.TranslationSentence{
+				SourceID: sourceID, Direction: "cn2jp", SourceText: record.name, Position: position,
+			})
+			if saveErr != nil {
+				t.Fatalf("SaveSentence error: %v", saveErr)
+			}
+			if _, saveErr = translationStore.SaveRecord(translation.TranslationRecord{
+				UserID: created.ID, SentenceID: sentenceID, UserTranslation: "訳文",
+				Score: record.score, RuleScore: record.score, PracticedAt: record.practicedAt,
+			}); saveErr != nil {
+				t.Fatalf("SaveRecord error: %v", saveErr)
+			}
+		})
+	}
+
+	stats, err := userStore.GetStats(created.ID)
+	if err != nil {
+		t.Fatalf("GetStats error: %v", err)
+	}
+	translationStat, ok := stats.ModuleStats["translation"]
+	if !ok {
+		t.Fatal("GetStats modules does not contain translation")
+	}
+	if translationStat.TotalCount != len(records) {
+		t.Errorf("translation TotalCount = %d, want %d", translationStat.TotalCount, len(records))
+	}
+	if translationStat.MasteredCount != 2 {
+		t.Errorf("translation MasteredCount = %d, want 2", translationStat.MasteredCount)
+	}
+	if translationStat.TodayCompleted != 2 {
+		t.Errorf("translation TodayCompleted = %d, want 2", translationStat.TodayCompleted)
+	}
+	if translationStat.DailyGoal != 5 {
+		t.Errorf("translation DailyGoal = %d, want 5", translationStat.DailyGoal)
 	}
 }
 
