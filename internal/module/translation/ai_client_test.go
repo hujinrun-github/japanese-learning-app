@@ -41,3 +41,57 @@ func TestStubReviewer_Error(t *testing.T) {
 		t.Error("expected error, got nil")
 	}
 }
+
+func TestStubReviewer_DefaultFeedbackIncludesGrammar(t *testing.T) {
+	tests := []struct {
+		name             string
+		direction        string
+		sourceText       string
+		userTranslation  string
+		reference        string
+		wantGrammarCount int
+		wantNonZeroScore bool
+	}{
+		{
+			name:             "Japanese source for jp2cn",
+			direction:        "jp2cn",
+			sourceText:       "雨が降っています。",
+			userTranslation:  "正在下雨。",
+			reference:        "正在下雨。",
+			wantGrammarCount: 1,
+			wantNonZeroScore: true,
+		},
+		{
+			name:             "Japanese answer for cn2jp",
+			direction:        "cn2jp",
+			sourceText:       "正在下雨。",
+			userTranslation:  "雨が降っています。",
+			reference:        "雨が降っています。",
+			wantGrammarCount: 1,
+			wantNonZeroScore: true,
+		},
+		{
+			name:             "reference fallback for cn2jp",
+			direction:        "cn2jp",
+			sourceText:       "正在下雨。",
+			userTranslation:  "下雨了。",
+			reference:        "雨が降っています。",
+			wantGrammarCount: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fb, err := (&translation.StubReviewer{}).Review(tt.direction, tt.sourceText, tt.userTranslation, tt.reference)
+			if err != nil {
+				t.Fatalf("Review error: %v", err)
+			}
+			if tt.wantNonZeroScore && fb.AIScore == 0 {
+				t.Error("default feedback score should use local scoring")
+			}
+			if len(fb.GrammarExplanations) < tt.wantGrammarCount {
+				t.Errorf("GrammarExplanations len = %d, want at least %d", len(fb.GrammarExplanations), tt.wantGrammarCount)
+			}
+		})
+	}
+}

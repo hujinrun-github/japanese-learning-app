@@ -165,15 +165,19 @@ export function TranslationPracticePage() {
             ) : null}
           </div>
 
-          {currentResult.ai_feedback?.grammar_explanations && currentResult.ai_feedback.grammar_explanations.length > 0 && (
+          {currentResult.ai_feedback && (
             <div className={styles.grammarSection}>
               <p className={styles.grammarLabel}>📚 涉及语法</p>
-              {currentResult.ai_feedback.grammar_explanations.map((g, i) => (
-                <div key={i} className={styles.grammarTag}>
-                  <span className={styles.grammarPoint}>{g.grammar_point}</span>
-                  <span className={styles.grammarExplanation}>{g.explanation}</span>
-                </div>
-              ))}
+              {currentResult.ai_feedback.grammar_explanations?.length ? (
+                currentResult.ai_feedback.grammar_explanations.map((g, i) => (
+                  <div key={i} className={styles.grammarTag}>
+                    <span className={styles.grammarPoint}>{g.grammar_point}</span>
+                    <span className={styles.grammarExplanation}>{g.explanation}</span>
+                  </div>
+                ))
+              ) : (
+                <p className={styles.grammarEmpty}>本句未识别到可显示的语法点</p>
+              )}
             </div>
           )}
 

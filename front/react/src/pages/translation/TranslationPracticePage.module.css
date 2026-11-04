@@ -28,6 +28,7 @@
 .grammarTag:last-child { border-bottom: none; }
 .grammarPoint { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-brand); background: var(--color-brand-light); padding: 2px var(--space-2); border-radius: var(--radius-sm); }
 .grammarExplanation { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.grammarEmpty { font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0; }
 
 .commentary { padding: var(--space-5); background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: var(--space-4); }
 .commentaryLabel { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); margin: 0 0 var(--space-2) 0; }

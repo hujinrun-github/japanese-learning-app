@@ -1,6 +1,7 @@
 package translation_test
 
 import (
+	"fmt"
 	"testing"
 
 	"japanese-learning-app/internal/module/translation"
@@ -186,5 +187,65 @@ func TestService_SubmitTranslation(t *testing.T) {
 	}
 	if rec.AIFeedback == nil {
 		t.Error("AIFeedback should not be nil (stub reviewer)")
+	} else if len(rec.AIFeedback.GrammarExplanations) != 1 {
+		t.Fatalf("GrammarExplanations len = %d, want 1", len(rec.AIFeedback.GrammarExplanations))
+	}
+}
+
+func TestService_SubmitTranslationRuleScoreUsesReferenceTranslation(t *testing.T) {
+	tests := []struct {
+		name       string
+		userAnswer string
+		wantScore  int
+		wantExact  bool
+	}{
+		{name: "exact translation", userAnswer: "你好。", wantScore: 100, wantExact: true},
+		{name: "unrelated translation", userAnswer: "完全不同的答案。", wantScore: 100, wantExact: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeStore()
+			srcID, _ := store.SaveSource(translation.TranslationSource{Title: tt.name, SourceType: "manual", RawContent: "こんにちは。"})
+			sentID, _ := store.SaveSentence(translation.TranslationSentence{
+				SourceID: srcID, Direction: "jp2cn", SourceText: "こんにちは。", ReferenceTranslation: "你好。",
+			})
+
+			rec, err := translation.NewTranslationService(store, nil).SubmitTranslation(1, sentID, tt.userAnswer)
+			if err != nil {
+				t.Fatalf("SubmitTranslation error: %v", err)
+			}
+			if tt.wantExact && rec.RuleScore != tt.wantScore {
+				t.Errorf("RuleScore = %d, want %d for exact reference match", rec.RuleScore, tt.wantScore)
+			}
+			if !tt.wantExact && rec.RuleScore >= tt.wantScore {
+				t.Errorf("RuleScore = %d, want less than %d for unrelated translation", rec.RuleScore, tt.wantScore)
+			}
+		})
+	}
+}
+
+func TestService_SubmitTranslationReviewerErrorKeepsGrammarFallback(t *testing.T) {
+	store := newFakeStore()
+	srcID, _ := store.SaveSource(translation.TranslationSource{
+		Title: "Reviewer Error", SourceType: "manual", RawContent: "雨が降っています。",
+	})
+	sentID, _ := store.SaveSentence(translation.TranslationSentence{
+		SourceID: srcID, Direction: "jp2cn", SourceText: "雨が降っています。", ReferenceTranslation: "正在下雨。",
+	})
+
+	svc := translation.NewTranslationService(store, &translation.StubReviewer{Err: fmt.Errorf("AI unavailable")})
+	rec, err := svc.SubmitTranslation(1, sentID, "正在下雨。")
+	if err != nil {
+		t.Fatalf("SubmitTranslation error: %v", err)
+	}
+	if rec.AIFeedback == nil {
+		t.Fatal("AIFeedback should contain local fallback")
+	}
+	if len(rec.AIFeedback.GrammarExplanations) == 0 {
+		t.Fatal("local fallback should include detected grammar")
+	}
+	if rec.Score != rec.RuleScore {
+		t.Errorf("fallback Score = %d, RuleScore = %d, want them to match", rec.Score, rec.RuleScore)
 	}
 }

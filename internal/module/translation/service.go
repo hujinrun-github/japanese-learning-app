@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
+	"unicode"
 )
 
 // StoreInterface defines data access methods required by TranslationService.
@@ -108,7 +110,14 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 		return TranslationRecord{}, fmt.Errorf("translation.TranslationService.SubmitTranslation: sentence %d not found", sentenceID)
 	}
 
-	ruleScore := computeRuleScore(string(Direction(sent.Direction)), sent.SourceText, userTranslation)
+	ruleScore := computeRuleScoreForReference(string(Direction(sent.Direction)), sent.SourceText, userTranslation, sent.ReferenceTranslation)
+	slog.Debug("TranslationService.SubmitTranslation rule score calculated",
+		"direction", sent.Direction,
+		"source_len", len([]rune(sent.SourceText)),
+		"translation_len", len([]rune(userTranslation)),
+		"has_reference", normalizeTranslationForScore(sent.ReferenceTranslation) != "",
+		"rule_score", ruleScore,
+	)
 
 	rec := TranslationRecord{
 		UserID:          userID,
@@ -128,13 +137,20 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 		fb, aiErr := s.reviewer.Review(sent.Direction, sent.SourceText, userTranslation, sent.ReferenceTranslation)
 		if aiErr != nil {
 			slog.Error("TranslationService.SubmitTranslation: AI review failed", "err", aiErr)
-		} else {
-			rec.AIFeedback = &fb
-			rec.Score = fb.AIScore
-			// Update record with AI feedback
-			if raw, err := json.Marshal(fb); err == nil {
-				s.store.UpdateRecordFeedback(recID, fb.AIScore, string(raw))
-			}
+			fb = TranslationFeedback{AIScore: ruleScore}
+		}
+		if len(fb.GrammarExplanations) == 0 {
+			fb.GrammarExplanations = detectGrammarExplanations(sent.Direction, sent.SourceText, userTranslation, sent.ReferenceTranslation)
+		}
+		rec.AIFeedback = &fb
+		rec.Score = fb.AIScore
+		// Update record with AI feedback or the local fallback.
+		if raw, marshalErr := json.Marshal(fb); marshalErr != nil {
+			slog.Error("TranslationService.SubmitTranslation: marshal feedback failed", "err", marshalErr, "record_id", recID)
+		} else if updateErr := s.store.UpdateRecordFeedback(recID, fb.AIScore, string(raw)); updateErr != nil {
+			slog.Error("TranslationService.SubmitTranslation: UpdateRecordFeedback failed", "err", updateErr, "record_id", recID)
+		}
+		if aiErr == nil {
 			// Write back AI-generated reference translation to the sentence
 			// so subsequent users see it without needing another AI call.
 			if fb.ReferenceTranslation != "" && sent.ReferenceTranslation == "" {
@@ -160,62 +176,208 @@ func (s *TranslationService) ListRecords(userID int64) ([]TranslationRecord, err
 	return s.store.ListRecords(userID)
 }
 
-// computeRuleScore is the local rule-based scoring algorithm.
+// computeRuleScore is kept for callers that do not have a reference translation.
+// Without a reference, the result is only a structural estimate and is capped
+// below a perfect score so it cannot claim semantic correctness.
 func computeRuleScore(direction, source, translation string) int {
-	score := 50
+	return computeRuleScoreForReference(direction, source, translation, "")
+}
 
-	runes := []rune(translation)
+// computeRuleScoreForReference scores a translation against the expected
+// translation when one is available. This prevents the old length/grammar
+// heuristic from returning 100 for almost any non-empty answer.
+func computeRuleScoreForReference(direction, source, translation, reference string) int {
+	answer := normalizeTranslationForScore(translation)
+	if answer == "" {
+		return 0
+	}
+
+	expected := normalizeTranslationForScore(reference)
+	if expected != "" {
+		return translationSimilarityScore([]rune(answer), []rune(expected))
+	}
+
+	return fallbackRuleScore(direction, source, answer)
+}
+
+// translationSimilarityScore returns a normalized Levenshtein similarity in
+// the range [0, 100]. Punctuation and whitespace are removed before this
+// function is called, so harmless formatting differences do not lower a score.
+func translationSimilarityScore(answer, expected []rune) int {
+	if len(answer) == 0 || len(expected) == 0 {
+		return 0
+	}
+	if string(answer) == string(expected) {
+		return 100
+	}
+
+	previous := make([]int, len(expected)+1)
+	for j := range previous {
+		previous[j] = j
+	}
+	for i, answerRune := range answer {
+		current := make([]int, len(expected)+1)
+		current[0] = i + 1
+		for j, expectedRune := range expected {
+			cost := 0
+			if answerRune != expectedRune {
+				cost = 1
+			}
+			current[j+1] = min3(
+				current[j]+1,
+				previous[j+1]+1,
+				previous[j]+cost,
+			)
+		}
+		previous = current
+	}
+
+	distance := previous[len(expected)]
+	maxLen := max(len(answer), len(expected))
+	score := (maxLen - distance) * 100 / maxLen
+	return clampScore(score)
+}
+
+// fallbackRuleScore estimates answer quality when no reference translation
+// has been imported yet. It deliberately remains conservative because source
+// and answer alone cannot establish semantic correctness.
+func fallbackRuleScore(direction, source, answer string) int {
+	score := 20
+
 	srcRunes := []rune(source)
+	runes := []rune(answer)
 
-	// Length ratio check
 	if len(srcRunes) > 0 {
 		ratio := float64(len(runes)) / float64(len(srcRunes))
 		if ratio >= 0.5 && ratio <= 2.0 {
-			score += 25
+			score += 20
+		} else if ratio >= 0.25 && ratio <= 4.0 {
+			score += 10
 		}
 	}
 
-	// Grammar marker check for JP→CN
-	if direction == "jp2cn" {
-		markers := []string{"は", "が", "を", "に", "で", "へ", "と", "も", "か", "から", "まで", "より", "ので", "のに"}
-		present := 0
-		for _, m := range markers {
-			if contains(source, m) {
-				present++
-			}
-		}
-		if present > 0 {
-			score += min(present*2, 25)
-		}
+	if targetScriptLooksPlausible(direction, runes) {
+		score += 30
 	}
 
-	// Keyword check for CN→JP
-	if direction == "cn2jp" {
-		if len(runes) >= 2 {
-			score += 25
-		}
+	if len(runes) >= 2 {
+		score += 5
 	}
-
-	if score > 100 {
-		score = 100
-	}
-	return score
+	return min(score, 75)
 }
 
-func contains(s, substr string) bool {
-	runes := []rune(s)
-	subRunes := []rune(substr)
-	for i := 0; i <= len(runes)-len(subRunes); i++ {
-		match := true
-		for j, r := range subRunes {
-			if runes[i+j] != r {
-				match = false
-				break
-			}
+type grammarPattern struct {
+	needle       string
+	grammarPoint string
+	explanation  string
+}
+
+// detectGrammarExplanations provides a small local fallback for environments
+// where the AI reviewer is disabled or omits the grammar array. It intentionally
+// reports only patterns that are visibly present in the Japanese text.
+func detectGrammarExplanations(direction, sourceText, userTranslation, referenceTranslation string) []GrammarExplanation {
+	japaneseText := sourceText
+	if direction == string(DirectionCN2JP) {
+		japaneseText = userTranslation
+		if !containsJapaneseText(japaneseText) {
+			japaneseText = referenceTranslation
 		}
-		if match {
+	}
+	if !containsJapaneseText(japaneseText) {
+		return nil
+	}
+
+	patterns := []grammarPattern{
+		{needle: "ています", grammarPoint: "〜ている", explanation: "表示动作正在进行或状态持续"},
+		{needle: "ていました", grammarPoint: "〜ていた", explanation: "表示过去正在进行的动作或持续状态"},
+		{needle: "ている", grammarPoint: "〜ている", explanation: "表示动作正在进行或状态持续"},
+		{needle: "ていた", grammarPoint: "〜ていた", explanation: "表示过去正在进行的动作或持续状态"},
+		{needle: "ながら", grammarPoint: "〜ながら", explanation: "表示同时进行两个动作"},
+		{needle: "ように", grammarPoint: "〜ように", explanation: "表示目标、方式或变化结果"},
+		{needle: "ために", grammarPoint: "〜ために", explanation: "表示目的或原因"},
+		{needle: "ことが", grammarPoint: "〜ことがある", explanation: "将动作或事件名词化后说明经验或可能性"},
+		{needle: "のに", grammarPoint: "〜のに", explanation: "表示与预期相反或让步关系"},
+		{needle: "ので", grammarPoint: "〜ので", explanation: "表示较为客观、委婉的原因"},
+		{needle: "たら", grammarPoint: "〜たら", explanation: "表示条件或某动作完成之后"},
+		{needle: "なら", grammarPoint: "〜なら", explanation: "提出条件或限定话题"},
+		{needle: "ません", grammarPoint: "〜ません", explanation: "礼貌体的否定表达"},
+		{needle: "ない", grammarPoint: "〜ない", explanation: "表示否定"},
+		{needle: "たい", grammarPoint: "〜たい", explanation: "表示说话人的愿望"},
+		{needle: "から", grammarPoint: "〜から", explanation: "表示原因或理由"},
+		{needle: "まで", grammarPoint: "〜まで", explanation: "表示范围的终点"},
+		{needle: "より", grammarPoint: "〜より", explanation: "用于比较或表示起点"},
+		{needle: "は", grammarPoint: "は", explanation: "提示主题"},
+		{needle: "が", grammarPoint: "が", explanation: "提示主语或强调对象"},
+		{needle: "を", grammarPoint: "を", explanation: "标记动作的对象"},
+		{needle: "に", grammarPoint: "に", explanation: "表示时间、地点或动作对象"},
+		{needle: "で", grammarPoint: "で", explanation: "表示动作发生的地点或手段"},
+		{needle: "へ", grammarPoint: "へ", explanation: "表示移动的方向"},
+		{needle: "と", grammarPoint: "と", explanation: "表示共同动作对象或引用内容"},
+		{needle: "も", grammarPoint: "も", explanation: "表示也、同样"},
+	}
+
+	result := make([]GrammarExplanation, 0, len(patterns))
+	for _, pattern := range patterns {
+		if strings.Contains(japaneseText, pattern.needle) {
+			result = append(result, GrammarExplanation{
+				GrammarPoint: pattern.grammarPoint,
+				Explanation:  pattern.explanation,
+			})
+		}
+	}
+	return result
+}
+
+func containsJapaneseText(value string) bool {
+	for _, r := range value {
+		if unicode.In(r, unicode.Hiragana, unicode.Katakana) {
 			return true
 		}
 	}
 	return false
+}
+
+func normalizeTranslationForScore(value string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
+			return -1
+		}
+		return r
+	}, value)
+}
+
+func targetScriptLooksPlausible(direction string, answer []rune) bool {
+	hasKana := false
+	hasCJK := false
+	for _, r := range answer {
+		switch {
+		case unicode.In(r, unicode.Hiragana, unicode.Katakana):
+			hasKana = true
+		case unicode.In(r, unicode.Han):
+			hasCJK = true
+		}
+	}
+
+	switch direction {
+	case "cn2jp":
+		return hasKana
+	case "jp2cn":
+		return hasCJK && !hasKana
+	default:
+		return false
+	}
+}
+
+func clampScore(score int) int {
+	if score < 0 {
+		return 0
+	}
+	if score > 100 {
+		return 100
+	}
+	return score
+}
+
+func min3(a, b, c int) int {
+	return min(min(a, b), c)
 }
