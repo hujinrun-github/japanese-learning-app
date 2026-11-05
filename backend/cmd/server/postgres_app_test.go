@@ -241,6 +241,64 @@ func TestBuildPostgresServerMuxRegistersAudioStreamRoute(t *testing.T) {
 	}
 }
 
+func TestBuildPostgresServerMuxServesLegacyAudio(t *testing.T) {
+	db := newMigratedPostgresServerDB(t)
+	audioDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(audioDir, "examples"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(audioDir, "examples", "local.wav"), []byte("RIFFlocal"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO audio_objects (bucket, object_key, kind, visibility, content_sha256, size_bytes, mime_type, deleted_at)
+		VALUES
+			('audio', 'examples/local.wav', 'example_audio', 'public', 'local', 9, 'audio/wav', NULL),
+			('audio', 'examples/migrated.wav', 'example_audio', 'public', 'migrated', 9, 'audio/wav', NULL),
+			('audio', 'examples/private.wav', 'example_audio', 'private', 'private', 9, 'audio/wav', NULL),
+			('audio', 'examples/deleted.wav', 'example_audio', 'public', 'deleted', 9, 'audio/wav', now())
+	`); err != nil {
+		t.Fatalf("insert legacy audio fixtures: %v", err)
+	}
+
+	cfg := &config.Config{
+		DatabaseURL:    os.Getenv("DATABASE_URL_TEST"),
+		AudioStorePath: audioDir,
+		AppTimezone:    time.UTC,
+	}
+	mux, cleanup, err := buildPostgresServerMux(context.Background(), cfg, t.TempDir(), t.TempDir(), &user.StubMailer{}, "http://localhost:35173")
+	if err != nil {
+		t.Fatalf("buildPostgresServerMux error: %v", err)
+	}
+	defer cleanup()
+
+	tests := []struct {
+		name       string
+		byteRange  string
+		wantStatus int
+		wantBody   string
+	}{
+		{"local", "bytes=0-3", http.StatusPartialContent, "RIFF"},
+		{"migrated", "", http.StatusServiceUnavailable, "ERR_AUDIO_STORAGE_UNAVAILABLE"},
+		{"private", "", http.StatusNotFound, ""},
+		{"deleted", "", http.StatusNotFound, ""},
+		{"missing", "", http.StatusNotFound, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/audio/examples/"+tt.name+".wav", nil)
+			if tt.byteRange != "" {
+				req.Header.Set("Range", tt.byteRange)
+			}
+			mux.ServeHTTP(rec, req)
+			if rec.Code != tt.wantStatus || !strings.Contains(rec.Body.String(), tt.wantBody) {
+				t.Fatalf("status = %d, body = %q, want status %d and body containing %q", rec.Code, rec.Body.String(), tt.wantStatus, tt.wantBody)
+			}
+		})
+	}
+}
+
 func TestBuildPostgresServerMuxRegistersVideoStreamRoute(t *testing.T) {
 	db := newMigratedPostgresServerDB(t)
 	videoObjectID := insertServerTestVideoObject(t, db)

@@ -207,7 +207,7 @@ func main() {
 	mux.Handle("/api/v1/daily-plan", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Audio files (TTS-generated example audio)
-	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir("./data/audio"))))
+	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir(cfg.AudioStorePath))))
 
 	// Static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))

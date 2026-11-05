@@ -148,7 +148,6 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 }
 
 func registerStaticHandlers(mux *http.ServeMux, staticDir, templateDir string) {
-	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir("./data/audio"))))
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 
 	spaFS := http.Dir(templateDir)
