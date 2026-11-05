@@ -5,14 +5,25 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { WritingQuestion, WritingRecord, JLPTLevel } from '@/types/api'
+import type { WritingMode, WritingRecord, WritingTopic } from '@/types/api'
+import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './WritingQueuePage.module.css'
+
+const modes = ['essay', 'sentence'] as const
+const maxAnswerLength = 1000
+
+function scoreColor(score: number) {
+  if (score >= 80) return 'var(--color-success)'
+  if (score >= 60) return 'var(--color-warning)'
+  return 'var(--color-error)'
+}
 
 export function WritingQueuePage() {
   const { t } = useTranslation()
-  const [queue, setQueue] = useState<WritingQuestion[]>([])
+  const [topics, setTopics] = useState<WritingTopic[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [answer, setAnswer] = useState('')
+  const [mode, setMode] = useState<WritingMode>('essay')
+  const [drafts, setDrafts] = useState<Partial<Record<WritingMode, string>>>({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -20,19 +31,24 @@ export function WritingQueuePage() {
   const [records, setRecords] = useState<WritingRecord[]>([])
   const [recordsLoading, setRecordsLoading] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
+  const topic = topics[currentIndex]
+  const answer = drafts[mode] ?? ''
+  const trimmedAnswer = answer.trim()
+  const answerLength = Array.from(trimmedAnswer).length
+  const canSubmit = answerLength > 0 && answerLength <= maxAnswerLength
 
   useEffect(() => {
-    loadQueue()
+    void loadTopics()
   }, [])
 
-  async function loadQueue() {
+  async function loadTopics() {
     setLoading(true)
     setError('')
     try {
-      const data = await apiFetch<WritingQuestion[]>('GET', '/api/v1/writing/queue')
-      setQueue(data ?? [])
+      const data = await apiFetch<WritingTopic[]>('GET', '/api/v1/writing/topics')
+      setTopics(data ?? [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load')
+      setError(err instanceof Error ? err.message : t('writing.loadError'))
     } finally {
       setLoading(false)
     }
@@ -51,27 +67,18 @@ export function WritingQueuePage() {
   }
 
   async function handleSubmit() {
-    if (!answer.trim() || submitting) return
-    const q = queue[currentIndex]
+    if (!topic || !canSubmit || submitting) return
     setSubmitting(true)
     setError('')
     try {
-      let rec: WritingRecord
-      if (q.type === 'sentence') {
-        rec = await apiFetch<WritingRecord>('POST', '/api/v1/writing/sentence', {
-          question: q.prompt,
-          user_answer: answer,
-        })
-      } else {
-        rec = await apiFetch<WritingRecord>('POST', '/api/v1/writing/input', {
-          question_id: q.id,
-          question: q.prompt,
-          user_answer: answer,
-        })
-      }
+      const rec = await apiFetch<WritingRecord>('POST', `/api/v1/writing/topics/${topic.id}`, {
+        type: mode,
+        user_answer: trimmedAnswer,
+      })
       setFeedback(rec)
+      if (historyExpanded) void fetchRecords()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Submit failed')
+      setError(err instanceof Error ? err.message : t('writing.submitError'))
     } finally {
       setSubmitting(false)
     }
@@ -79,7 +86,7 @@ export function WritingQueuePage() {
 
   function handleNext() {
     setFeedback(null)
-    setAnswer('')
+    setDrafts({})
     setCurrentIndex((i) => i + 1)
   }
 
@@ -95,75 +102,91 @@ export function WritingQueuePage() {
     )
   }
 
-  const done = queue.length === 0 || currentIndex >= queue.length
-  const q = done ? null : queue[currentIndex]
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>{t('writing.title')}</h1>
-        {!done && (
+        <p className={styles.intro}>{t('writing.intro')}</p>
+        {topic && (
           <p className={styles.progress}>
-            {currentIndex + 1} / {queue.length}
+            {t('writing.progress', { current: currentIndex + 1, total: topics.length })}
           </p>
         )}
       </div>
 
-      {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-3)' }}>{error}</p>}
+      {error && <p className={styles.error} role="alert">{error}</p>}
 
-      {done ? (
-        <EmptyState icon="🎉" title={t('writing.done')} description={t('writing.doneDesc')} />
-      ) : (
+      {topic ? (
         <>
-          {/* Question */}
-          <div className={styles.questionCard}>
+          <section className={styles.questionCard} aria-labelledby="writing-topic">
             <div className={styles.questionHeader}>
-              <span className={styles.typeBadge}>{q!.type}</span>
-              {q!.jlpt_level && (
-                <Badge level={q!.jlpt_level as JLPTLevel} size="sm" />
-              )}
+              <span className={styles.topicLabel}>{t('writing.topic')}</span>
+              <Badge level={topic.jlpt_level} size="sm" />
             </div>
-            <p className={styles.prompt}>{q!.prompt}</p>
-
+            <h2 id="writing-topic" className={styles.topicTitle}>{topic.title}</h2>
+            {feedback ? (
+              <p className={styles.topicLabel}>{t(`writing.modes.${feedback.type}`)}</p>
+            ) : (
+              <div className={styles.modeSwitch} role="group" aria-label={t('writing.modeLabel')}>
+                {modes.map((option) => (
+                  <Button
+                    key={option}
+                    variant={option === mode ? 'primary' : 'secondary'}
+                    aria-pressed={option === mode}
+                    disabled={submitting}
+                    onClick={() => { setMode(option); setError('') }}
+                  >
+                    <span aria-hidden="true">{option === 'essay' ? '📝' : '✏️'}</span>
+                    {t(`writing.modes.${option}`)}
+                  </Button>
+                ))}
+              </div>
+            )}
+            <p className={styles.prompt} id="writing-instructions">
+              {mode === 'essay' ? topic.essay_prompt : topic.sentence_prompt}
+            </p>
+            <ErrataButton
+              key={`${topic.id}:${mode}`}
+              module="writing"
+              itemKey={`${topic.id}:${mode}`}
+              label={`${topic.title} — ${mode === 'essay' ? topic.essay_prompt : topic.sentence_prompt}`}
+            />
             {!feedback && (
               <>
+                <label className={styles.answerLabel} htmlFor="writing-answer">{t('writing.answerLabel')}</label>
                 <textarea
-                  className={styles.textarea}
+                  id="writing-answer"
+                  aria-describedby="writing-instructions writing-length"
+                  className={`${styles.textarea} ${mode === 'essay' ? styles.essayTextarea : ''}`}
                   placeholder={t('writing.placeholder')}
                   value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setDrafts((previous) => ({ ...previous, [mode]: value }))
+                  }}
                   disabled={submitting}
                 />
                 <div className={styles.submitRow}>
-                  <Button onClick={handleSubmit} loading={submitting} disabled={!answer.trim()}>
+                  <span id="writing-length" className={answerLength > maxAnswerLength ? styles.error : styles.progress}>
+                    {t('writing.answerLength', { count: answerLength, max: maxAnswerLength })}
+                  </span>
+                  <Button onClick={handleSubmit} loading={submitting} disabled={!canSubmit}>
                     {t('writing.submit')}
                   </Button>
                 </div>
               </>
             )}
-          </div>
+          </section>
 
           {/* Feedback */}
           {feedback && (
             <div className={styles.feedbackCard}>
-              <div className={styles.scoreRow}>
-                <div className={styles.scoreCircle} style={{
-                  borderColor: feedback.score >= 80
-                    ? 'var(--color-success)'
-                    : feedback.score >= 60
-                    ? 'var(--color-warning)'
-                    : 'var(--color-error)',
-                }}>
-                  <span className={styles.scoreNumber} style={{
-                    color: feedback.score >= 80
-                      ? 'var(--color-success)'
-                      : feedback.score >= 60
-                      ? 'var(--color-warning)'
-                      : 'var(--color-error)',
-                  }}>{feedback.score}</span>
-                  <span className={styles.scoreLabel}>{t('writing.feedback.score')}</span>
-                </div>
-                {feedback.ai_feedback && (
+              {feedback.ai_feedback ? (
+                <div className={styles.scoreRow}>
+                  <div className={styles.scoreCircle} style={{ borderColor: scoreColor(feedback.score) }}>
+                    <span className={styles.scoreNumber} style={{ color: scoreColor(feedback.score) }}>{feedback.score}</span>
+                    <span className={styles.scoreLabel}>{t('writing.feedback.score')}</span>
+                  </div>
                   <div className={styles.scoreTagRow}>
                     <span className={`${styles.scoreTag} ${feedback.ai_feedback.grammar_correct ? styles.tagGood : styles.tagBad}`}>
                       文法 {feedback.ai_feedback.grammar_correct ? '✓' : '✗'}
@@ -172,13 +195,15 @@ export function WritingQueuePage() {
                       語彙 {feedback.ai_feedback.vocab_correct ? '✓' : '✗'}
                     </span>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <p className={styles.ungraded} role="status">{t('writing.ungraded')}</p>
+              )}
 
               {feedback.user_answer && (
                 <div className={styles.feedbackSection}>
                   <div className={styles.feedbackSectionTitle}>{t('writing.feedback.yourAnswer')}</div>
-                  <div className={`${styles.feedbackText} ${feedback.score < 100 ? styles.answerWrong : ''}`}>
+                  <div className={styles.feedbackText} lang="ja">
                     {feedback.user_answer}
                   </div>
                 </div>
@@ -186,8 +211,10 @@ export function WritingQueuePage() {
 
               {feedback.ai_feedback?.corrected_sentence && (
                 <div className={styles.feedbackSection}>
-                  <div className={styles.feedbackSectionTitle}>{t('writing.feedback.corrected')}</div>
-                  <div className={styles.feedbackText}>{feedback.ai_feedback.corrected_sentence}</div>
+                  <div className={styles.feedbackSectionTitle}>
+                    {t(feedback.type === 'essay' ? 'writing.feedback.correctedEssay' : 'writing.feedback.corrected')}
+                  </div>
+                  <div className={styles.feedbackText} lang="ja">{feedback.ai_feedback.corrected_sentence}</div>
                 </div>
               )}
 
@@ -217,17 +244,23 @@ export function WritingQueuePage() {
               )}
 
               <div className={styles.nextRow}>
-                <Button onClick={handleNext}>{t('writing.next')}</Button>
+                <Button onClick={handleNext}>{t(currentIndex + 1 === topics.length ? 'writing.finish' : 'writing.next')}</Button>
               </div>
             </div>
           )}
         </>
+      ) : error ? (
+        <Button onClick={loadTopics} variant="secondary">{t('writing.retry')}</Button>
+      ) : (
+        <EmptyState icon="🎉" title={t('writing.done')} description={t('writing.doneDesc')} />
       )}
 
       {/* history */}
       <div className={styles.historySection}>
         <button
           className={styles.historyToggle}
+          aria-expanded={historyExpanded}
+          disabled={submitting}
           onClick={() => { setHistoryExpanded(!historyExpanded); if (!historyExpanded) fetchRecords() }}
         >
           {t('writing.records.title')} {historyExpanded ? '▲' : '▼'}
@@ -245,21 +278,19 @@ export function WritingQueuePage() {
               {records.map((rec) => (
                 <div key={rec.id} className={styles.recordItem}>
                   <div className={styles.recordTop}>
-                    <span className={styles.recordType}>{rec.type}</span>
+                    <span className={styles.recordType}>{t(`writing.modes.${rec.type}`)}</span>
                     <span className={styles.recordDate}>{formatDate(rec.practiced_at)}</span>
                   </div>
                   <div className={styles.recordPrompt}>{rec.question}</div>
-                  <div className={styles.recordAnswer}>{rec.user_answer}</div>
+                  <div className={styles.recordAnswer} lang="ja">{rec.user_answer}</div>
                   <div className={styles.recordBottom}>
-                    <span className={styles.scoreBadge} style={{
-                      background: rec.score >= 80
-                        ? 'var(--color-success)'
-                        : rec.score >= 60
-                        ? 'var(--color-warning)'
-                        : 'var(--color-error)',
-                    }}>
-                      {t('writing.score')} {rec.score}
-                    </span>
+                    {rec.type === 'input' || rec.ai_feedback ? (
+                      <span className={styles.scoreBadge} style={{ background: scoreColor(rec.score) }}>
+                        {t('writing.score')} {rec.score}
+                      </span>
+                    ) : (
+                      <span className={styles.recordDate}>{t('writing.ungradedShort')}</span>
+                    )}
                     {rec.ai_feedback?.reference_answer && (
                       <span className={styles.recordRef}>{rec.ai_feedback.reference_answer}</span>
                     )}

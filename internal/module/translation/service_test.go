@@ -63,23 +63,8 @@ func (f *fakeStore) GetSentenceByID(id int64) (*translation.TranslationSentence,
 	return &s, nil
 }
 
-func (f *fakeStore) GetDailyQueue(userID int64, limit int) ([]translation.TranslationSentence, error) {
-	var done map[int64]bool
-	for _, r := range f.records {
-		if r.UserID == userID && r.Score >= 80 {
-			if done == nil {
-				done = make(map[int64]bool)
-			}
-			done[r.SentenceID] = true
-		}
-	}
-	var out []translation.TranslationSentence
-	for _, s := range f.sentences {
-		if !done[s.ID] && len(out) < limit {
-			out = append(out, s)
-		}
-	}
-	return out, nil
+func (f *fakeStore) ListUnpracticedSentences(userID, sourceID int64, limit int) ([]translation.TranslationSentence, error) {
+	return nil, nil // The practice queue is covered by the database integration test.
 }
 
 func (f *fakeStore) SaveRecord(r translation.TranslationRecord) (int64, error) {
@@ -148,7 +133,7 @@ func TestService_ImportSource(t *testing.T) {
 		t.Fatal("ImportSource returned nil source")
 	}
 
-	sentences, err := svc.GetFreeSentences(0, "", result.ID)
+	sentences, err := svc.GetFreeSentences(0, "", result.ID, false)
 	if err != nil {
 		t.Fatalf("GetFreeSentences error: %v", err)
 	}
@@ -163,22 +148,22 @@ func TestService_SubmitTranslation(t *testing.T) {
 		Feedback: translation.TranslationFeedback{
 			AIScore: 88,
 			GrammarExplanations: []translation.GrammarExplanation{
-				{GrammarPoint: "です", Explanation: "polite copula"},
+				{GrammarPoint: "〜ている", Explanation: "表示正在进行", Evidence: "降っています"},
 			},
 			IssueDescription:     "",
-			CorrectedTranslation: "你好。",
-			ReferenceTranslation: "你好。",
+			CorrectedTranslation: "雨が降っています。",
+			ReferenceTranslation: "雨が降っています。",
 		},
 	})
 
 	srcID, _ := store.SaveSource(translation.TranslationSource{
-		Title: "Submit Test", SourceType: "manual", RawContent: "こんにちは。",
+		Title: "Submit Test", SourceType: "manual", RawContent: "正在下雨。",
 	})
 	sentID, _ := store.SaveSentence(translation.TranslationSentence{
-		SourceID: srcID, Direction: "jp2cn", SourceText: "こんにちは。",
+		SourceID: srcID, Direction: "cn2jp", SourceText: "正在下雨。",
 	})
 
-	rec, err := svc.SubmitTranslation(1, sentID, "你好。")
+	rec, err := svc.SubmitTranslation(1, sentID, "雨が降っています。")
 	if err != nil {
 		t.Fatalf("SubmitTranslation error: %v", err)
 	}
@@ -189,6 +174,8 @@ func TestService_SubmitTranslation(t *testing.T) {
 		t.Error("AIFeedback should not be nil (stub reviewer)")
 	} else if len(rec.AIFeedback.GrammarExplanations) != 1 {
 		t.Fatalf("GrammarExplanations len = %d, want 1", len(rec.AIFeedback.GrammarExplanations))
+	} else if rec.AIFeedback.GrammarSource != "ai" {
+		t.Errorf("GrammarSource = %q, want ai", rec.AIFeedback.GrammarSource)
 	}
 }
 

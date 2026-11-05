@@ -5,6 +5,7 @@ import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import type { Lesson } from '@/types/api'
+import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './LessonPage.module.css'
 
 export function LessonDetailPage() {
@@ -70,6 +71,7 @@ export function LessonDetailPage() {
       </button>
 
       <h1 className={styles.detailTitle}>{lesson.title}</h1>
+      <ErrataButton key={lesson.id} module="lesson" itemKey={String(lesson.id)} label={lesson.title} />
       <div className={styles.detailMeta}>
         <Badge level={lesson.jlpt_level} size="sm" />
         <span className={styles.charCount}>{t('lesson.chars', { count: lesson.char_count })}</span>
@@ -106,6 +108,11 @@ export function LessonDetailPage() {
             {showTranslation && sentence.chinese && (
               <div className={styles.sentenceZh}>{sentence.chinese}</div>
             )}
+            <ErrataButton
+              module="lesson"
+              itemKey={`${lesson.id}:sentence:${sentence.index}`}
+              label={sentence.tokens.map((token) => token.surface).join('')}
+            />
           </div>
         ))}
       </div>

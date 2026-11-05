@@ -11,6 +11,7 @@ import (
 
 	"japanese-learning-app/internal/config"
 	"japanese-learning-app/internal/data"
+	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/note"
@@ -107,16 +108,15 @@ func main() {
 	var aiReviewer writing.AIReviewer
 	if aiAPIKey != "" {
 		slog.Info("using ClaudeClient for AI writing review", "endpoint", aiEndpoint)
-		aiReviewer = writing.NewClaudeClient(aiAPIKey)
+		aiReviewer = writing.NewClaudeClient(aiAPIKey, aiEndpoint, time.Duration(cfg.AITimeoutSec)*time.Second)
 	} else {
-		slog.Warn("AI_API_KEY not set — using StubReviewer (no real AI feedback)")
-		aiReviewer = &writing.StubReviewer{}
+		slog.Warn("AI_API_KEY not set — topic writing will be saved without AI feedback")
 	}
 
 	// ── AI reviewer (translation) ──────────────────────────────────────────────
 	var translationReviewer translation.TranslationReviewer
 	if aiAPIKey != "" {
-		translationReviewer = translation.NewClaudeTranslationReviewer(aiAPIKey)
+		translationReviewer = translation.NewClaudeTranslationReviewer(aiAPIKey, aiEndpoint, time.Duration(cfg.AITimeoutSec)*time.Second)
 	} else {
 		slog.Warn("AI_API_KEY not set — using StubReviewer for translation (no real AI feedback)")
 		translationReviewer = &translation.StubReviewer{}
@@ -188,6 +188,7 @@ func main() {
 	translationH.RegisterRoutes(protectedMux)
 	shadowingH.RegisterRoutes(protectedMux)
 	planH.RegisterRoutes(protectedMux)
+	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
 
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
@@ -205,6 +206,7 @@ func main() {
 	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/daily-plan", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/errata", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Audio files (TTS-generated example audio)
 	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir(cfg.AudioStorePath))))

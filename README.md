@@ -163,7 +163,7 @@ npm run dev      # http://localhost:35173，/api 和 /audio 代理至 :30081
 | `DB_PATH` | `./data/app.db` | SQLite 数据库路径 |
 | `JWT_SECRET` | `change-me-in-production` | 生产环境必须修改 |
 | `LOG_LEVEL` | `INFO` | DEBUG / INFO / WARN / ERROR |
-| `AI_API_KEY` | `""` | Claude API 密钥（空则使用 Stub 评分） |
+| `AI_API_KEY` | `""` | Claude API 密钥（留空时，主题写作会保存为未批改） |
 | `RESEND_API_KEY` | `""` | Resend API Key；设置后密码重置邮件优先通过 Resend SMTP 发送 |
 | `RESEND_FROM` | `""` | Resend 发件地址，如 `noreply@example.com`；为空时使用 `SMTP_FROM` |
 | `SMTP_HOST` | `""` | SMTP 服务器（密码重置邮件，空则使用 Stub） |

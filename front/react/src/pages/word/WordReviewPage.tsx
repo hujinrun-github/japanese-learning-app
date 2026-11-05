@@ -10,6 +10,7 @@ import { speakExample, speakWord } from '@/util/exampleAudio'
 import type { WordCard, JLPTLevel } from '@/types/api'
 import { evaluateDictationAnswer, normalizeDictationAnswer, wordRequiresKanji } from './dictationAnswer'
 import type { DictationAnswerResult } from './dictationAnswer'
+import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './WordReviewPage.module.css'
 
 const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
@@ -246,6 +247,16 @@ export function WordReviewPage() {
           <p className={styles.progress}>
             {t('word.queue.progress', { current: currentIndex + 1, total: queue.length })}
           </p>
+          {card && (
+            <ErrataButton
+              key={`${card.word.id}:${mode}`}
+              module="word"
+              itemKey={`${card.word.id}:${mode}`}
+              label={mode === 'dictation' && !flipped
+                ? t('errata.dictationItem', { id: card.word.id })
+                : `${card.word.kanji_form}・${card.word.reading}`}
+            />
+          )}
 
           <div className={`${styles.cardScene} ${mode === 'dictation' ? styles.dictationCardScene : ''}`}>
             <div className={`${styles.cardInner} ${flipped ? styles.cardFlipped : ''}`}>

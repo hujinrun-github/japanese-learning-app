@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
+	"unicode/utf8"
 
 	"japanese-learning-app/internal/httputil"
 	"japanese-learning-app/internal/module/user"
@@ -32,11 +34,15 @@ func (h *WritingHandler) SetStreakRecorder(r user.StreakRecorder) {
 //	GET  /api/v1/writing/queue           → GetDailyQueue
 //	POST /api/v1/writing/input           → SubmitInput
 //	POST /api/v1/writing/sentence        → SubmitSentence
+//	GET  /api/v1/writing/topics          → ListTopics
+//	POST /api/v1/writing/topics/{id}     → SubmitTopic
 //	GET  /api/v1/writing/records         → ListRecords
 func (h *WritingHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/writing/queue", h.handleGetDailyQueue)
 	mux.HandleFunc("POST /api/v1/writing/input", h.handleSubmitInput)
 	mux.HandleFunc("POST /api/v1/writing/sentence", h.handleSubmitSentence)
+	mux.HandleFunc("GET /api/v1/writing/topics", h.handleListTopics)
+	mux.HandleFunc("POST /api/v1/writing/topics/{id}", h.handleSubmitTopic)
 	mux.HandleFunc("GET /api/v1/writing/records", h.handleListRecords)
 }
 
@@ -147,4 +153,53 @@ func (h *WritingHandler) handleListRecords(w http.ResponseWriter, r *http.Reques
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: records})
+}
+
+func (h *WritingHandler) handleListTopics(w http.ResponseWriter, r *http.Request) {
+	if _, ok := user.UserIDFromContext(r.Context()); !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: writingTopics()})
+}
+
+func (h *WritingHandler) handleSubmitTopic(w http.ResponseWriter, r *http.Request) {
+	userID, ok := user.UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+
+	var req struct {
+		Type       WritingType `json:"type"`
+		UserAnswer string      `json:"user_answer"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Debug("handleSubmitTopic: invalid request", "err", err, "user_id", userID)
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
+		return
+	}
+	answer := strings.TrimSpace(req.UserAnswer)
+	if (req.Type != WritingTypeEssay && req.Type != WritingTypeSentence) || answer == "" || utf8.RuneCountInString(answer) > 1000 {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "type must be essay or sentence and user_answer must be 1–1000 characters", "")
+		return
+	}
+
+	topicID := r.PathValue("id")
+	for _, topic := range writingTopics() {
+		if topic.ID != topicID {
+			continue
+		}
+		rec, err := h.svc.submitTopic(userID, topic, req.Type, answer)
+		if err != nil {
+			slog.Error("handleSubmitTopic failed", "err", err, "user_id", userID, "topic_id", topicID)
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to submit writing", "")
+			return
+		}
+		user.RecordStudyDayBestEffort(h.streak, userID)
+		httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: rec})
+		return
+	}
+	httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "writing topic not found", "")
 }

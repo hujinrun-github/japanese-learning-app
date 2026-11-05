@@ -29,11 +29,14 @@
 .grammarPoint { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-brand); background: var(--color-brand-light); padding: 2px var(--space-2); border-radius: var(--radius-sm); }
 .grammarExplanation { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
 .grammarEmpty { font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0; }
+.grammarSource { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-bottom: var(--space-2); }
+.grammarEvidence { color: var(--color-text-secondary); font-size: var(--font-size-sm); overflow-wrap: anywhere; }
 
 .commentary { padding: var(--space-5); background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: var(--space-4); }
 .commentaryLabel { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); margin: 0 0 var(--space-2) 0; }
 .commentaryText { font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: var(--line-height-relaxed); margin: 0; }
-.correctedSection { padding: var(--space-5); background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.correctedSection, .referenceSection { padding: var(--space-5); background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.referenceSection { margin-bottom: var(--space-4); }
 .correctedLabel { font-size: var(--font-size-xs); font-weight: 700; color: var(--color-text-muted); margin: 0 0 var(--space-1) 0; }
 .correctedText { font-size: var(--font-size-md); color: var(--color-brand); margin: 0; font-weight: 700; }
 
@@ -45,6 +48,7 @@
   .sourceText,
   .grammarSection,
   .commentary,
+  .referenceSection,
   .correctedSection { padding: var(--space-4); }
   .scores { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
   .scoreItem { justify-content: center; padding-inline: var(--space-3); }

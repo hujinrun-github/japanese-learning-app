@@ -6,6 +6,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import type { PracticeMode, ShadowingSession as ShadowingSessionDTO } from '@/types/shadowing'
 import { getCurrentSentenceIndex } from '@/util/shadowing/currentSentence'
 import { selectShadowingMedia } from '@/util/shadowing/media'
+import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './ShadowingPage.module.css'
 
 export function ShadowingPage() {
@@ -312,6 +313,7 @@ export function ShadowingPage() {
         <div>
           <p className={styles.eyebrow}>{media.kind === 'video' ? 'Video Shadowing' : 'Audio Shadowing'}</p>
           <h1 className={styles.title}>{session.lesson.title}</h1>
+          <ErrataButton module="shadowing" itemKey={String(session.lesson.id)} label={session.lesson.title} />
         </div>
         <div className={styles.progressPill}>
           {session.completed_sentence_count}/{session.lesson.sentences.length} completed
@@ -360,6 +362,11 @@ export function ShadowingPage() {
               )}
             </div>
             <p className={styles.sentenceZh}>{sentence.chinese}</p>
+            <ErrataButton
+              module="shadowing"
+              itemKey={`${session.lesson.id}:v${session.lesson.shadowing_version}:sentence:${sentence.index}`}
+              label={sentence.tokens.map((token) => token.surface).join('')}
+            />
           </>
         ) : (
           <p className={styles.sentenceZh}>Select a sentence to start.</p>

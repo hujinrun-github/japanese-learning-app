@@ -15,7 +15,7 @@ type StoreInterface interface {
 	ListSources() ([]TranslationSource, error)
 	ListSentencesBySource(sourceID int64) ([]TranslationSentence, error)
 	GetSentenceByID(id int64) (*TranslationSentence, error)
-	GetDailyQueue(userID int64, limit int) ([]TranslationSentence, error)
+	ListUnpracticedSentences(userID, sourceID int64, limit int) ([]TranslationSentence, error)
 	SaveRecord(r TranslationRecord) (int64, error)
 	GetRecord(id int64) (*TranslationRecord, error)
 	ListRecords(userID int64) ([]TranslationRecord, error)
@@ -71,13 +71,15 @@ func (s *TranslationService) ImportSource(src TranslationSource) (*TranslationSo
 // GetDailyQueue returns today's practice sentences for the user.
 func (s *TranslationService) GetDailyQueue(userID int64, count int) ([]TranslationSentence, error) {
 	slog.Debug("TranslationService.GetDailyQueue called", "user_id", userID)
-	return s.store.GetDailyQueue(userID, count)
+	return s.store.ListUnpracticedSentences(userID, 0, count)
 }
 
-// GetFreeSentences returns sentences filtered by direction and/or source.
-func (s *TranslationService) GetFreeSentences(userID int64, direction string, sourceID int64) ([]TranslationSentence, error) {
-	_ = userID // reserved for future filtering
+// GetFreeSentences returns a source's sentences for practice or review.
+func (s *TranslationService) GetFreeSentences(userID int64, direction string, sourceID int64, unpracticed bool) ([]TranslationSentence, error) {
 	if sourceID > 0 {
+		if unpracticed {
+			return s.store.ListUnpracticedSentences(userID, sourceID, 0)
+		}
 		return s.store.ListSentencesBySource(sourceID)
 	}
 	return nil, nil
@@ -120,11 +122,12 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 	)
 
 	rec := TranslationRecord{
-		UserID:          userID,
-		SentenceID:      sentenceID,
-		UserTranslation: userTranslation,
-		RuleScore:       ruleScore,
-		Score:           ruleScore, // initial score = rule score, updated after AI review
+		UserID:               userID,
+		SentenceID:           sentenceID,
+		UserTranslation:      userTranslation,
+		ReferenceTranslation: strings.TrimSpace(sent.ReferenceTranslation),
+		RuleScore:            ruleScore,
+		Score:                ruleScore, // initial score = rule score, updated after AI review
 	}
 
 	recID, err := s.store.SaveRecord(rec)
@@ -139,9 +142,12 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 			slog.Error("TranslationService.SubmitTranslation: AI review failed", "err", aiErr)
 			fb = TranslationFeedback{AIScore: ruleScore}
 		}
-		if len(fb.GrammarExplanations) == 0 {
-			fb.GrammarExplanations = detectGrammarExplanations(sent.Direction, sent.SourceText, userTranslation, sent.ReferenceTranslation)
+		generated := strings.TrimSpace(fb.ReferenceTranslation)
+		if rec.ReferenceTranslation == "" {
+			rec.ReferenceTranslation = generated
 		}
+		applyGrammarFeedback(&fb, *sent, rec.ReferenceTranslation)
+		slog.Debug("translation grammar selected", "sentence_id", sentenceID, "source", fb.GrammarSource, "count", len(fb.GrammarExplanations))
 		rec.AIFeedback = &fb
 		rec.Score = fb.AIScore
 		// Update record with AI feedback or the local fallback.
@@ -150,13 +156,9 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 		} else if updateErr := s.store.UpdateRecordFeedback(recID, fb.AIScore, string(raw)); updateErr != nil {
 			slog.Error("TranslationService.SubmitTranslation: UpdateRecordFeedback failed", "err", updateErr, "record_id", recID)
 		}
-		if aiErr == nil {
-			// Write back AI-generated reference translation to the sentence
-			// so subsequent users see it without needing another AI call.
-			if fb.ReferenceTranslation != "" && sent.ReferenceTranslation == "" {
-				if err := s.store.UpdateSentenceReference(sentenceID, fb.ReferenceTranslation); err != nil {
-					slog.Error("TranslationService.SubmitTranslation: UpdateSentenceReference failed", "err", err)
-				}
+		if generated != "" && strings.TrimSpace(sent.ReferenceTranslation) == "" {
+			if err := s.store.UpdateSentenceReference(sentenceID, generated); err != nil {
+				slog.Error("TranslationService.SubmitTranslation: UpdateSentenceReference failed", "err", err, "sentence_id", sentenceID)
 			}
 		}
 	}
@@ -168,12 +170,33 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 
 // GetResult returns a single record by ID.
 func (s *TranslationService) GetResult(recordID int64) (*TranslationRecord, error) {
-	return s.store.GetRecord(recordID)
+	rec, err := s.store.GetRecord(recordID)
+	if err != nil {
+		return nil, fmt.Errorf("translation.TranslationService.GetResult: %w", err)
+	}
+	if rec != nil {
+		resolveRecordReference(rec)
+	}
+	return rec, nil
 }
 
 // ListRecords returns all translation records for a user.
 func (s *TranslationService) ListRecords(userID int64) ([]TranslationRecord, error) {
-	return s.store.ListRecords(userID)
+	records, err := s.store.ListRecords(userID)
+	if err != nil {
+		return nil, fmt.Errorf("translation.TranslationService.ListRecords: %w", err)
+	}
+	for i := range records {
+		resolveRecordReference(&records[i])
+	}
+	return records, nil
+}
+
+func resolveRecordReference(rec *TranslationRecord) {
+	rec.ReferenceTranslation = strings.TrimSpace(rec.ReferenceTranslation)
+	if rec.ReferenceTranslation == "" && rec.AIFeedback != nil {
+		rec.ReferenceTranslation = strings.TrimSpace(rec.AIFeedback.ReferenceTranslation)
+	}
 }
 
 // computeRuleScore is kept for callers that do not have a reference translation.
@@ -264,77 +287,6 @@ func fallbackRuleScore(direction, source, answer string) int {
 		score += 5
 	}
 	return min(score, 75)
-}
-
-type grammarPattern struct {
-	needle       string
-	grammarPoint string
-	explanation  string
-}
-
-// detectGrammarExplanations provides a small local fallback for environments
-// where the AI reviewer is disabled or omits the grammar array. It intentionally
-// reports only patterns that are visibly present in the Japanese text.
-func detectGrammarExplanations(direction, sourceText, userTranslation, referenceTranslation string) []GrammarExplanation {
-	japaneseText := sourceText
-	if direction == string(DirectionCN2JP) {
-		japaneseText = userTranslation
-		if !containsJapaneseText(japaneseText) {
-			japaneseText = referenceTranslation
-		}
-	}
-	if !containsJapaneseText(japaneseText) {
-		return nil
-	}
-
-	patterns := []grammarPattern{
-		{needle: "ています", grammarPoint: "〜ている", explanation: "表示动作正在进行或状态持续"},
-		{needle: "ていました", grammarPoint: "〜ていた", explanation: "表示过去正在进行的动作或持续状态"},
-		{needle: "ている", grammarPoint: "〜ている", explanation: "表示动作正在进行或状态持续"},
-		{needle: "ていた", grammarPoint: "〜ていた", explanation: "表示过去正在进行的动作或持续状态"},
-		{needle: "ながら", grammarPoint: "〜ながら", explanation: "表示同时进行两个动作"},
-		{needle: "ように", grammarPoint: "〜ように", explanation: "表示目标、方式或变化结果"},
-		{needle: "ために", grammarPoint: "〜ために", explanation: "表示目的或原因"},
-		{needle: "ことが", grammarPoint: "〜ことがある", explanation: "将动作或事件名词化后说明经验或可能性"},
-		{needle: "のに", grammarPoint: "〜のに", explanation: "表示与预期相反或让步关系"},
-		{needle: "ので", grammarPoint: "〜ので", explanation: "表示较为客观、委婉的原因"},
-		{needle: "たら", grammarPoint: "〜たら", explanation: "表示条件或某动作完成之后"},
-		{needle: "なら", grammarPoint: "〜なら", explanation: "提出条件或限定话题"},
-		{needle: "ません", grammarPoint: "〜ません", explanation: "礼貌体的否定表达"},
-		{needle: "ない", grammarPoint: "〜ない", explanation: "表示否定"},
-		{needle: "たい", grammarPoint: "〜たい", explanation: "表示说话人的愿望"},
-		{needle: "から", grammarPoint: "〜から", explanation: "表示原因或理由"},
-		{needle: "まで", grammarPoint: "〜まで", explanation: "表示范围的终点"},
-		{needle: "より", grammarPoint: "〜より", explanation: "用于比较或表示起点"},
-		{needle: "は", grammarPoint: "は", explanation: "提示主题"},
-		{needle: "が", grammarPoint: "が", explanation: "提示主语或强调对象"},
-		{needle: "を", grammarPoint: "を", explanation: "标记动作的对象"},
-		{needle: "に", grammarPoint: "に", explanation: "表示时间、地点或动作对象"},
-		{needle: "で", grammarPoint: "で", explanation: "表示动作发生的地点或手段"},
-		{needle: "へ", grammarPoint: "へ", explanation: "表示移动的方向"},
-		{needle: "と", grammarPoint: "と", explanation: "表示共同动作对象或引用内容"},
-		{needle: "も", grammarPoint: "も", explanation: "表示也、同样"},
-	}
-
-	result := make([]GrammarExplanation, 0, len(patterns))
-	for _, pattern := range patterns {
-		if strings.Contains(japaneseText, pattern.needle) {
-			result = append(result, GrammarExplanation{
-				GrammarPoint: pattern.grammarPoint,
-				Explanation:  pattern.explanation,
-			})
-		}
-	}
-	return result
-}
-
-func containsJapaneseText(value string) bool {
-	for _, r := range value {
-		if unicode.In(r, unicode.Hiragana, unicode.Katakana) {
-			return true
-		}
-	}
-	return false
 }
 
 func normalizeTranslationForScore(value string) string {

@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { speakExample } from '@/util/exampleAudio'
 import type { GrammarPointWithStatus, QuizSubmission, QuizResult } from '@/types/api'
+import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './GrammarDetailPage.module.css'
 
 export function GrammarDetailPage() {
@@ -109,6 +110,7 @@ export function GrammarDetailPage() {
 
       <div className={styles.nameRow}>
         <h1 className={styles.name}>{point.name}</h1>
+        <ErrataButton key={point.id} module="grammar" itemKey={String(point.id)} label={point.name} />
         <Badge level={point.jlpt_level} size="sm" />
         {point.user_status && <StatusBadge status={point.user_status} />}
       </div>
@@ -181,6 +183,7 @@ export function GrammarDetailPage() {
                 return (
                   <div key={q.id} className={styles.question}>
                     <div className={styles.questionPrompt}>{q.prompt}</div>
+                    <ErrataButton module="grammar" itemKey={`${point.id}:quiz:${q.id}`} label={q.prompt} />
 
                     {q.type === 'fill_blank' ? (
                       <input

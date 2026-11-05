@@ -11,6 +11,7 @@ import (
 	"japanese-learning-app/internal/data"
 	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/admin"
+	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/store"
 )
 
@@ -48,6 +49,7 @@ func main() {
 	var writingStore store.AdminWritingStoreInterface
 	var translationStore store.AdminTranslationStoreInterface
 	var userStore store.AdminUserStoreInterface
+	var errataStore *errata.Store
 
 	if cfg.RelationalStore == "postgres" {
 		adapter := pgdata.Adapter{}
@@ -81,6 +83,7 @@ func main() {
 		writingStore = runtime.Admin.Writing
 		translationStore = runtime.Admin.Translation
 		userStore = runtime.Admin.Users
+		errataStore = errata.NewStore(pgDB)
 		shadowingDB = pgDB
 		shadowingSQL = "postgres"
 		slog.Info("admin using PostgreSQL relational store")
@@ -105,6 +108,7 @@ func main() {
 		writingStore = data.NewWritingStore(db)
 		translationStore = data.NewTranslationStore(db)
 		userStore = data.NewUserStore(db)
+		errataStore = errata.NewStore(db)
 		slog.Info("admin using SQLite relational store", "db_path", cfg.DBPath)
 	}
 	defer func() {
@@ -144,6 +148,7 @@ func main() {
 		WritingStore:           writingStore,
 		TranslationStore:       translationStore,
 		UserStore:              userStore,
+		ErrataStore:            errataStore,
 		DB:                     sqliteOnlyDB,
 		ShadowingMaterialsDB:   shadowingDB,
 		ShadowingMaterialsSQL:  shadowingSQL,

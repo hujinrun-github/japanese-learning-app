@@ -8,6 +8,7 @@ import WritingPage from './pages/Writing/Writing'
 import TranslationPage from './pages/Translation/Translation'
 import UsersPage from './pages/Users/Users'
 import RecordsPage from './pages/Records/Records'
+import ErrataPage from './pages/Errata/Errata'
 import ShadowingMaterialsPage from './pages/ShadowingMaterials/ShadowingMaterials'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="shadowing-materials" element={<ShadowingMaterialsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="records" element={<RecordsPage />} />
+        <Route path="errata" element={<ErrataPage />} />
       </Route>
     </Routes>
   )

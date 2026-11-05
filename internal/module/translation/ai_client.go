@@ -2,12 +2,14 @@ package translation
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // TranslationReviewer evaluates user translations.
@@ -31,10 +33,15 @@ func (s *StubReviewer) Review(direction, sourceText, userTranslation, referenceT
 		return s.Feedback, nil
 	}
 
-	return TranslationFeedback{
+	grammar := detectGrammarExplanations(grammarText(direction, sourceText, referenceTranslation))
+	feedback := TranslationFeedback{
 		AIScore:             computeRuleScoreForReference(direction, sourceText, userTranslation, referenceTranslation),
-		GrammarExplanations: detectGrammarExplanations(direction, sourceText, userTranslation, referenceTranslation),
-	}, nil
+		GrammarExplanations: grammar,
+	}
+	if len(grammar) > 0 {
+		feedback.GrammarSource = grammarSourceLocal
+	}
+	return feedback, nil
 }
 
 // ClaudeTranslationReviewer calls the Claude API for translation review.
@@ -42,13 +49,15 @@ type ClaudeTranslationReviewer struct {
 	apiKey  string
 	model   string
 	baseURL string
+	timeout time.Duration
 }
 
-func NewClaudeTranslationReviewer(apiKey string) *ClaudeTranslationReviewer {
+func NewClaudeTranslationReviewer(apiKey, endpoint string, timeout time.Duration) *ClaudeTranslationReviewer {
 	return &ClaudeTranslationReviewer{
 		apiKey:  apiKey,
-		model:   "claude-3-haiku-20240307",
-		baseURL: "https://api.anthropic.com/v1/messages",
+		model:   "claude-haiku-5-5",
+		baseURL: endpoint,
+		timeout: timeout,
 	}
 }
 
@@ -58,13 +67,20 @@ type claudeMessage struct {
 }
 
 type claudeRequest struct {
-	Model     string          `json:"model"`
-	MaxTokens int             `json:"max_tokens"`
-	Messages  []claudeMessage `json:"messages"`
+	Model        string             `json:"model"`
+	MaxTokens    int                `json:"max_tokens"`
+	Messages     []claudeMessage    `json:"messages"`
+	OutputConfig claudeOutputConfig `json:"output_config"`
+}
+
+type claudeOutputConfig struct {
+	Effort string `json:"effort"`
 }
 
 type claudeResponse struct {
-	Content []struct {
+	StopReason string `json:"stop_reason"`
+	Content    []struct {
+		Type string `json:"type"`
 		Text string `json:"text"`
 	} `json:"content"`
 }
@@ -75,9 +91,10 @@ func (c *ClaudeTranslationReviewer) Review(direction, sourceText, userTranslatio
 	prompt := buildTranslationReviewPrompt(direction, sourceText, userTranslation, referenceTranslation)
 
 	reqBody := claudeRequest{
-		Model:     c.model,
-		MaxTokens: 1024,
-		Messages:  []claudeMessage{{Role: "user", Content: prompt}},
+		Model:        c.model,
+		MaxTokens:    2048,
+		Messages:     []claudeMessage{{Role: "user", Content: prompt}},
+		OutputConfig: claudeOutputConfig{Effort: "low"},
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
@@ -85,7 +102,9 @@ func (c *ClaudeTranslationReviewer) Review(direction, sourceText, userTranslatio
 		return TranslationFeedback{}, fmt.Errorf("translation.ClaudeTranslationReviewer.Review marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.baseURL, bytes.NewReader(bodyBytes))
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return TranslationFeedback{}, fmt.Errorf("translation.ClaudeTranslationReviewer.Review new request: %w", err)
 	}
@@ -111,14 +130,22 @@ func (c *ClaudeTranslationReviewer) Review(direction, sourceText, userTranslatio
 		return TranslationFeedback{}, fmt.Errorf("translation.ClaudeTranslationReviewer.Review decode response: %w", err)
 	}
 
-	if len(claudeResp.Content) == 0 {
-		return TranslationFeedback{}, fmt.Errorf("translation.ClaudeTranslationReviewer.Review: empty response content")
+	switch claudeResp.StopReason {
+	case "refusal", "max_tokens", "model_context_window_exceeded":
+		return TranslationFeedback{}, fmt.Errorf("translation.ClaudeTranslationReviewer.Review: response stopped with %s", claudeResp.StopReason)
+	}
+	var answer strings.Builder
+	for _, block := range claudeResp.Content {
+		if block.Type == "text" || block.Type == "" {
+			answer.WriteString(block.Text)
+		}
 	}
 
 	var feedback TranslationFeedback
-	if err := json.Unmarshal([]byte(normalizeJSONResponse(claudeResp.Content[0].Text)), &feedback); err != nil {
+	if err := json.Unmarshal([]byte(normalizeJSONResponse(answer.String())), &feedback); err != nil {
 		return TranslationFeedback{}, fmt.Errorf("translation.ClaudeTranslationReviewer.Review parse feedback: %w", err)
 	}
+	feedback.GrammarSource = ""
 
 	slog.Debug("ClaudeTranslationReviewer.Review done", "ai_score", feedback.AIScore)
 	return feedback, nil
@@ -147,10 +174,12 @@ Source text: %s
 Student translation: %s
 Reference translation (optional): %s
 
-Analyze Japanese grammar separately from translation accuracy:
-- For jp2cn, identify grammar points in the Japanese source text.
-- For cn2jp, identify grammar points in the Japanese student translation; if it is empty or invalid Japanese, identify useful grammar from the reference translation when available.
-- Return every relevant Japanese grammar pattern you can identify, including particles and verb constructions. Do not leave this array empty when the Japanese text contains an identifiable pattern.
+Provide a natural reference translation of the source in the target language, independently of the student's answer.
+
+Analyze the exercise's Japanese grammar separately from grading the student:
+- For jp2cn, analyze only the Japanese source text.
+- For cn2jp, analyze only the Japanese reference translation, using the supplied reference if present or your generated reference if absent. Discuss the student's grammar mistakes in issue_description.
+- Give a few high-confidence points. Each point must quote an exact, meaningful span of the Japanese text as evidence and explain its function in context. Kana inside a word do not count as particles or endings. Omit uncertain points and return an empty array if none can be verified.
 
 Reply ONLY with a valid JSON object in this exact format (no markdown, no extra text):
 {
@@ -158,8 +187,8 @@ Reply ONLY with a valid JSON object in this exact format (no markdown, no extra 
   "grammar_explanations": [
     {
       "grammar_point": "<grammar name in Japanese>",
-      "explanation": "<brief explanation in the user's language>",
-      "matched_db_id": <integer, use 0 if no match>
+      "explanation": "<brief explanation of the usage in this sentence, in Chinese>",
+      "evidence": "<exact Japanese text showing the grammar in context>"
     }
   ],
   "issue_description": "<brief description of issues, empty string if perfect>",

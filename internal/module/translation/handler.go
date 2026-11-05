@@ -62,7 +62,7 @@ func (h *TranslationHandler) handleGetDailyQueue(w http.ResponseWriter, r *http.
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: sentences, RequestID: r.Header.Get("X-Request-ID")})
+	writePracticeSentences(w, r, sentences)
 }
 
 // handleGetSentences returns sentences optionally filtered by direction and source.
@@ -75,11 +75,19 @@ func (h *TranslationHandler) handleGetSentences(w http.ResponseWriter, r *http.R
 	if s := r.URL.Query().Get("source_id"); s != "" {
 		sourceID, _ = strconv.ParseInt(s, 10, 64)
 	}
-	sentences, err := h.svc.GetFreeSentences(userID, r.URL.Query().Get("direction"), sourceID)
+	unpracticed := r.URL.Query().Get("unpracticed") == "true"
+	sentences, err := h.svc.GetFreeSentences(userID, r.URL.Query().Get("direction"), sourceID, unpracticed)
 	if err != nil {
 		slog.Error("handleGetSentences failed", "err", err)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", err.Error(), r.Header.Get("X-Request-ID"))
 		return
+	}
+	writePracticeSentences(w, r, sentences)
+}
+
+func writePracticeSentences(w http.ResponseWriter, r *http.Request, sentences []TranslationSentence) {
+	for i := range sentences {
+		sentences[i].ReferenceTranslation = ""
 	}
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: sentences, RequestID: r.Header.Get("X-Request-ID")})
 }
@@ -117,6 +125,10 @@ func (h *TranslationHandler) handleSubmit(w http.ResponseWriter, r *http.Request
 
 // handleGetRecord returns a single translation record by ID.
 func (h *TranslationHandler) handleGetRecord(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(w, r)
+	if !ok {
+		return
+	}
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid record id", r.Header.Get("X-Request-ID"))
@@ -125,6 +137,8 @@ func (h *TranslationHandler) handleGetRecord(w http.ResponseWriter, r *http.Requ
 	rec, err := h.svc.GetResult(id)
 	if err != nil {
 		slog.Error("handleGetRecord failed", "err", err, "id", id)
+	}
+	if err != nil || rec == nil || rec.UserID != userID {
 		httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "record not found", r.Header.Get("X-Request-ID"))
 		return
 	}

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/store"
 )
@@ -20,6 +21,7 @@ type HandlerConfig struct {
 	WritingStore           store.AdminWritingStoreInterface
 	TranslationStore       store.AdminTranslationStoreInterface
 	UserStore              store.AdminUserStoreInterface
+	ErrataStore            *errata.Store
 	DB                     *sql.DB
 	ShadowingMaterialsDB   *sql.DB
 	ShadowingMaterialsSQL  string
@@ -80,6 +82,10 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("PUT /api/admin/users/{id}/password", h.auth(h.updateUserPassword))
 	// Records
 	mux.HandleFunc("GET /api/admin/records/{module}", h.auth(h.listRecords))
+	if h.cfg.ErrataStore != nil {
+		mux.HandleFunc("GET /api/admin/errata", h.auth(h.listErrata))
+		mux.HandleFunc("PATCH /api/admin/errata/{id}", h.auth(h.updateErrata))
+	}
 	// Import
 	mux.HandleFunc("POST /api/admin/import/{module}", h.auth(h.bulkImport))
 	// Audio

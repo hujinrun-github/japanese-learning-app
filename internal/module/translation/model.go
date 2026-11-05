@@ -14,7 +14,7 @@ const (
 type TranslationSource struct {
 	ID          int64     `json:"id"`
 	Title       string    `json:"title"`
-	SourceType  string    `json:"source_type"`  // "manual" | "url" | "api"
+	SourceType  string    `json:"source_type"` // "manual" | "url" | "api"
 	SourceURL   string    `json:"source_url"`
 	APIEndpoint string    `json:"api_endpoint"`
 	RawContent  string    `json:"raw_content"`
@@ -24,38 +24,42 @@ type TranslationSource struct {
 
 // TranslationSentence is a single sentence unit for translation practice.
 type TranslationSentence struct {
-	ID                   int64  `json:"id"`
-	SourceID             int64  `json:"source_id"`
-	Direction            string `json:"direction"` // "cn2jp" | "jp2cn"
-	SourceText           string `json:"source_text"`
-	ReferenceTranslation string `json:"reference_translation"`
-	Position             int    `json:"position"`
+	ID                   int64    `json:"id"`
+	SourceID             int64    `json:"source_id"`
+	Direction            string   `json:"direction"` // "cn2jp" | "jp2cn"
+	SourceText           string   `json:"source_text"`
+	ReferenceTranslation string   `json:"reference_translation"`
+	Position             int      `json:"position"`
+	GrammarPoints        []string `json:"-"`
 }
 
 // GrammarExplanation links a grammar point found in the user's translation.
 type GrammarExplanation struct {
 	GrammarPoint string `json:"grammar_point"`
 	Explanation  string `json:"explanation"`
+	Evidence     string `json:"evidence,omitempty"`
 	MatchedDBID  int64  `json:"matched_db_id,omitempty"`
 }
 
 // TranslationFeedback is the AI review result.
 type TranslationFeedback struct {
-	AIScore              int                   `json:"ai_score"`
-	GrammarExplanations  []GrammarExplanation  `json:"grammar_explanations"`
-	IssueDescription     string                `json:"issue_description"`
-	CorrectedTranslation string                `json:"corrected_translation"`
-	ReferenceTranslation string                `json:"reference_translation"`
+	AIScore              int                  `json:"ai_score"`
+	GrammarExplanations  []GrammarExplanation `json:"grammar_explanations"`
+	GrammarSource        string               `json:"grammar_source,omitempty"`
+	IssueDescription     string               `json:"issue_description"`
+	CorrectedTranslation string               `json:"corrected_translation"`
+	ReferenceTranslation string               `json:"reference_translation"`
 }
 
 // TranslationRecord represents a user's translation practice.
 type TranslationRecord struct {
-	ID               int64                 `json:"id"`
-	UserID           int64                 `json:"user_id"`
-	SentenceID       int64                 `json:"sentence_id"`
-	UserTranslation  string                `json:"user_translation"`
-	Score            int                   `json:"score"`
-	RuleScore        int                   `json:"rule_score"`
-	AIFeedback       *TranslationFeedback  `json:"ai_feedback,omitempty"`
-	PracticedAt      time.Time             `json:"practiced_at"`
+	ID                   int64                `json:"id"`
+	UserID               int64                `json:"user_id"`
+	SentenceID           int64                `json:"sentence_id"`
+	UserTranslation      string               `json:"user_translation"`
+	ReferenceTranslation string               `json:"reference_translation,omitempty"`
+	Score                int                  `json:"score"`
+	RuleScore            int                  `json:"rule_score"`
+	AIFeedback           *TranslationFeedback `json:"ai_feedback,omitempty"`
+	PracticedAt          time.Time            `json:"practiced_at"`
 }

@@ -1,0 +1,41 @@
+.trigger {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.dialog {
+  box-sizing: border-box;
+  inset: 0;
+  margin: auto;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+}
+
+.dialog::backdrop { background: rgb(15 23 42 / 55%); }
+.title { margin: 0 0 var(--space-2); }
+.item { margin: 0 0 var(--space-4); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.form { display: grid; gap: var(--space-4); }
+.form label { display: grid; gap: var(--space-2); font-weight: 600; }
+.form select, .form textarea {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 400;
+}
+.form textarea { resize: vertical; }
+.error { margin: 0; color: var(--color-error); }
+.actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.historyLink { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-2); color: var(--color-brand); }
+
+@media (max-width: 560px) {
+  .trigger, .actions button { min-height: 44px; }
+}

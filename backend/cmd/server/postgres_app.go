@@ -10,6 +10,7 @@ import (
 
 	"japanese-learning-app/internal/config"
 	pgdata "japanese-learning-app/internal/data/postgres"
+	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/note"
@@ -58,15 +59,14 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	var aiReviewer writing.AIReviewer
 	if aiAPIKey != "" {
 		slog.Info("using ClaudeClient for AI writing review", "endpoint", aiEndpoint)
-		aiReviewer = writing.NewClaudeClient(aiAPIKey)
+		aiReviewer = writing.NewClaudeClient(aiAPIKey, aiEndpoint, time.Duration(cfg.AITimeoutSec)*time.Second)
 	} else {
-		slog.Warn("AI_API_KEY not set — using StubReviewer (no real AI feedback)")
-		aiReviewer = &writing.StubReviewer{}
+		slog.Warn("AI_API_KEY not set — topic writing will be saved without AI feedback")
 	}
 
 	var translationReviewer translation.TranslationReviewer
 	if aiAPIKey != "" {
-		translationReviewer = translation.NewClaudeTranslationReviewer(aiAPIKey)
+		translationReviewer = translation.NewClaudeTranslationReviewer(aiAPIKey, aiEndpoint, time.Duration(cfg.AITimeoutSec)*time.Second)
 	} else {
 		slog.Warn("AI_API_KEY not set — using StubReviewer for translation (no real AI feedback)")
 		translationReviewer = &translation.StubReviewer{}
@@ -122,6 +122,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	reviewH.RegisterRoutes(protectedMux)
 	shadowingH.RegisterRoutes(protectedMux)
 	planH.RegisterRoutes(protectedMux)
+	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
 
 	authenticated := user.AuthMiddleware(cfg.JWTSecret, protectedMux)
 	mux.Handle("/api/v1/words/", authenticated)
@@ -140,6 +141,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	mux.Handle("/api/v1/review/", authenticated)
 	mux.Handle("/api/v1/users/", authenticated)
 	mux.Handle("/api/v1/daily-plan", authenticated)
+	mux.Handle("/api/v1/errata", authenticated)
 
 	registerVideoStreamRoutes(mux, db, cfg)
 	registerAudioStreamRoutes(mux, db, cfg)

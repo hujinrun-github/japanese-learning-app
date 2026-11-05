@@ -12,9 +12,10 @@ func TestBuildTranslationReviewPromptRequestsJapaneseGrammar(t *testing.T) {
 		"Japanese grammar",
 		"jp2cn",
 		"Japanese source text",
-		"Japanese student translation",
+		"Japanese reference translation",
 		"grammar_explanations",
-		"Do not leave this array empty",
+		"evidence",
+		"return an empty array",
 	} {
 		if !strings.Contains(prompt, want) {
 			t.Errorf("prompt does not contain %q", want)

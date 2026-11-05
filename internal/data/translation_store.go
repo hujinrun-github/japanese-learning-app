@@ -94,9 +94,10 @@ func (s *TranslationStore) ListSources() ([]translation.TranslationSource, error
 func (s *TranslationStore) ListSentencesBySource(sourceID int64) ([]translation.TranslationSentence, error) {
 	slog.Debug("TranslationStore.ListSentencesBySource called", "source_id", sourceID)
 
+	// 练习题乱序返回，避免按 position 连续出题时相邻句子互相泄露上下文。
 	rows, err := s.db.Query(
 		`SELECT id, source_id, direction, source_text, reference_translation, position
-		 FROM translation_sentences WHERE source_id = ? ORDER BY position`,
+		 FROM translation_sentences WHERE source_id = ? ORDER BY RANDOM()`,
 		sourceID,
 	)
 	if err != nil {
@@ -138,22 +139,36 @@ func (s *TranslationStore) GetSentenceByID(id int64) (*translation.TranslationSe
 	return &sent, nil
 }
 
-func (s *TranslationStore) GetDailyQueue(userID int64, limit int) ([]translation.TranslationSentence, error) {
-	slog.Debug("TranslationStore.GetDailyQueue called", "user_id", userID, "limit", limit)
+func (s *TranslationStore) ListUnpracticedSentences(userID, sourceID int64, limit int) ([]translation.TranslationSentence, error) {
+	slog.Debug("TranslationStore.ListUnpracticedSentences called", "user_id", userID, "source_id", sourceID, "limit", limit)
 
 	rows, err := s.db.Query(
-		`SELECT ts.id, ts.source_id, ts.direction, ts.source_text, ts.reference_translation, ts.position
-		 FROM translation_sentences ts
-		 WHERE ts.id NOT IN (
-		 	SELECT tr.sentence_id FROM translation_records tr
-		 	WHERE tr.user_id = ? AND tr.score >= 80
+		`WITH practiced AS (
+		    SELECT DISTINCT ts.direction, TRIM(ts.source_text) AS prompt
+		    FROM translation_records tr
+		    JOIN translation_sentences ts ON ts.id = tr.sentence_id
+		    WHERE tr.user_id = $1
+		 ), candidates AS (
+		    SELECT ts.id, ts.source_id, ts.direction, ts.source_text, ts.reference_translation, ts.position,
+		    ROW_NUMBER() OVER (
+		        PARTITION BY ts.direction, TRIM(ts.source_text) ORDER BY ts.position, ts.id
+		    ) AS prompt_rank
+		    FROM translation_sentences ts
+		    WHERE ($2 = 0 OR ts.source_id = $2)
+		      AND NOT EXISTS (
+		          SELECT 1 FROM practiced p
+		          WHERE p.direction = ts.direction AND p.prompt = TRIM(ts.source_text)
+		      )
 		 )
+		 SELECT id, source_id, direction, source_text, reference_translation, position
+		 FROM candidates
+		 WHERE prompt_rank = 1
 		 ORDER BY RANDOM()
-		 LIMIT ?`,
-		userID, limit,
+		 LIMIT COALESCE(NULLIF($3, 0), -1)`,
+		userID, sourceID, limit,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("data.TranslationStore.GetDailyQueue: %w", err)
+		return nil, fmt.Errorf("data.TranslationStore.ListUnpracticedSentences: %w", err)
 	}
 	defer rows.Close()
 
@@ -161,12 +176,12 @@ func (s *TranslationStore) GetDailyQueue(userID int64, limit int) ([]translation
 	for rows.Next() {
 		var sent translation.TranslationSentence
 		if err := rows.Scan(&sent.ID, &sent.SourceID, &sent.Direction, &sent.SourceText, &sent.ReferenceTranslation, &sent.Position); err != nil {
-			return nil, fmt.Errorf("data.TranslationStore.GetDailyQueue scan: %w", err)
+			return nil, fmt.Errorf("data.TranslationStore.ListUnpracticedSentences scan: %w", err)
 		}
 		sentences = append(sentences, sent)
 	}
 
-	slog.Debug("TranslationStore.GetDailyQueue done", "user_id", userID, "count", len(sentences))
+	slog.Debug("TranslationStore.ListUnpracticedSentences done", "user_id", userID, "count", len(sentences))
 	return sentences, rows.Err()
 }
 
@@ -270,7 +285,7 @@ func (s *TranslationStore) UpdateSentenceReference(sentenceID int64, reference s
 	slog.Debug("TranslationStore.UpdateSentenceReference called", "sentence_id", sentenceID)
 
 	_, err := s.db.Exec(
-		`UPDATE translation_sentences SET reference_translation = ? WHERE id = ?`,
+		`UPDATE translation_sentences SET reference_translation = ? WHERE id = ? AND TRIM(reference_translation) = ''`,
 		reference, sentenceID,
 	)
 	if err != nil {
@@ -285,13 +300,16 @@ func (s *TranslationStore) GetRecord(id int64) (*translation.TranslationRecord, 
 	slog.Debug("TranslationStore.GetRecord called", "id", id)
 
 	row := s.db.QueryRow(
-		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json, practiced_at
-		 FROM translation_records WHERE id = ?`, id,
+		`SELECT tr.id, tr.user_id, tr.sentence_id, tr.user_translation, tr.score, tr.rule_score,
+		        tr.ai_feedback_json, tr.practiced_at, COALESCE(ts.reference_translation, '')
+		 FROM translation_records tr
+		 LEFT JOIN translation_sentences ts ON ts.id = tr.sentence_id
+		 WHERE tr.id = ?`, id,
 	)
 	var r translation.TranslationRecord
 	var aiJSON string
 	var practicedAt string
-	err := row.Scan(&r.ID, &r.UserID, &r.SentenceID, &r.UserTranslation, &r.Score, &r.RuleScore, &aiJSON, &practicedAt)
+	err := row.Scan(&r.ID, &r.UserID, &r.SentenceID, &r.UserTranslation, &r.Score, &r.RuleScore, &aiJSON, &practicedAt, &r.ReferenceTranslation)
 	if err == sql.ErrNoRows {
 		slog.Debug("translation_record not found", "id", id)
 		return nil, fmt.Errorf("data.TranslationStore.GetRecord %d: %w", id, sql.ErrNoRows)
@@ -320,8 +338,11 @@ func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationR
 	slog.Debug("TranslationStore.ListRecords called", "user_id", userID)
 
 	rows, err := s.db.Query(
-		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json, practiced_at
-		 FROM translation_records WHERE user_id = ? ORDER BY practiced_at DESC`,
+		`SELECT tr.id, tr.user_id, tr.sentence_id, tr.user_translation, tr.score, tr.rule_score,
+		        tr.ai_feedback_json, tr.practiced_at, COALESCE(ts.reference_translation, '')
+		 FROM translation_records tr
+		 LEFT JOIN translation_sentences ts ON ts.id = tr.sentence_id
+		 WHERE tr.user_id = ? ORDER BY tr.practiced_at DESC`,
 		userID,
 	)
 	if err != nil {
@@ -334,7 +355,7 @@ func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationR
 		var r translation.TranslationRecord
 		var aiJSON string
 		var practicedAt string
-		if err := rows.Scan(&r.ID, &r.UserID, &r.SentenceID, &r.UserTranslation, &r.Score, &r.RuleScore, &aiJSON, &practicedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.UserID, &r.SentenceID, &r.UserTranslation, &r.Score, &r.RuleScore, &aiJSON, &practicedAt, &r.ReferenceTranslation); err != nil {
 			return nil, fmt.Errorf("data.TranslationStore.ListRecords scan: %w", err)
 		}
 		r.PracticedAt, err = parseSQLiteTime(practicedAt)

@@ -8,6 +8,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { toFuriganaTokens } from '@/util/furigana'
 import { speakExample } from '@/util/exampleAudio'
 import type { SpeakingRecord, SpeakingMaterial, FuriganaToken, JLPTLevel } from '@/types/api'
+import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './SpeakingPage.module.css'
 
 type PracticeType = 'shadow' | 'free'
@@ -283,6 +284,7 @@ export function SpeakingPage() {
       {/* practice header */}
       <div className={styles.practiceHeader}>
         <h1 className={styles.practiceTitle}>{selectedMaterial.title}</h1>
+        <ErrataButton module="speaking" itemKey={String(selectedMaterial.id)} label={selectedMaterial.title} />
         <span className={`${styles.typeTag} ${selectedMaterial.type === 'shadow' ? styles.typeShadow : styles.typeFree}`}>
           {selectedMaterial.type === 'shadow' ? t('speaking.materials.shadowLabel') : t('speaking.materials.freeLabel')}
         </span>

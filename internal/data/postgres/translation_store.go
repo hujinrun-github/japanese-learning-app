@@ -228,10 +228,11 @@ func (s *TranslationStore) ListSources() ([]translation.TranslationSource, error
 func (s *TranslationStore) ListSentencesBySource(sourceID int64) ([]translation.TranslationSentence, error) {
 	rows, err := s.db.QueryContext(
 		context.Background(),
+		// 练习题乱序返回，避免按 position 连续出题时相邻句子互相泄露上下文。
 		`SELECT id, source_id, direction, source_text, reference_translation, position
 		 FROM translation_sentences
 		 WHERE source_id = $1
-		 ORDER BY position ASC, id ASC`,
+		 ORDER BY RANDOM()`,
 		sourceID,
 	)
 	if err != nil {
@@ -251,9 +252,10 @@ func (s *TranslationStore) ListSentencesBySource(sourceID int64) ([]translation.
 
 func (s *TranslationStore) GetSentenceByID(id int64) (*translation.TranslationSentence, error) {
 	var item translation.TranslationSentence
+	var pointsJSON string
 	err := s.db.QueryRowContext(
 		context.Background(),
-		`SELECT id, source_id, direction, source_text, reference_translation, position
+		`SELECT id, source_id, direction, source_text, reference_translation, position, array_to_json(points)::text
 		 FROM translation_sentences WHERE id = $1`,
 		id,
 	).Scan(
@@ -263,6 +265,7 @@ func (s *TranslationStore) GetSentenceByID(id int64) (*translation.TranslationSe
 		&item.SourceText,
 		&item.ReferenceTranslation,
 		&item.Position,
+		&pointsJSON,
 	)
 	if err != nil {
 		if errors.Is(translateError(err), sql.ErrNoRows) {
@@ -270,29 +273,41 @@ func (s *TranslationStore) GetSentenceByID(id int64) (*translation.TranslationSe
 		}
 		return nil, fmt.Errorf("postgres.TranslationStore.GetSentenceByID: %w", translateError(err))
 	}
+	if err := json.Unmarshal([]byte(pointsJSON), &item.GrammarPoints); err != nil {
+		return nil, fmt.Errorf("postgres.TranslationStore.GetSentenceByID grammar points: %w", err)
+	}
 	return &item, nil
 }
 
-func (s *TranslationStore) GetDailyQueue(userID int64, limit int) ([]translation.TranslationSentence, error) {
-	if limit <= 0 {
-		limit = 5
-	}
-
+func (s *TranslationStore) ListUnpracticedSentences(userID, sourceID int64, limit int) ([]translation.TranslationSentence, error) {
 	rows, err := s.db.QueryContext(
 		context.Background(),
-		`SELECT ts.id, ts.source_id, ts.direction, ts.source_text, ts.reference_translation, ts.position
-		 FROM translation_sentences ts
-		 WHERE ts.id NOT IN (
-		 	SELECT tr.sentence_id FROM translation_records tr
-		 	WHERE tr.user_id = $1 AND tr.score >= 80
+		`WITH practiced AS (
+		    SELECT DISTINCT ts.direction, TRIM(ts.source_text) AS prompt
+		    FROM translation_records tr
+		    JOIN translation_sentences ts ON ts.id = tr.sentence_id
+		    WHERE tr.user_id = $1
+		 ), candidates AS (
+		    SELECT ts.id, ts.source_id, ts.direction, ts.source_text, ts.reference_translation, ts.position,
+		    ROW_NUMBER() OVER (
+		        PARTITION BY ts.direction, TRIM(ts.source_text) ORDER BY ts.position, ts.id
+		    ) AS prompt_rank
+		    FROM translation_sentences ts
+		    WHERE ($2::bigint = 0 OR ts.source_id = $2)
+		      AND NOT EXISTS (
+		          SELECT 1 FROM practiced p
+		          WHERE p.direction = ts.direction AND p.prompt = TRIM(ts.source_text)
+		      )
 		 )
+		 SELECT id, source_id, direction, source_text, reference_translation, position
+		 FROM candidates
+		 WHERE prompt_rank = 1
 		 ORDER BY RANDOM()
-		 LIMIT $2`,
-		userID,
-		limit,
+		 LIMIT NULLIF($3::int, 0)`,
+		userID, sourceID, limit,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("postgres.TranslationStore.GetDailyQueue query: %w", translateError(err))
+		return nil, fmt.Errorf("postgres.TranslationStore.ListUnpracticedSentences query: %w", translateError(err))
 	}
 	defer rows.Close()
 
@@ -358,7 +373,8 @@ func (s *TranslationStore) SaveRecord(r translation.TranslationRecord) (int64, e
 func (s *TranslationStore) GetRecord(id int64) (*translation.TranslationRecord, error) {
 	row := s.db.QueryRowContext(
 		context.Background(),
-		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at
+		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at,
+		        reference_translation_snapshot
 		 FROM translation_records WHERE id = $1`,
 		id,
 	)
@@ -375,7 +391,8 @@ func (s *TranslationStore) GetRecord(id int64) (*translation.TranslationRecord, 
 func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationRecord, error) {
 	rows, err := s.db.QueryContext(
 		context.Background(),
-		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at
+		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at,
+		        reference_translation_snapshot
 		 FROM translation_records WHERE user_id = $1
 		 ORDER BY practiced_at DESC, id DESC`,
 		userID,
@@ -420,7 +437,7 @@ func (s *TranslationStore) UpdateRecordFeedback(recordID int64, score int, feedb
 func (s *TranslationStore) UpdateSentenceReference(sentenceID int64, reference string) error {
 	_, err := s.db.ExecContext(
 		context.Background(),
-		`UPDATE translation_sentences SET reference_translation = $2 WHERE id = $1`,
+		`UPDATE translation_sentences SET reference_translation = $2 WHERE id = $1 AND TRIM(reference_translation) = ''`,
 		sentenceID,
 		reference,
 	)
@@ -478,6 +495,7 @@ func scanTranslationRecord(row interface {
 		&record.RuleScore,
 		&feedbackJSON,
 		&record.PracticedAt,
+		&record.ReferenceTranslation,
 	); err != nil {
 		return nil, fmt.Errorf("postgres.scanTranslationRecord scan: %w", translateError(err))
 	}

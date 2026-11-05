@@ -93,8 +93,8 @@ Files:
 
 | Method | Purpose |
 |---|---|
-| `GetDailyQueue(userID, count)` | Select today's sentences via SM-2 spaced repetition |
-| `GetFreeSentences(userID, direction, sourceID)` | Browse sentences by direction/source filter |
+| `GetDailyQueue(userID, count)` | Randomly select up to count prompts the learner has never submitted |
+| `GetFreeSentences(userID, direction, sourceID, unpracticed)` | List sentences from a source in order. With `unpracticed=true`, skip submitted prompts |
 | `SubmitTranslation(userID, sentenceID, translation)` | Local rule scoring (sync) + AI review trigger (async) |
 | `GetResult(recordID)` | Return full result including AI feedback |
 | `ListRecords(userID)` | User history |
@@ -183,6 +183,8 @@ Two card entries at top:
 - **Daily tasks** with progress indicator (e.g., "3/5 done")
 - **Free practice** with source browser
 
+Daily tasks and free practice exclude prompts already submitted by the learner at any score. Identical source text in the same translation direction counts as one prompt, even across sources. When a source has no unpracticed prompts left, the learner can explicitly review it.
+
 Direction filter tabs: [All] [CN→JP] [JP→CN]
 Source list with sentence count
 "+ Import source" button → import dialog (tab: paste text / input URL / API config)
@@ -194,9 +196,10 @@ Source list with sentence count
 - Translation input (textarea)
 - Submit button
 - Results area (shown after submit):
+  - Reference translation from the question bank, or an AI-generated example when the bank has none. Show an unavailable message when neither is available.
   - Instant rule score
   - AI score (appears asynchronously)
-  - Grammar explanation tags (clickable → opens grammar detail page)
+  - Grammar tags identify their source and cover the Japanese prompt or the Japanese reference translation. Prefer the bank's stored points when available, then AI explanations with exact Japanese evidence, then conservative local matches. Show an empty state when no reliable annotation is available.
   - AI commentary text
 
 ### Interaction flow

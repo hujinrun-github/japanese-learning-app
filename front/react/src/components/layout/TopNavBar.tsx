@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
-import { DESKTOP_NAV_ITEMS } from './navigation'
+import { ACCOUNT_NAV_ITEMS, DESKTOP_NAV_ITEMS } from './navigation'
 import styles from './TopNavBar.module.css'
 
 export function TopNavBar() {
@@ -32,7 +32,7 @@ export function TopNavBar() {
         </NavLink>
 
         <nav className={styles.nav}>
-          {DESKTOP_NAV_ITEMS.filter((item) => item.to !== '/settings').map((item) => (
+          {DESKTOP_NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -58,9 +58,11 @@ export function TopNavBar() {
             </button>
             {menuOpen && (
               <div className={styles.dropdown}>
-                <button className={styles.dropdownItem} onClick={() => { navigate('/settings'); setMenuOpen(false) }}>
-                  ⚙ {t('nav.settings')}
-                </button>
+                {ACCOUNT_NAV_ITEMS.map((item) => (
+                  <button key={item.to} className={styles.dropdownItem} onClick={() => { navigate(item.to); setMenuOpen(false) }}>
+                    <span aria-hidden="true">{item.icon}</span> {t(item.labelKey)}
+                  </button>
+                ))}
                 <button className={styles.dropdownItem} onClick={() => { logout(); setMenuOpen(false) }}>
                   ➡ {t('nav.logout')}
                 </button>

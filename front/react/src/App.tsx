@@ -20,6 +20,7 @@ import { NoteListPage } from '@/pages/note/NoteListPage'
 import { NoteEditPage } from '@/pages/note/NoteEditPage'
 import { NoteDetailPage } from '@/pages/note/NoteDetailPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
+import { ErrataHistoryPage } from '@/pages/errata/ErrataHistoryPage'
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/translation" element={<TranslationListPage />} />
             <Route path="/translation/practice" element={<TranslationPracticePage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/errata" element={<ErrataHistoryPage />} />
           </Route>
 
           {/* Fallback */}

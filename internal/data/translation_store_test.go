@@ -1,6 +1,8 @@
 package data
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	"japanese-learning-app/internal/module/translation"
@@ -140,7 +142,7 @@ func TestTranslationStore_SaveAndListRecords(t *testing.T) {
 	}
 }
 
-func TestTranslationStore_GetDailyQueue(t *testing.T) {
+func TestTranslationStore_ListUnpracticedSentencesLimit(t *testing.T) {
 	store := &TranslationStore{db: testDB}
 
 	insertTestUser(t, 9301, "tl_daily@example.com")
@@ -162,12 +164,12 @@ func TestTranslationStore_GetDailyQueue(t *testing.T) {
 		}
 	}
 
-	queue, err := store.GetDailyQueue(9301, 2)
+	queue, err := store.ListUnpracticedSentences(9301, 0, 2)
 	if err != nil {
-		t.Fatalf("GetDailyQueue error: %v", err)
+		t.Fatalf("ListUnpracticedSentences error: %v", err)
 	}
 	if len(queue) != 2 {
-		t.Fatalf("GetDailyQueue count = %d, want 2", len(queue))
+		t.Fatalf("ListUnpracticedSentences count = %d, want 2", len(queue))
 	}
 }
 
@@ -349,5 +351,69 @@ func TestTranslationStore_SaveRecordWithAIFeedback(t *testing.T) {
 	}
 	if len(got.AIFeedback.GrammarExplanations) != 1 {
 		t.Errorf("GrammarExplanations len = %d, want 1", len(got.AIFeedback.GrammarExplanations))
+	}
+}
+
+// TestTranslationStore_PracticeSentencesAreShuffled 保证练习取题不会按素材里的 position 连续出题，
+// 否则相邻句子会互相泄露上下文。
+func TestTranslationStore_PracticeSentencesAreShuffled(t *testing.T) {
+	store := &TranslationStore{db: testDB}
+	const userID int64 = 9310
+	insertTestUser(t, userID, "tl_shuffle@example.com")
+
+	srcID, err := store.SaveSource(translation.TranslationSource{
+		Title: "Shuffle Test", SourceType: "manual", RawContent: "一つ目。二つ目。三つ目。四つ目。五つ目。六つ目。",
+	})
+	if err != nil {
+		t.Fatalf("SaveSource error: %v", err)
+	}
+	texts := []string{"一つ目。", "二つ目。", "三つ目。", "四つ目。", "五つ目。", "六つ目。"}
+	for i, text := range texts {
+		if _, err := store.SaveSentence(translation.TranslationSentence{
+			SourceID: srcID, Direction: "jp2cn", SourceText: text, Position: i,
+		}); err != nil {
+			t.Fatalf("SaveSentence %d error: %v", i, err)
+		}
+	}
+
+	cases := []struct {
+		name    string
+		wantLen int // 0 表示不校验精确数量（每日队列会包含其他测试的句子）
+		list    func() ([]translation.TranslationSentence, error)
+	}{
+		{"daily queue", 0, func() ([]translation.TranslationSentence, error) {
+			return store.ListUnpracticedSentences(userID, 0, 0)
+		}},
+		{"unpracticed by source", len(texts), func() ([]translation.TranslationSentence, error) {
+			return store.ListUnpracticedSentences(userID, srcID, 0)
+		}},
+		{"review by source", len(texts), func() ([]translation.TranslationSentence, error) {
+			return store.ListSentencesBySource(srcID)
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			orders := make(map[string]bool)
+			for i := 0; i < 20; i++ {
+				items, err := tc.list()
+				if err != nil {
+					t.Fatalf("list error: %v", err)
+				}
+				if tc.wantLen > 0 && len(items) != tc.wantLen {
+					t.Fatalf("sentences count = %d, want %d", len(items), tc.wantLen)
+				}
+				if len(items) < 2 {
+					t.Fatal("need at least 2 sentences to check order")
+				}
+				ids := make([]string, len(items))
+				for j, item := range items {
+					ids[j] = strconv.FormatInt(item.ID, 10)
+				}
+				orders[strings.Join(ids, ",")] = true
+			}
+			if len(orders) < 2 {
+				t.Fatal("practice sentences always come back in the same order, want shuffled")
+			}
+		})
 	}
 }

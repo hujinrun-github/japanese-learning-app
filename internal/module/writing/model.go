@@ -8,21 +8,22 @@ type WritingType string
 const (
 	WritingTypeInput    WritingType = "input"    // 键盘输入练习
 	WritingTypeSentence WritingType = "sentence" // 造句练习
+	WritingTypeEssay    WritingType = "essay"    // 主题短文记录
 )
 
 // WritingQuestion 写作题目
 type WritingQuestion struct {
 	ID             int64       `json:"id"`
 	Type           WritingType `json:"type"`
-	Prompt         string      `json:"prompt"`                       // 题目提示（中文或假名）
-	GrammarPointID int64       `json:"grammar_point_id,omitempty"`   // 造句题关联的语法点
-	JLPTLevel      string      `json:"jlpt_level"`                   // 关联的 JLPT 等级
-	ExpectedAnswer string      `json:"-"`                            // 仅后端存储，不返回前端
+	Prompt         string      `json:"prompt"`                     // 题目提示（中文或假名）
+	GrammarPointID int64       `json:"grammar_point_id,omitempty"` // 造句题关联的语法点
+	JLPTLevel      string      `json:"jlpt_level"`                 // 关联的 JLPT 等级
+	ExpectedAnswer string      `json:"-"`                          // 仅后端存储，不返回前端
 }
 
 // AIFeedback AI 批改结果
 type AIFeedback struct {
-	Score              int      `json:"score"`               // 0~100
+	Score              int      `json:"score"` // 0~100
 	GrammarCorrect     bool     `json:"grammar_correct"`
 	VocabCorrect       bool     `json:"vocab_correct"`
 	IssueDescription   string   `json:"issue_description"`   // 问题说明（空表示全对）
@@ -38,7 +39,7 @@ type WritingRecord struct {
 	Type        WritingType `json:"type"`
 	Question    string      `json:"question"`
 	UserAnswer  string      `json:"user_answer"`
-	AIFeedback  *AIFeedback `json:"ai_feedback,omitempty"` // 输入练习无 AI 反馈
+	AIFeedback  *AIFeedback `json:"ai_feedback,omitempty"`
 	Score       int         `json:"score"`
 	PracticedAt time.Time   `json:"practiced_at"`
 }

@@ -1,0 +1,7 @@
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.report { background: #fff; border: 1px solid #e8e4e0; border-radius: 10px; padding: 16px; }
+.meta, .footer { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.meta { color: #605b56; font-size: 13px; overflow-wrap: anywhere; }
+.footer { justify-content: space-between; }
+.item { margin: 10px 0; overflow-wrap: anywhere; }
+.description { margin: 0 0 16px; white-space: pre-wrap; overflow-wrap: anywhere; }

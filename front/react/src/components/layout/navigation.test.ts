@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DESKTOP_NAV_ITEMS, MOBILE_MORE_ITEMS, MOBILE_PRIMARY_ITEMS } from './navigation'
+import { ACCOUNT_NAV_ITEMS, DESKTOP_NAV_ITEMS, MOBILE_MORE_ITEMS, MOBILE_PRIMARY_ITEMS } from './navigation'
 
 describe('responsive navigation', () => {
   it('keeps every learner module reachable on desktop and mobile', () => {
@@ -13,9 +13,10 @@ describe('responsive navigation', () => {
       '/notes',
       '/translation',
       '/settings',
+      '/errata',
     ]
 
-    const desktopRoutes = new Set(DESKTOP_NAV_ITEMS.map((item) => item.to))
+    const desktopRoutes = new Set([...DESKTOP_NAV_ITEMS, ...ACCOUNT_NAV_ITEMS].map((item) => item.to))
     const mobileRoutes = new Set(
       [...MOBILE_PRIMARY_ITEMS, ...MOBILE_MORE_ITEMS].map((item) => item.to),
     )

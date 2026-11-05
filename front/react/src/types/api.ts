@@ -240,9 +240,19 @@ export interface WritingQuestion {
   grammar_point_id?: number
 }
 
+export type WritingMode = 'essay' | 'sentence'
+
+export interface WritingTopic {
+  id: string
+  title: string
+  jlpt_level: JLPTLevel
+  essay_prompt: string
+  sentence_prompt: string
+}
+
 export interface WritingRecord {
   id: number
-  type: 'input' | 'sentence'
+  type: 'input' | WritingMode
   question: string
   user_answer: string
   ai_feedback?: AIFeedback
@@ -374,12 +384,14 @@ export type TranslationDirection = 'cn2jp' | 'jp2cn'
 export interface GrammarExplanation {
   grammar_point: string
   explanation: string
+  evidence?: string
   matched_db_id?: number
 }
 
 export interface TranslationFeedback {
   ai_score: number
   grammar_explanations: GrammarExplanation[]
+  grammar_source?: 'bank' | 'ai' | 'local'
   issue_description: string
   corrected_translation: string
   reference_translation: string
@@ -410,6 +422,7 @@ export interface TranslationRecord {
   user_id: number
   sentence_id: number
   user_translation: string
+  reference_translation?: string
   score: number
   rule_score: number
   ai_feedback?: TranslationFeedback

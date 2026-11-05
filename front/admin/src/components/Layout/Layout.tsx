@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/shadowing-materials', label: 'Shadowing', icon: '🎬' },
   { to: '/users', label: 'Users', icon: '👥' },
   { to: '/records', label: 'Records', icon: '📊' },
+  { to: '/errata', label: '勘误', icon: '📝' },
 ] as const
 
 export default function Layout() {
