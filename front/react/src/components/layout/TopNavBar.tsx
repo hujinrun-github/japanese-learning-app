@@ -58,6 +58,7 @@ export function TopNavBar() {
             </button>
             {menuOpen && (
               <div className={styles.dropdown}>
+                <button className={styles.dropdownItem} onClick={() => { navigate('/'); setMenuOpen(false) }}>🏠 {t('nav.home')}</button>
                 {ACCOUNT_NAV_ITEMS.map((item) => (
                   <button key={item.to} className={styles.dropdownItem} onClick={() => { navigate(item.to); setMenuOpen(false) }}>
                     <span aria-hidden="true">{item.icon}</span> {t(item.labelKey)}

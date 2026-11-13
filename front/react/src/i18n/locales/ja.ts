@@ -34,6 +34,7 @@ const ja = {
     },
   },
   nav: {
+    studyPlan: '学習計画',
     home: 'ホーム',
     words: '単語',
     grammar: '文法',

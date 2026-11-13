@@ -34,6 +34,7 @@ const zh = {
     },
   },
   nav: {
+    studyPlan: '学习计划',
     home: '首页',
     words: '单词',
     grammar: '语法',

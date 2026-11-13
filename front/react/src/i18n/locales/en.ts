@@ -34,6 +34,7 @@ const en = {
     },
   },
   nav: {
+    studyPlan: 'Study plan',
     home: 'Home',
     words: 'Words',
     grammar: 'Grammar',
