@@ -181,6 +181,7 @@ func main() {
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
 	lessonH.RegisterRoutes(protectedMux)
+	lesson.RegisterCatalogRoute(protectedMux, data.NewLessonCatalog(db, false))
 	lesson.NewAnnotationHandler(db, lessonSvc, wordStore, grammarStore).RegisterRoutes(protectedMux)
 	speakingH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)

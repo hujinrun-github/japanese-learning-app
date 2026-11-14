@@ -36,3 +36,95 @@
 .detailMeta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .shadowingCta { display: inline-flex; align-items: center; min-height: 44px; padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-brand-hover); font-size: var(--font-size-sm); font-weight: 600; }
 .shadowingCta:hover { background: var(--color-brand-light); }
+
+.catalogControls {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.levelFilters,
+.catalogSearch,
+.catalogPagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.catalogControls button,
+.catalogPagination button,
+.catalogError button {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  background: var(--color-bg-surface);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.catalogControls button:hover,
+.catalogPagination button:not(:disabled):hover,
+.catalogError button:hover {
+  border-color: var(--color-brand);
+}
+
+.levelFilters button[aria-pressed="true"],
+.catalogSearch button[type="submit"] {
+  border-color: var(--color-brand);
+  background: var(--color-brand-light);
+  color: var(--color-brand-hover);
+}
+
+.catalogSearch input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.catalogSummary {
+  min-height: 2.75rem;
+  padding-block: var(--space-3);
+  scroll-margin-top: 5rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.catalogLoading,
+.catalogError {
+  padding: var(--space-5) 0;
+  text-align: center;
+}
+
+.catalogError p {
+  margin-bottom: var(--space-2);
+  color: var(--color-error);
+}
+
+.lessonTitle > span[lang="ja"] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.catalogPagination {
+  justify-content: center;
+  margin-top: var(--space-5);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.catalogPagination button:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+@media (max-width: 480px) {
+  .catalogControls { padding: var(--space-3); }
+  .levelFilters { gap: var(--space-1); }
+  .levelFilters button, .catalogPagination button { padding-inline: var(--space-2); }
+}

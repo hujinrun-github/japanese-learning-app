@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
@@ -12,6 +12,9 @@ import styles from './LessonPage.module.css'
 export function LessonDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
+  const { state } = useLocation()
+  const listSearch = typeof state?.lessonListSearch === 'string' ? state.lessonListSearch : ''
+  const listLocation = { pathname: '/lesson', search: listSearch }
   const [lesson, setLesson] = useState<Lesson | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,7 +54,7 @@ export function LessonDetailPage() {
   if (error) {
     return (
       <div className={styles.page}>
-        <Link className={styles.backBtn} to="/lesson">
+        <Link className={styles.backBtn} to={listLocation}>
           {t('lesson.back')}
         </Link>
         <p style={{ color: 'var(--color-error)' }}>{error}</p>
@@ -63,7 +66,7 @@ export function LessonDetailPage() {
 
   return (
     <div className={styles.detailPage}>
-      <Link className={styles.backBtn} to="/lesson">
+      <Link className={styles.backBtn} to={listLocation}>
         {t('lesson.back')}
       </Link>
 
