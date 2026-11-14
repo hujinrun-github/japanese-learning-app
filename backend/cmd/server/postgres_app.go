@@ -115,6 +115,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
 	lessonH.RegisterRoutes(protectedMux)
+	lesson.NewAnnotationHandler(db, lessonSvc, runtime.Admin.Words, runtime.Admin.Grammar).RegisterRoutes(protectedMux)
 	speakingH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)
 	translationH.RegisterRoutes(protectedMux)
