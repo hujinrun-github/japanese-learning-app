@@ -1,5 +1,7 @@
 const ja = {
   common: {
+    translationRound: '今回 {{current}} / {{total}} 問目',
+    dailyProgress: { loading: '今日の進捗を読み込み中', error: '今日の進捗を取得できませんでした' },
     loading: '読み込み中...',
     appName: '日本語学習',
   },
@@ -274,7 +276,7 @@ const ja = {
       doneDesc: '全ての単語を復習しました。また明日来てください！',
       batchDone: '本日のバッチ完了 📚',
       batchDoneDesc: '一日の復習上限に達しました。残りのカードは明日以降に。',
-      progress: '{{current}} / {{total}} 枚目',
+      progress: '今回 {{current}} / {{total}} 枚目',
       isNew: '新しい単語',
       flip: 'タップして裏返す',
 	      speak: '読み上げ',
@@ -333,6 +335,9 @@ const ja = {
       shadow: 'シャドーイング',
       free: '自由音読',
     },
+    practiced: '練習済み',
+    historyError: '練習記録を読み込めませんでした',
+    saveError: '練習を保存できませんでした。再試行してください',
     materials: {
       level: 'レベル',
       shadowLabel: 'シャドーイング',
@@ -360,7 +365,7 @@ const ja = {
     title: '作文練習',
     intro: '同じテーマで短い作文を書くか、指定の文法を使って一文を作りましょう。',
     topic: '今回のテーマ',
-    progress: 'テーマ {{current}} / {{total}}',
+    progress: '今回のテーマ {{current}} / {{total}}',
     modeLabel: '練習形式を選ぶ',
     modes: { essay: '短い作文', sentence: '一文を作る', input: '入力練習' },
     answerLabel: '日本語の回答',

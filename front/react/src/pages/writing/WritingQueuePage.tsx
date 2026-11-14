@@ -1,3 +1,5 @@
+import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
+import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
@@ -20,6 +22,7 @@ function scoreColor(score: number) {
 
 export function WritingQueuePage() {
   const { t } = useTranslation()
+  const { progress, refreshProgress } = useDailyPracticeProgress('writing')
   const [topics, setTopics] = useState<WritingTopic[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [mode, setMode] = useState<WritingMode>('essay')
@@ -76,6 +79,7 @@ export function WritingQueuePage() {
         user_answer: trimmedAnswer,
       })
       setFeedback(rec)
+      refreshProgress()
       if (historyExpanded) void fetchRecords()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('writing.submitError'))
@@ -114,6 +118,7 @@ export function WritingQueuePage() {
         )}
       </div>
 
+      <DailyPracticeProgress progress={progress} />
       {error && <p className={styles.error} role="alert">{error}</p>}
 
       {topic ? (

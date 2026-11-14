@@ -1,3 +1,5 @@
+import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
+import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/api/client'
@@ -7,6 +9,7 @@ import type { TranslationSource } from '@/types/api'
 import styles from './TranslationListPage.module.css'
 
 export function TranslationListPage() {
+  const { progress } = useDailyPracticeProgress('translation')
   const navigate = useNavigate()
   const [sources, setSources] = useState<TranslationSource[]>([])
   const [loading, setLoading] = useState(false)
@@ -86,6 +89,7 @@ export function TranslationListPage() {
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>翻訳練習</h1>
+      <DailyPracticeProgress progress={progress} />
 
       <div className={styles.cardRow}>
         <button className={styles.mainCard} onClick={() => navigate('/translation/practice?mode=daily')}>

@@ -1,5 +1,7 @@
 const en = {
   common: {
+    translationRound: 'This round: {{current}} / {{total}}',
+    dailyProgress: { loading: 'Loading today’s progress', error: 'Today’s progress is unavailable' },
     loading: 'Loading...',
     appName: 'Japanese Learning',
   },
@@ -274,7 +276,7 @@ const en = {
       doneDesc: 'All words reviewed. Come back tomorrow!',
       batchDone: "Today's Batch Complete 📚",
       batchDoneDesc: "You've hit the daily limit. Remaining cards will be available tomorrow.",
-      progress: '{{current}} / {{total}}',
+      progress: 'This round {{current}} / {{total}}',
       isNew: 'New',
       flip: 'Tap to flip',
 	      speak: 'Speak',
@@ -333,6 +335,9 @@ const en = {
       shadow: 'Shadowing',
       free: 'Free Reading',
     },
+    practiced: 'Practiced',
+    historyError: 'Could not load practice history',
+    saveError: 'Could not save practice. Try again.',
     materials: {
       level: 'Level',
       shadowLabel: 'Shadowing',
@@ -360,7 +365,7 @@ const en = {
     title: 'Writing Practice',
     intro: 'Choose a short essay or use a target grammar pattern to write a sentence on the same topic.',
     topic: 'Practice topic',
-    progress: 'Topic {{current}} / {{total}}',
+    progress: 'This round: topic {{current}} / {{total}}',
     modeLabel: 'Choose a writing format',
     modes: { essay: 'Short Essay', sentence: 'Sentence Practice', input: 'Typing Practice' },
     answerLabel: 'Your answer in Japanese',

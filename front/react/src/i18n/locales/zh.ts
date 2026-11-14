@@ -1,5 +1,7 @@
 const zh = {
   common: {
+    translationRound: '本轮第 {{current}} / 共 {{total}} 题',
+    dailyProgress: { loading: '正在加载今日进度', error: '今日进度暂不可用' },
     loading: '加载中...',
     appName: '日本语学习',
   },
@@ -274,7 +276,7 @@ const zh = {
       doneDesc: '所有单词已复习，明天再来继续吧！',
       batchDone: '今日批次完成 📚',
       batchDoneDesc: '已达到每日复习上限，剩余卡片明天继续。',
-      progress: '第 {{current}} / 共 {{total}} 张',
+      progress: '本轮第 {{current}} / 共 {{total}} 张',
       isNew: '新词',
       flip: '点击翻转',
 	      speak: '朗读',
@@ -333,6 +335,9 @@ const zh = {
       shadow: '影子跟读',
       free: '自由朗读',
     },
+    practiced: '已练习',
+    historyError: '练习记录加载失败',
+    saveError: '保存练习失败，请重试',
     materials: {
       level: '等级',
       shadowLabel: '影子跟读',
@@ -360,7 +365,7 @@ const zh = {
     title: '写作练习',
     intro: '围绕同一个主题，可以写一篇短文，也可以用指定语法造句。',
     topic: '本题主题',
-    progress: '主题 {{current}} / {{total}}',
+    progress: '本轮主题 {{current}} / {{total}}',
     modeLabel: '选择写作方式',
     modes: { essay: '主题短文', sentence: '情境造句', input: '键盘输入' },
     answerLabel: '你的日语回答',

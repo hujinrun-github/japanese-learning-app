@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next'
+import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
+import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '@/api/client'
@@ -9,6 +12,8 @@ import styles from './TranslationPracticePage.module.css'
 const grammarSourceLabels = { bank: '题库标注', ai: 'AI 分析', local: '本地规则' }
 
 export function TranslationPracticePage() {
+  const { t } = useTranslation()
+  const { progress, refreshProgress } = useDailyPracticeProgress('translation')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const mode = searchParams.get('mode') || 'daily'
@@ -66,6 +71,7 @@ export function TranslationPracticePage() {
         user_translation: userTranslation.trim(),
       })
       setCurrentResult(rec)
+      refreshProgress()
 
       if (rec && !rec.ai_feedback && rec.score === rec.rule_score) {
         setAiPolling(true)
@@ -114,6 +120,7 @@ export function TranslationPracticePage() {
     return (
       <div className={styles.page}>
         <button className={styles.backBtn} onClick={() => navigate('/translation')}>← 戻る</button>
+        <DailyPracticeProgress progress={progress} />
         {error ? (
           <p className={styles.error} role="alert">{error}</p>
         ) : (
@@ -148,8 +155,10 @@ export function TranslationPracticePage() {
       <div className={styles.header}>
         <button className={styles.backBtn} onClick={() => navigate('/translation')}>← 戻る</button>
         <span className={styles.directionBadge}>{directionLabel}</span>
-        <span className={styles.progress}>#{currentIdx + 1}/{sentences.length}</span>
+        <span className={styles.progress}>{t('common.translationRound', { current: currentIdx + 1, total: sentences.length })}</span>
       </div>
+
+      <DailyPracticeProgress progress={progress} />
 
       <div className={styles.sourceText}>
         <p>{sentence.source_text}</p>
