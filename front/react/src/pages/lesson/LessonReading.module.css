@@ -114,6 +114,13 @@
   border-top: 1px solid var(--reading-border);
 }
 
+/* Article paragraphs: vertical mode already starts a fresh column per <p>.
+   Parallel mode keeps the sentence-by-sentence translation alignment and only
+   marks the paragraph boundary with a heavier rule. */
+.paragraphGroup + .paragraphGroup {
+  border-top: 2px solid var(--reading-border);
+}
+
 .translation {
   margin-top: var(--space-1);
   color: var(--reading-muted);

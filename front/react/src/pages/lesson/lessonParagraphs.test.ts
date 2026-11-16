@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FuriganaToken, Sentence } from '@/types/api'
-import { toArticleParagraphs } from './lessonParagraphs'
+import { indexLessonText } from './lessonSelection'
+import { groupSentencesByParagraph, toArticleParagraphs } from './lessonParagraphs'
 
 function token(surface: string, reading = ''): FuriganaToken {
   return { surface, reading }
@@ -146,4 +147,43 @@ describe('toArticleParagraphs', () => {
       expect(toArticleParagraphs(tt.input)).toEqual(tt.want)
     })
   }
+})
+
+describe('groupSentencesByParagraph', () => {
+  it('returns no paragraphs for an empty lesson', () => {
+    expect(groupSentencesByParagraph([])).toEqual([])
+  })
+
+  it('keeps unmarked legacy sentences in one group', () => {
+    const input = [
+      sentence(0, [token('毎朝')], '每天早上。'),
+      sentence(1, [token('起きます')], '起床。'),
+    ]
+    expect(groupSentencesByParagraph(input)).toEqual([{ sentences: input, chinese: '每天早上。起床。' }])
+  })
+
+  it('splits on paragraph changes while keeping sentence boundaries and order', () => {
+    const input = [
+      sentence(0, [token('一')], '一。', 0),
+      sentence(1, [token('二')], '二。', 0),
+      sentence(2, [token('三')], '三。', 1),
+    ]
+    expect(groupSentencesByParagraph(input)).toEqual([
+      { sentences: [input[0], input[1]], chinese: '一。二。' },
+      { sentences: [input[2]], chinese: '三。' },
+    ])
+  })
+
+  it('does not reset indexed token offsets at a paragraph boundary', () => {
+    const input = [
+      sentence(0, [token('朝'), token('です。')], '早上了。', 0),
+      sentence(1, [token('散歩')], '散步。', 1),
+    ]
+    const groups = groupSentencesByParagraph(indexLessonText(input))
+
+    expect(groups.map((group) => group.sentences.flatMap((item) => item.tokens.map((t) => t.start)))).toEqual([
+      [0, 1],
+      [4],
+    ])
+  })
 })
