@@ -104,6 +104,10 @@ func (h *Handler) readRequestScope(w http.ResponseWriter, r *http.Request) (int6
 }
 
 func (h *Handler) writeServiceError(w http.ResponseWriter, err error) {
+	writeShadowingError(w, err)
+}
+
+func writeShadowingError(w http.ResponseWriter, err error) {
 	var shadowingErr *Error
 	if !errors.As(err, &shadowingErr) {
 		slog.Error("shadowing handler failed", "err", err)
@@ -132,7 +136,9 @@ func statusForErrorCode(code string) int {
 		return http.StatusForbidden
 	case ErrShadowingVersionStale:
 		return http.StatusConflict
-	case ErrShadowingMediaMissing, ErrShadowingContentInvalid, ErrShadowingAttemptModeInvalid:
+	case ErrShadowingMediaMissing, ErrShadowingContentInvalid, ErrShadowingAttemptModeInvalid,
+		ErrShadowingEvalInvalid, ErrShadowingReferenceMissing, ErrShadowingAudioUnsupported,
+		ErrShadowingUnscorable:
 		return http.StatusUnprocessableEntity
 	default:
 		return http.StatusInternalServerError

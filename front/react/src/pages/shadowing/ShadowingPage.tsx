@@ -1,22 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { APIError } from '@/api/client'
-import { getShadowingSession, saveShadowingAttempt, saveShadowingProgress } from '@/api/shadowing'
-import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import type { PracticeMode, ShadowingSession as ShadowingSessionDTO } from '@/types/shadowing'
+import {
+  evaluateShadowing,
+  getShadowingSession,
+  saveShadowingAttempt,
+  saveShadowingProgress,
+} from '@/api/shadowing'
+import { useWavRecorder } from '@/hooks/useWavRecorder'
+import type {
+  EvaluationResult,
+  PracticeMode,
+  ShadowingSession as ShadowingSessionDTO,
+} from '@/types/shadowing'
+import { classifyEvaluationError, recordButtonLabel } from '@/util/shadowing/evaluationFlow'
 import { getCurrentSentenceIndex } from '@/util/shadowing/currentSentence'
 import { selectShadowingMedia } from '@/util/shadowing/media'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { ScoreCard } from './ScoreCard'
 import styles from './ShadowingPage.module.css'
 
 export function ShadowingPage() {
   const { id } = useParams()
   const mediaRef = useRef<HTMLMediaElement | null>(null)
-  const recordingAudioRef = useRef<HTMLAudioElement | null>(null)
   const progressTimeoutRef = useRef<number | null>(null)
   const loopCountRef = useRef(0)
   const loopSavingRef = useRef(false)
-  const recorder = useAudioRecorder()
+  const recorder = useWavRecorder()
 
   const [session, setSession] = useState<ShadowingSessionDTO | null>(null)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState<number | null>(null)
@@ -28,6 +38,9 @@ export function ShadowingPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
+  const [evaluating, setEvaluating] = useState(false)
+  const [evaluationError, setEvaluationError] = useState('')
 
   async function loadSession(showSpinner = true, signal?: AbortSignal) {
     const lessonID = Number(id)
@@ -178,23 +191,50 @@ export function ShadowingPage() {
     }
   }
 
-  function playRecording() {
-    void recordingAudioRef.current?.play()
-  }
-
   async function toggleRecording() {
-    if (currentSentenceIndex === null || !session) return
+    if (currentSentenceIndex === null || !session || evaluating) return
     setError('')
     try {
       if (!recorder.isRecording) {
+        setEvaluation(null)
+        setEvaluationError('')
         await recorder.start()
         return
       }
 
-      await recorder.stop()
-      await saveRecordAttempt(currentSentenceIndex)
+      const recording = await recorder.stop()
+      const sentenceIndex = currentSentenceIndex
+      // Scoring is best-effort: a failed evaluation must not lose the practice
+      // attempt that feeds the existing progress / best_score logic.
+      await evaluateCurrentSentence(recording.blob, sentenceIndex)
+      await saveRecordAttempt(sentenceIndex)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to record audio')
+    }
+  }
+
+  async function evaluateCurrentSentence(audio: Blob, sentenceIndex: number) {
+    if (!session) return
+    setEvaluating(true)
+    setEvaluationError('')
+    try {
+      const data = await evaluateShadowing(session.lesson.id, {
+        audio,
+        mode: 'shadow',
+        sentence_index: sentenceIndex,
+        shadowing_version: session.lesson.shadowing_version,
+      })
+      setEvaluation(data)
+    } catch (err) {
+      const failure = classifyEvaluationError(err)
+      setEvaluation(null)
+      if (failure.kind === 'stale') {
+        setNotice('Content changed. Session refreshed.')
+        await loadSession(false)
+      }
+      setEvaluationError(failure.message)
+    } finally {
+      setEvaluating(false)
     }
   }
 
@@ -380,10 +420,12 @@ export function ShadowingPage() {
         <button className={looping ? styles.activeButton : ''} onClick={toggleLoop} disabled={currentSentenceIndex === null}>
           {looping ? `Looping ${loopCount}/${getConfiguredLoopCount(session)}` : 'Loop'}
         </button>
-        <button onClick={toggleRecording} disabled={currentSentenceIndex === null || saving}>
-          {recorder.isRecording ? 'Stop recording' : 'Record'}
+        <button onClick={toggleRecording} disabled={currentSentenceIndex === null || saving || evaluating}>
+          {recordButtonLabel(recorder.isRecording, evaluating)}
         </button>
       </section>
+
+      <p className={styles.hint}>🎧 请戴耳机跟读，避免录到原音。录音会转成 16 kHz WAV 后评分。</p>
 
       <label className={styles.scoreControl}>
         Self score
@@ -397,12 +439,14 @@ export function ShadowingPage() {
       </label>
 
       {recorder.error && <p className={styles.error}>{recorder.error}</p>}
-      {recorder.audioURL && (
-        <div className={styles.recordingCard}>
-          <span>Local recording playback</span>
-          <button type="button" onClick={playRecording}>Play recording</button>
-          <audio ref={recordingAudioRef} controls src={recorder.audioURL} />
-        </div>
+      {evaluating && <p className={styles.intro}>🎯 正在评分…</p>}
+      {evaluationError && <p className={styles.error}>{evaluationError}</p>}
+      {!evaluating && (
+        <ScoreCard
+          result={evaluation}
+          recordingURL={recorder.recording?.url ?? null}
+          onRetry={currentSentenceIndex === null ? undefined : () => void toggleRecording()}
+        />
       )}
 
       <section className={styles.subtitleList} aria-label="Sentence subtitles">
