@@ -950,6 +950,36 @@ GET /lessons/1/shadowing（flag off）-> 403 ERR_SHADOWING_DISABLED
 
 ---
 
+## §22 合并课文段落线进影子跟读 PR（2026-11-17）
+
+按「方案 1」把本地提交 `826a01d` 补进 `codex/shadowing-local-scoring`，解决两套阅读 UI 的取舍。
+
+### 冲突处理
+
+独立 worktree `/tmp/jlwt-pr-merge` 上 `git cherry-pick 826a01d`，2 处冲突：`LessonDetailPage.tsx`、`LessonPage.module.css`。两处都保留 PR 分支版本（`--ours`）——以远端 `LessonReading` 竖排/批注/点选组件为骨架；本地旧 `styles.article*` 和「显示翻译」开关由远端的「中日对照」模式覆盖，且这些类在远端已无任何引用。
+
+### 段落能力整合（不回退阅读 UI）
+
+- `lessonParagraphs.ts` 新增 `groupSentencesByParagraph()`，并把 `toArticleParagraphs()` 改成泛型。两者都接收 `indexLessonText()` 产出的带 `start` 偏移句子，**段落分组不重置全局 offset**，已保存的批注范围不会错位。
+- 竖排模式：每个段落渲染一个 `<p class="verticalText" data-lesson-paragraph="N">`，自带 1em 缩进，竖排下自然另起一列；不再把全文拼成一条不断行的长段落。
+- 对照模式：按段落包一层 `.paragraphGroup`，保留逐句翻译与逐句 `ErrataButton` 的 `itemKey`，段落之间用更重的分隔线标记。
+- 旧课文没有 `paragraph` 字段 → 仍归为单段落，行为与远端原来一致。
+
+### 迁移命名（易踩坑）
+
+线上 PG 的 `schema_migrations` 已同时存在 `010_lesson_paragraph.sql`、`010_study_plans.sql`、`011_lesson_annotations.sql`。其中 `010_lesson_paragraph.sql` 的 checksum `54f21d1e...6885` 与本地文件完全一致，部署时是 no-op。**不要顺手把它改名成 `012_*`**：虽然 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 幂等，但改名会让部署机重复执行并多写一条 migration 记录。`010_` 前缀重复是历史事实，不是冲突。
+
+### 提交与验证
+
+- `ae84eba`：cherry-pick 原提交，28 文件 +2646/-131（冲突按上述解决）。
+- `6e56136`：阅读 UI 整合，5 文件 +130/-28。
+- `origin/codex/shadowing-local-scoring = 6e56136`，相对 `origin/master` 共 85 文件 +10534/-238。
+- Go `test ./... -count=1` / `vet ./...` / `build ./...` 全过；前端 `vitest` **23 文件 196 测试** / `tsc --noEmit` / `vite build` 232 模块全过。新增 4 个段落分组测试与 2 个阅读渲染测试，其中一条断言跨段落 `data-lesson-offset` 仍连续为 `[0, 1]`。
+- 完整 PR diff 扫描无生产凭据（文档里只有 `JWT_SECRET=local-dev-secret` 本地占位）。
+- 合并链接不变：`https://github.com/hujinrun-github/japanese-learning-app/compare/master...codex/shadowing-local-scoring?expand=1`
+
+---
+
 ## 参考
 
 - `docs/spec/shadowing-scoring-redesign.md`（本计划的上位设计）
