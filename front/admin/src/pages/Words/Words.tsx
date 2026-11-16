@@ -9,17 +9,19 @@ import styles from './Words.module.css'
 interface Word {
   id: number; kanji_form: string; reading: string; meaning: string
   part_of_speech: string; jlpt_level: string
-  examples: { japanese: string; chinese: string }[]; reading_type: string; audio_url: string
+  examples: { japanese: string; chinese: string }[]; reading_type: string; verb_type: string; audio_url: string
 }
 
 const LEVELS = ['', 'N5', 'N4', 'N3', 'N2', 'N1']
+const VERB_TYPES = ['', '自动词', '他动词', '自他两用']
+const VERB_TYPE_LABEL: Record<string, string> = { '': '未标注', '自动词': '🟢 自动词', '他动词': '🔵 他动词', '自他两用': '🟣 自他两用' }
 const LVL_CSS: Record<string, string> = { N5: 'adm-lvlN5', N4: 'adm-lvlN4', N3: 'adm-lvlN3', N2: 'adm-lvlN2', N1: 'adm-lvlN1' }
 const PAGE_SIZE = 20
 
 const POS_ICON: Record<string, string> = { '動詞': '🔴', '名詞': '🔵', '形容詞': '🟡', '副詞': '🟣', '助詞': '⚪' }
 const POS_CSS: Record<string, string> = { '動詞': 'adm-tagVerb', '名詞': 'adm-tagNoun', '形容詞': 'adm-tagAdj', '副詞': 'adm-tagAdv' }
 
-const emptyForm = { kanji_form: '', reading: '', meaning: '', part_of_speech: '', jlpt_level: 'N5', examples: '[]', reading_type: '', auto_fill: true, generate_examples: false }
+const emptyForm = { kanji_form: '', reading: '', meaning: '', part_of_speech: '', jlpt_level: 'N5', examples: '[]', reading_type: '', verb_type: '', auto_fill: true, generate_examples: false }
 
 export default function WordsPage() {
   const [items, setItems] = useState<Word[]>([])
@@ -59,7 +61,7 @@ export default function WordsPage() {
   function openCreate() { setEditing(null); setForm(emptyForm); setModalOpen(true) }
   function openEdit(w: Word) {
     setEditing(w)
-    setForm({ kanji_form: w.kanji_form, reading: w.reading, meaning: w.meaning, part_of_speech: w.part_of_speech, jlpt_level: w.jlpt_level, examples: JSON.stringify(w.examples ?? []), reading_type: w.reading_type ?? '', auto_fill: false, generate_examples: false })
+    setForm({ kanji_form: w.kanji_form, reading: w.reading, meaning: w.meaning, part_of_speech: w.part_of_speech, jlpt_level: w.jlpt_level, examples: JSON.stringify(w.examples ?? []), reading_type: w.reading_type ?? '', verb_type: w.verb_type ?? '', auto_fill: false, generate_examples: false })
     setModalOpen(true)
   }
 
@@ -200,7 +202,7 @@ export default function WordsPage() {
                       <td className="adm-kanji">{w.kanji_form}</td>
                       <td className="adm-reading">{w.reading || '-'}</td>
                       <td className="adm-meaning" title={w.meaning}>{w.meaning}</td>
-                      <td><span className={`adm-tag ${POS_CSS[w.part_of_speech] || 'adm-tagOther'}`}>{POS_ICON[w.part_of_speech] || ''} {w.part_of_speech}</span></td>
+                      <td><span className={`adm-tag ${POS_CSS[w.part_of_speech] || 'adm-tagOther'}`}>{POS_ICON[w.part_of_speech] || ''} {w.part_of_speech}</span>{w.verb_type && <span className="adm-tag adm-tagOther" style={{ marginLeft: 4 }}>{VERB_TYPE_LABEL[w.verb_type] || w.verb_type}</span>}</td>
                       <td><span className={`adm-levelBadge ${LVL_CSS[w.jlpt_level] || ''}`}>{w.jlpt_level}</span></td>
                       <td onClick={e => e.stopPropagation()}>
                         <AudioRegenButton text={w.reading} audioUrl={w.audio_url ? `/audio/words/${w.audio_url}` : undefined} module="word" wordId={w.id} onRegenerated={() => fetchItems()} />
@@ -273,6 +275,7 @@ export default function WordsPage() {
           <label>Part of Speech <input value={form.part_of_speech} onChange={e => setForm({...form, part_of_speech: e.target.value})} /></label>
           <label>JLPT Level <select value={form.jlpt_level} onChange={e => setForm({...form, jlpt_level: e.target.value})}>{LEVELS.filter(l => l).map(l => <option key={l} value={l}>{l}</option>)}</select></label>
           <label>Reading Type <input value={form.reading_type} onChange={e => setForm({...form, reading_type: e.target.value})} /></label>
+          <label>自他动词标签 <select value={form.verb_type} onChange={e => setForm({...form, verb_type: e.target.value})}>{VERB_TYPES.map(v => <option key={v} value={v}>{VERB_TYPE_LABEL[v]}</option>)}</select></label>
           <label>Examples (JSON) <textarea value={form.examples} onChange={e => setForm({...form, examples: e.target.value})} rows={4} /></label>
           {!editing && <label className="adm-checkLabel"><input type="checkbox" checked={form.auto_fill} onChange={e => setForm({...form, auto_fill: e.target.checked})} />Auto-fill reading/POS (kagome)</label>}
           <label className="adm-checkLabel"><input type="checkbox" checked={form.generate_examples} onChange={e => setForm({...form, generate_examples: e.target.checked})} />Generate examples via AI (requires AI_API_KEY)</label>

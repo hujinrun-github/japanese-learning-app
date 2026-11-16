@@ -16,6 +16,7 @@ type wordRequest struct {
 	JLPTLevel         word.JLPTLevel     `json:"jlpt_level"`
 	Examples          []word.WordExample `json:"examples"`
 	ReadingType       string             `json:"reading_type"`
+	VerbType          string             `json:"verb_type"`
 	AutoFill          bool               `json:"auto_fill"`
 	GenerateExamples  bool               `json:"generate_examples"`
 }
@@ -46,6 +47,16 @@ func (h *Handler) createWord(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "kanji_form, meaning, jlpt_level are required"})
 		return
 	}
+	verbType := req.VerbType
+	if verbType == "" {
+		verbType = word.NormalizeVerbType(req.PartOfSpeech)
+	}
+	if !word.IsVerbType(verbType) {
+		slog.Error("invalid verb_type", "verb_type", verbType, "kanji_form", req.KanjiForm)
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid verb_type"})
+		return
+	}
+
 	wd := word.Word{
 		KanjiForm:    req.KanjiForm,
 		Reading:      req.Reading,
@@ -54,6 +65,7 @@ func (h *Handler) createWord(w http.ResponseWriter, r *http.Request) {
 		JLPTLevel:    req.JLPTLevel,
 		Examples:     req.Examples,
 		ReadingType:  req.ReadingType,
+		VerbType:     verbType,
 	}
 
 	if req.AutoFill {
@@ -91,6 +103,16 @@ func (h *Handler) updateWord(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
 		return
 	}
+	verbType := req.VerbType
+	if verbType == "" {
+		verbType = word.NormalizeVerbType(req.PartOfSpeech)
+	}
+	if !word.IsVerbType(verbType) {
+		slog.Error("invalid verb_type", "verb_type", verbType, "kanji_form", req.KanjiForm)
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid verb_type"})
+		return
+	}
+
 	wd := word.Word{
 		ID:           id,
 		KanjiForm:    req.KanjiForm,
@@ -100,6 +122,7 @@ func (h *Handler) updateWord(w http.ResponseWriter, r *http.Request) {
 		JLPTLevel:    req.JLPTLevel,
 		Examples:     req.Examples,
 		ReadingType:  req.ReadingType,
+		VerbType:     verbType,
 	}
 
 	if req.AutoFill {

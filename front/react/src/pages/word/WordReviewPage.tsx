@@ -292,6 +292,9 @@ export function WordReviewPage() {
                   {card!.word.part_of_speech && (
                     <span className={styles.partOfSpeech}>{card!.word.part_of_speech}</span>
                   )}
+                  {card!.word.verb_type && (
+                    <span className={styles.verbType}>{card!.word.verb_type}</span>
+                  )}
                 </div>
 
                 {mode === 'recognition' ? (
