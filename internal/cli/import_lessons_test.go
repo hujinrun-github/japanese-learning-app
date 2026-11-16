@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"database/sql"
+	"encoding/json"
 	"os"
 	"reflect"
 	"strings"
@@ -477,6 +478,57 @@ func TestImportLessonsFromFile_RejectsExistingDuplicateLessons(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "cleanup") {
 		t.Fatalf("ImportLessonsFromFile error = %v, want cleanup guidance", err)
+	}
+}
+
+func TestImportLessonsFromFile_PreservesParagraphMarkers(t *testing.T) {
+	tests := []struct {
+		name          string
+		paragraph     any
+		wantParagraph float64
+	}{
+		{name: "explicit first paragraph", paragraph: 0, wantParagraph: 0},
+		{name: "explicit second paragraph", paragraph: 1, wantParagraph: 1},
+		{name: "missing marker defaults to first paragraph", paragraph: nil, wantParagraph: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := openTestDB(t)
+			item := lessonImportJSON(tt.name, "N5", "", false, 1)
+			sentence := lessonSentenceJSON()
+			if tt.paragraph != nil {
+				sentence["paragraph"] = tt.paragraph
+			}
+			item["sentences"] = []map[string]any{sentence}
+
+			filePath := writeTempJSON(t, []map[string]any{item})
+			if _, err := cli.ImportLessonsFromFile(db, filePath); err != nil {
+				t.Fatalf("ImportLessonsFromFile error: %v", err)
+			}
+
+			var contentJSON string
+			if err := db.QueryRow(
+				`SELECT content_furigana_json FROM lessons WHERE title = ?`, tt.name,
+			).Scan(&contentJSON); err != nil {
+				t.Fatalf("query content_furigana_json error: %v", err)
+			}
+
+			var stored []map[string]any
+			if err := json.Unmarshal([]byte(contentJSON), &stored); err != nil {
+				t.Fatalf("unmarshal content_furigana_json error: %v", err)
+			}
+			if len(stored) != 1 {
+				t.Fatalf("stored sentences len = %d, want 1", len(stored))
+			}
+			got, ok := stored[0]["paragraph"].(float64)
+			if !ok {
+				t.Fatalf("stored paragraph = %#v, want numeric %v", stored[0]["paragraph"], tt.wantParagraph)
+			}
+			if got != tt.wantParagraph {
+				t.Fatalf("stored paragraph = %v, want %v", got, tt.wantParagraph)
+			}
+		})
 	}
 }
 

@@ -169,6 +169,8 @@ export interface Sentence {
   chinese: string
   start_ms: number
   end_ms: number
+  // Optional paragraph index. Missing means paragraph 0 (legacy lessons).
+  paragraph?: number
 }
 
 export interface LessonSummary {

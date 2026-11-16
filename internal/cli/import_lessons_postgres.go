@@ -198,14 +198,15 @@ func replacePostgresLessonChildren(ctx context.Context, tx *sql.Tx, lessonID int
 		}
 		if _, err := tx.ExecContext(
 			ctx,
-			`INSERT INTO lesson_sentences (lesson_id, position, tokens, chinese, start_ms, end_ms)
-			 VALUES ($1, $2, $3::jsonb, $4, $5, $6)`,
+			`INSERT INTO lesson_sentences (lesson_id, position, tokens, chinese, start_ms, end_ms, paragraph)
+			 VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)`,
 			lessonID,
 			sentence.Index,
 			string(tokensJSON),
 			sentence.Chinese,
 			sentence.StartMS,
 			sentence.EndMS,
+			sentence.Paragraph,
 		); err != nil {
 			return fmt.Errorf("cli.replacePostgresLessonChildren insert sentence %d for %q: %w", sentence.Index, item.Title, err)
 		}

@@ -147,7 +147,8 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 			rec.ReferenceTranslation = generated
 		}
 		applyGrammarFeedback(&fb, *sent, rec.ReferenceTranslation)
-		slog.Debug("translation grammar selected", "sentence_id", sentenceID, "source", fb.GrammarSource, "count", len(fb.GrammarExplanations))
+		slog.Debug("translation grammar selected", "sentence_id", sentenceID, "source", fb.GrammarSource,
+			"count", len(fb.GrammarExplanations), "bank_input", len(sent.GrammarPoints))
 		rec.AIFeedback = &fb
 		rec.Score = fb.AIScore
 		// Update record with AI feedback or the local fallback.

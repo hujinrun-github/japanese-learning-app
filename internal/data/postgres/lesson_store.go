@@ -177,7 +177,7 @@ func decodeLessonShadowingConfig(raw string, out *map[string]any) error {
 func (s *LessonStore) GetSentences(lessonID int64) ([]lesson.Sentence, error) {
 	rows, err := s.db.QueryContext(
 		context.Background(),
-		`SELECT position, tokens::text, chinese, start_ms, end_ms
+		`SELECT position, tokens::text, chinese, start_ms, end_ms, paragraph
 		 FROM lesson_sentences
 		 WHERE lesson_id = $1
 		 ORDER BY position`,
@@ -192,7 +192,7 @@ func (s *LessonStore) GetSentences(lessonID int64) ([]lesson.Sentence, error) {
 	for rows.Next() {
 		var sentence lesson.Sentence
 		var tokensJSON string
-		if err := rows.Scan(&sentence.Index, &tokensJSON, &sentence.Chinese, &sentence.StartMS, &sentence.EndMS); err != nil {
+		if err := rows.Scan(&sentence.Index, &tokensJSON, &sentence.Chinese, &sentence.StartMS, &sentence.EndMS, &sentence.Paragraph); err != nil {
 			return nil, fmt.Errorf("postgres.LessonStore.GetSentences scan: %w", translateError(err))
 		}
 		if err := json.Unmarshal([]byte(tokensJSON), &sentence.Tokens); err != nil {

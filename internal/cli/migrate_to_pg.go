@@ -1200,11 +1200,12 @@ func (m *migrator) migrateLessonSentences(stats *migrateStats) error {
 	defer rows.Close()
 
 	type sentenceJSON struct {
-		Index   int             `json:"index"`
-		Tokens  json.RawMessage `json:"tokens"`
-		Chinese string          `json:"chinese"`
-		StartMS int64           `json:"start_ms"`
-		EndMS   int64           `json:"end_ms"`
+		Index     int             `json:"index"`
+		Tokens    json.RawMessage `json:"tokens"`
+		Chinese   string          `json:"chinese"`
+		StartMS   int64           `json:"start_ms"`
+		EndMS     int64           `json:"end_ms"`
+		Paragraph int             `json:"paragraph"`
 	}
 
 	var total int
@@ -1230,10 +1231,10 @@ func (m *migrator) migrateLessonSentences(stats *migrateStats) error {
 				tokensStr = "[]"
 			}
 			if _, err := m.execPG(
-				`INSERT INTO lesson_sentences (lesson_id, position, tokens, chinese, start_ms, end_ms)
-				 VALUES ($1, $2, $3, $4, $5, $6)
+				`INSERT INTO lesson_sentences (lesson_id, position, tokens, chinese, start_ms, end_ms, paragraph)
+				 VALUES ($1, $2, $3, $4, $5, $6, $7)
 				 ON CONFLICT (lesson_id, position) DO NOTHING`,
-				targetLessonID, s.Index, tokensStr, s.Chinese, s.StartMS, s.EndMS,
+				targetLessonID, s.Index, tokensStr, s.Chinese, s.StartMS, s.EndMS, s.Paragraph,
 			); err != nil {
 				return fmt.Errorf("insert lesson_sentence (lesson=%d pos=%d): %w", lessonID, s.Index, err)
 			}

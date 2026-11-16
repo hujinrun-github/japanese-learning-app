@@ -21,11 +21,12 @@ type FuriganaToken struct {
 
 // Sentence 课文中的一个句子
 type Sentence struct {
-	Index   int             `json:"index"`
-	Tokens  []FuriganaToken `json:"tokens"`   // 振り仮名分词结果
-	Chinese string          `json:"chinese"`  // 中文翻译
-	StartMS int64           `json:"start_ms"` // 音频开始时间（毫秒）
-	EndMS   int64           `json:"end_ms"`   // 音频结束时间（毫秒）
+	Index     int             `json:"index"`
+	Tokens    []FuriganaToken `json:"tokens"`    // 振り仮名分词结果
+	Chinese   string          `json:"chinese"`   // 中文翻译
+	StartMS   int64           `json:"start_ms"`  // 音频开始时间（毫秒）
+	EndMS     int64           `json:"end_ms"`    // 音频结束时间（毫秒）
+	Paragraph int             `json:"paragraph"` // 所属段落序号，0 表示第一段；旧数据默认 0
 }
 
 // LessonSummary 课文列表项（不含全文内容，减少传输量）

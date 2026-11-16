@@ -1,6 +1,7 @@
 package translation
 
 import (
+	"log/slog"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -20,14 +21,26 @@ func grammarText(direction, source, reference string) string {
 }
 
 func applyGrammarFeedback(feedback *TranslationFeedback, sentence TranslationSentence, reference string) {
+	japanese := grammarText(sentence.Direction, sentence.SourceText, reference)
 	var bankItems []GrammarExplanation
+	var rejected []string
 	seen := make(map[string]bool)
 	for _, raw := range sentence.GrammarPoints {
 		point := strings.TrimSpace(raw)
-		if point != "" && !seen[point] {
-			seen[point] = true
-			bankItems = append(bankItems, GrammarExplanation{GrammarPoint: point})
+		if point == "" || seen[point] {
+			continue
 		}
+		evidence := bankGrammarEvidence(japanese, point)
+		if evidence == "" {
+			rejected = append(rejected, point)
+			continue
+		}
+		seen[point] = true
+		bankItems = append(bankItems, GrammarExplanation{GrammarPoint: point, Evidence: evidence})
+	}
+	if len(rejected) > 0 {
+		slog.Debug("translation bank grammar points rejected without evidence",
+			"rejected", rejected, "japanese", japanese)
 	}
 	if len(bankItems) > 0 {
 		feedback.GrammarExplanations = bankItems
@@ -38,7 +51,6 @@ func applyGrammarFeedback(feedback *TranslationFeedback, sentence TranslationSen
 		return
 	}
 
-	japanese := grammarText(sentence.Direction, sentence.SourceText, reference)
 	var verified []GrammarExplanation
 	for _, item := range feedback.GrammarExplanations {
 		point := strings.TrimSpace(item.GrammarPoint)
@@ -61,6 +73,18 @@ func applyGrammarFeedback(feedback *TranslationFeedback, sentence TranslationSen
 	if len(feedback.GrammarExplanations) > 0 {
 		feedback.GrammarSource = grammarSourceLocal
 	}
+}
+
+// bankGrammarEvidence returns the literal Japanese substring that proves a
+// question-bank annotation occurs in this sentence. Category labels such as
+// 動詞 / 可能形 and one-character particles have no literal evidence, so they
+// are rejected and the reviewer's own analysis can take over.
+func bankGrammarEvidence(japanese, point string) string {
+	evidence := strings.TrimLeft(strings.TrimSpace(point), "〜～~")
+	if utf8.RuneCountInString(evidence) < 2 || !strings.Contains(japanese, evidence) {
+		return ""
+	}
+	return evidence
 }
 
 // Local recognition is intentionally limited to distinctive clause endings.
