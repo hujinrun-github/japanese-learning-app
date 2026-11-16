@@ -432,9 +432,13 @@ const ja = {
       original: '日本語の原文',
       empty: '本文がありません',
       shadowing: 'シャドーイングを始める',
+      tapMode: 'タップ選択',
+      tapHint: '文字をタップして選択し、もう一度タップで範囲を決めます。「注釈を追加」で保存、「キャンセル」でやり直せます。',
     },
     annotations: {
       hint: '日本語の本文を選択して注釈を追加できます。',
+      selected: '選択中の本文',
+      cancel: 'キャンセル',
       create: '注釈を追加',
       edit: '注釈を編集',
       comment: 'メモ',

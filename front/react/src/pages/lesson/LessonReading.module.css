@@ -38,7 +38,8 @@
   color: var(--color-brand-hover);
 }
 
-.readings {
+.readings,
+.tapToggle {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -48,7 +49,8 @@
   cursor: pointer;
 }
 
-.readings input {
+.readings input,
+.tapToggle input {
   width: 1rem;
   height: 1rem;
   accent-color: var(--color-brand);
@@ -125,14 +127,34 @@
 
 @media (max-width: 640px) {
   .paper {
-    height: clamp(300px, calc(100svh - 400px), 500px);
-    line-height: 2.25;
+    /* More characters per column means fewer scrolls while picking a range. */
+    height: clamp(340px, 60svh, 520px);
+    line-height: 2.5;
   }
 }
 
 .reader rt {
   user-select: none;
   -webkit-user-select: none;
+  pointer-events: none;
+}
+
+/* Tap mode replaces drag-select, so suppress the native long-press menu that fights it. */
+.tapActive .paper,
+.tapActive .parallel {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.tapActive .paper [data-lesson-offset],
+.tapActive .parallel [data-lesson-offset] {
+  touch-action: manipulation;
+}
+
+.selected {
+  background: #efd59e;
+  border-radius: 2px;
 }
 
 .reader mark {

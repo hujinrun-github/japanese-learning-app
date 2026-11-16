@@ -10,7 +10,15 @@ import {
   saveLessonAnnotation,
   type LessonAnnotation,
 } from './lessonAnnotations'
-import { getLessonSelection, indexLessonText, sameTextRange, splitHighlights, type LessonSelection } from './lessonSelection'
+import {
+  getLessonSelection,
+  indexLessonText,
+  sameTextRange,
+  splitHighlights,
+  tapSelection,
+  type LessonSelection,
+  type TextRange,
+} from './lessonSelection'
 import annotationStyles from './LessonAnnotation.module.css'
 import styles from './LessonReading.module.css'
 
@@ -21,15 +29,18 @@ interface LessonReadingProps {
 
 type IndexedSentence = ReturnType<typeof indexLessonText>[number]
 
-function JapaneseText({ tokens, showReadings, annotations }: {
+function JapaneseText({ tokens, showReadings, annotations, selection }: {
   tokens: IndexedSentence['tokens']
   showReadings: boolean
   annotations: LessonAnnotation[]
+  selection: LessonSelection | null
 }) {
   return tokens.map((token, index) => {
+    const end = token.start + Array.from(token.surface).length
     const parts = splitHighlights(token.surface, token.start, annotations)
+    const selected = selection !== null && token.start >= selection.start && end <= selection.end
     const surface = (
-      <span data-lesson-offset={token.start}>
+      <span data-lesson-offset={token.start} data-lesson-end={end} className={selected ? styles.selected : undefined}>
         {parts.map(({ start, text, highlights }) => highlights.length > 0 ? (
           <mark key={start} data-annotation-offset={start}>{text}</mark>
         ) : (
@@ -45,6 +56,10 @@ function JapaneseText({ tokens, showReadings, annotations }: {
   })
 }
 
+function prefersCoarsePointer() {
+  return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)')?.matches === true
+}
+
 export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
   const { t } = useTranslation()
   const bodyId = useId()
@@ -54,6 +69,8 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
   const lastSelection = useRef<LessonSelection | null>(null)
   const [parallel, setParallel] = useState(false)
   const [showReadings, setShowReadings] = useState(true)
+  const [tapMode, setTapMode] = useState(prefersCoarsePointer)
+  const [tapAnchor, setTapAnchor] = useState<TextRange | null>(null)
   const [annotations, setAnnotations] = useState<LessonAnnotation[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'loaded' | 'failed'>('loading')
   const [retry, setRetry] = useState(0)
@@ -66,6 +83,10 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
   const activeAnnotations = useMemo(() => annotations.filter((item) =>
     chars.slice(item.start, item.end).join('') === item.quote), [annotations, chars])
   const canAnnotate = loadState === 'loaded' && indexed.length > 0
+  const hints = [
+    !parallel ? t('lesson.reading.direction') : '',
+    tapMode ? t('lesson.reading.tapHint') : canAnnotate ? t('lesson.annotations.hint') : '',
+  ].filter(Boolean).join(' ')
 
   useEffect(() => {
     if (indexed.length === 0) return
@@ -84,8 +105,9 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
     return () => controller.abort()
   }, [lessonId, indexed.length, retry])
 
+  // Tap selection owns the selection on touch devices; dragging handles is unreliable in vertical text.
   useEffect(() => {
-    if (!canAnnotate || draft) return
+    if (!canAnnotate || draft || tapMode) return
     function updateSelection() {
       const selection = window.getSelection()
       const next = body.current ? getLessonSelection(body.current, selection, chars) : null
@@ -94,12 +116,17 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
     }
     document.addEventListener('selectionchange', updateSelection)
     return () => document.removeEventListener('selectionchange', updateSelection)
-  }, [canAnnotate, chars, draft])
+  }, [canAnnotate, chars, draft, tapMode])
 
-  function openAnnotation(next: LessonAnnotation) {
+  function clearSelection() {
     window.getSelection()?.removeAllRanges()
     lastSelection.current = null
+    setTapAnchor(null)
     setSelection(null)
+  }
+
+  function openAnnotation(next: LessonAnnotation) {
+    clearSelection()
     setDraft(next)
     setOverlapping([])
   }
@@ -109,6 +136,31 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
     if (!selected) return
     const existing = activeAnnotations.find((item) => sameTextRange(selected, item))
     openAnnotation(existing ?? { ...selected, comment: '', links: [] })
+  }
+
+  function handleTap(event: MouseEvent) {
+    if (!(event.target instanceof Element)) return false
+    const base = event.target.closest<HTMLElement>('[data-lesson-offset]')
+    if (!base || !body.current?.contains(base)) return false
+    const start = Number(base.dataset.lessonOffset)
+    const end = Number(base.dataset.lessonEnd)
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return false
+    window.getSelection()?.removeAllRanges()
+    lastSelection.current = null
+    const next = tapSelection(chars, tapAnchor, { start, end })
+    setTapAnchor(next.anchor)
+    setSelection(next.selection)
+    return true
+  }
+
+  function handleBodyClick(event: MouseEvent) {
+    if (!(event.target instanceof Element)) return
+    if (event.target.closest('[data-annotation-offset]')) {
+      openHighlight(event)
+      return
+    }
+    if (tapMode && handleTap(event)) return
+    openHighlight(event)
   }
 
   function openHighlight(event: MouseEvent) {
@@ -126,9 +178,7 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
 
   function switchLayout(value: boolean) {
     if (value === parallel) return
-    window.getSelection()?.removeAllRanges()
-    lastSelection.current = null
-    setSelection(null)
+    clearSelection()
     setParallel(value)
   }
 
@@ -148,7 +198,7 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
   }
 
   return (
-    <section className={styles.reader} aria-label={t('lesson.reading.label')}>
+    <section className={tapMode ? `${styles.reader} ${styles.tapActive}` : styles.reader} data-tap-mode={tapMode ? 'on' : 'off'} aria-label={t('lesson.reading.label')}>
       <div className={styles.toolbar}>
         <div className={styles.modes} role="group" aria-label={t('lesson.reading.layout')}>
           <button type="button" aria-pressed={!parallel} aria-controls={bodyId} onClick={() => switchLayout(false)}>
@@ -162,6 +212,13 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
           <input type="checkbox" checked={showReadings} onChange={(event) => setShowReadings(event.target.checked)} />
           {t('lesson.reading.furigana')}
         </label>
+        <label className={styles.tapToggle}>
+          <input type="checkbox" checked={tapMode} onChange={(event) => {
+            clearSelection()
+            setTapMode(event.target.checked)
+          }} />
+          ✏️ {t('lesson.reading.tapMode')}
+        </label>
       </div>
 
       {loadState === 'failed' && (
@@ -173,19 +230,13 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
           }}>{t('lesson.annotations.retry')}</button>
         </p>
       )}
-      {(!parallel || canAnnotate) && (
-        <p id={hintId} className={styles.hint}>
-          {!parallel && t('lesson.reading.direction')}
-          {!parallel && canAnnotate && ' '}
-          {canAnnotate && t('lesson.annotations.hint')}
-        </p>
-      )}
+      {hints && <p id={hintId} className={styles.hint}>{hints}</p>}
 
       {parallel ? (
-        <div ref={body} id={bodyId} className={styles.parallel} onClick={openHighlight}>
+        <div ref={body} id={bodyId} className={styles.parallel} onClick={handleBodyClick}>
           {indexed.map((sentence) => (
             <div key={sentence.index} className={styles.pair}>
-              <p lang="ja"><JapaneseText tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} /></p>
+              <p lang="ja"><JapaneseText tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} /></p>
               {sentence.chinese && <p className={styles.translation} lang="zh-Hans">{sentence.chinese}</p>}
               <ErrataButton
                 module="lesson"
@@ -196,10 +247,10 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
           ))}
         </div>
       ) : (
-        <div ref={body} id={bodyId} className={styles.paper} role="region" aria-label={t('lesson.reading.original')} aria-describedby={hintId} tabIndex={0} lang="ja" onClick={openHighlight}>
+        <div ref={body} id={bodyId} className={styles.paper} role="region" aria-label={t('lesson.reading.original')} aria-describedby={hintId} tabIndex={0} lang="ja" onClick={handleBodyClick}>
           <p className={styles.verticalText}>
             {indexed.map((sentence) => (
-              <JapaneseText key={sentence.index} tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} />
+              <JapaneseText key={sentence.index} tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} />
             ))}
           </p>
         </div>
@@ -223,9 +274,15 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
         </section>
       )}
       {selection && createPortal(
-        <button type="button" className={annotationStyles.selectionAction} onPointerDown={(event) => event.preventDefault()} onClick={annotateSelection}>
-          {t('lesson.annotations.create')}
-        </button>,
+        <div className={annotationStyles.selectionBar} role="group" aria-label={t('lesson.annotations.selected')}>
+          <span className={annotationStyles.selectionQuote} lang="ja">{selection.quote}</span>
+          <button type="button" className={annotationStyles.selectionAction} onPointerDown={(event) => event.preventDefault()} onClick={annotateSelection}>
+            {t('lesson.annotations.create')}
+          </button>
+          <button type="button" className={annotationStyles.selectionCancel} onPointerDown={(event) => event.preventDefault()} onClick={clearSelection}>
+            {t('lesson.annotations.cancel')}
+          </button>
+        </div>,
         document.body,
       )}
       {draft && (

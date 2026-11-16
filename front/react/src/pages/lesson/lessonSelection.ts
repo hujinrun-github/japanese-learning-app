@@ -78,3 +78,11 @@ export function getLessonSelection(root: HTMLElement, selection: Selection | nul
 export function sameTextRange(a: TextRange, b: TextRange) {
   return a.start === b.start && a.end === b.end
 }
+
+/** Two taps define a range: the first picks a token, the second extends to another token. */
+export function tapSelection(chars: string[], anchor: TextRange | null, target: TextRange) {
+  const end = Math.min(anchor ? Math.max(anchor.end, target.end) : target.end, chars.length)
+  const start = Math.min(anchor ? Math.min(anchor.start, target.start) : target.start, end)
+  const selection: LessonSelection = { start, end, quote: chars.slice(start, end).join('') }
+  return { selection, anchor: anchor ? null : { start, end } }
+}

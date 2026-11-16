@@ -432,9 +432,13 @@ const zh = {
       original: '日语原文',
       empty: '暂无课文正文',
       shadowing: '开始影子跟读',
+      tapMode: '点选模式',
+      tapHint: '轻点文字选中，再点一下确定范围；选好后点「添加标注」，点「取消」可重选。',
     },
     annotations: {
       hint: '选中日语原文即可添加标注。',
+      selected: '已选内容',
+      cancel: '取消',
       create: '添加标注',
       edit: '编辑标注',
       comment: '注释',

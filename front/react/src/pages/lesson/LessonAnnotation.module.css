@@ -1,10 +1,38 @@
-.selectionAction {
+.selectionBar {
   position: fixed;
   z-index: var(--z-overlay);
   inset: auto 0 calc(5rem + env(safe-area-inset-bottom)) 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   width: max-content;
   max-width: calc(100vw - 2rem);
   margin-inline: auto;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.selectionQuote {
+  max-width: min(60vw, 20rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
+.selectionCancel {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  background: var(--color-bg-surface);
+  font-weight: 600;
 }
 
 .selectionAction,
@@ -15,10 +43,6 @@
   min-height: 44px;
   padding: var(--space-2) var(--space-4);
   font-weight: 600;
-}
-
-.selectionAction {
-  box-shadow: var(--shadow-lg);
 }
 
 .dialog {
