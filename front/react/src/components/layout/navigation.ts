@@ -14,10 +14,12 @@ export const DESKTOP_NAV_ITEMS: NavigationItem[] = [
   { to: '/writing', labelKey: 'nav.writing', icon: '✏️' },
   { to: '/notes', labelKey: 'nav.notes', icon: '🗒️' },
   { to: '/translation', labelKey: 'nav.translation', icon: '🌐' },
+  { to: '/study-plan', labelKey: 'nav.studyPlan', icon: '📅' },
 ]
 
 export const ACCOUNT_NAV_ITEMS: NavigationItem[] = [
   { to: '/errata', labelKey: 'errata.history.title', icon: '📝' },
+  { to: '/study-plan', labelKey: 'nav.studyPlan', icon: '📅' },
   { to: '/settings', labelKey: 'nav.settings', icon: '⚙️' },
 ]
 

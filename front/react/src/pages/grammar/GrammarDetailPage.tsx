@@ -1,3 +1,5 @@
+import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
+import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +15,7 @@ import styles from './GrammarDetailPage.module.css'
 
 export function GrammarDetailPage() {
   const { t } = useTranslation()
+  const { progress, refreshProgress } = useDailyPracticeProgress('grammar')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
@@ -78,6 +81,7 @@ export function GrammarDetailPage() {
       }))
       const res = await apiFetch<QuizResult>('POST', `/api/v1/grammar/${point.id}/quiz`, submissions)
       setResult(res)
+      refreshProgress()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submit failed')
     } finally {
@@ -114,6 +118,7 @@ export function GrammarDetailPage() {
         <Badge level={point.jlpt_level} size="sm" />
         {point.user_status && <StatusBadge status={point.user_status} />}
       </div>
+      <DailyPracticeProgress progress={progress} />
       <p className={styles.meaning}>{point.meaning}</p>
 
       {/* Conjunction rule */}

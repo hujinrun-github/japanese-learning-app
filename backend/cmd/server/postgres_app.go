@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"japanese-learning-app/internal/config"
+	"japanese-learning-app/internal/data"
 	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/grammar"
@@ -19,6 +20,7 @@ import (
 	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/shadowing"
 	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/module/studyplan"
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
@@ -109,10 +111,13 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	userH.RegisterPublicRoutes(mux)
 
 	protectedMux := http.NewServeMux()
+	studyplan.NewHandler(db).RegisterRoutes(protectedMux, mux)
 	userH.RegisterProtectedRoutes(protectedMux)
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
 	lessonH.RegisterRoutes(protectedMux)
+	lesson.RegisterCatalogRoute(protectedMux, data.NewLessonCatalog(db, true))
+	lesson.NewAnnotationHandler(db, lessonSvc, runtime.Admin.Words, runtime.Admin.Grammar).RegisterRoutes(protectedMux)
 	speakingH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)
 	translationH.RegisterRoutes(protectedMux)
@@ -125,6 +130,8 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
 
 	authenticated := user.AuthMiddleware(cfg.JWTSecret, protectedMux)
+	mux.Handle("/api/v1/study-plan", authenticated)
+	mux.Handle("/api/v1/study-plan/", authenticated)
 	mux.Handle("/api/v1/words/", authenticated)
 	mux.Handle("/api/v1/grammar", authenticated)
 	mux.Handle("/api/v1/grammar/", authenticated)

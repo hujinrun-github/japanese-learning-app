@@ -19,6 +19,7 @@ import { ShadowingPage } from '@/pages/shadowing/ShadowingPage'
 import { NoteListPage } from '@/pages/note/NoteListPage'
 import { NoteEditPage } from '@/pages/note/NoteEditPage'
 import { NoteDetailPage } from '@/pages/note/NoteDetailPage'
+import { StudyPlanPage } from '@/pages/studyplan/StudyPlanPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import { ErrataHistoryPage } from '@/pages/errata/ErrataHistoryPage'
 
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/notes/:id" element={<NoteDetailPage />} />
             <Route path="/translation" element={<TranslationListPage />} />
             <Route path="/translation/practice" element={<TranslationPracticePage />} />
+            <Route path="/study-plan" element={<StudyPlanPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/errata" element={<ErrataHistoryPage />} />
           </Route>

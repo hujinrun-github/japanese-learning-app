@@ -1,3 +1,5 @@
+import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
+import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +30,7 @@ type ReviewMode = 'recognition' | 'dictation'
 
 export function WordReviewPage() {
   const { t } = useTranslation()
+  const { progress, refreshProgress } = useDailyPracticeProgress('word')
   const [searchParams, setSearchParams] = useSearchParams()
   const mode: ReviewMode = searchParams.get('mode') === 'dictation' ? 'dictation' : 'recognition'
   const [level, setLevel] = useState<JLPTLevel>('N5')
@@ -138,6 +141,7 @@ export function WordReviewPage() {
     setSubmitting(true)
     try {
       await apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating: 'hard' })
+      refreshProgress()
     } catch (err) {
       console.warn('[word] failed to save hard rating', card.word.id, err)
       setError(err instanceof Error ? err.message : 'Failed to save rating')
@@ -165,6 +169,7 @@ export function WordReviewPage() {
     setSubmitting(true)
     try {
       await apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating: 'hard' })
+      refreshProgress()
     } catch (err) {
       console.warn('[word] failed to save hard dictation rating', card.word.id, err)
       setError(err instanceof Error ? err.message : 'Failed to save rating')
@@ -187,6 +192,7 @@ export function WordReviewPage() {
     setSubmitting(true)
     try {
       await apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating })
+      refreshProgress()
       // Only advance after the review is persisted; otherwise the word would
       // look studied while still waiting in the queue.
       setError('')
@@ -223,6 +229,7 @@ export function WordReviewPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>{t('word.queue.title')}</h1>
       </div>
+      <DailyPracticeProgress progress={progress} />
 
       <div className={styles.modeSwitch} role="group" aria-label={t('word.queue.mode.label')}>
         <button

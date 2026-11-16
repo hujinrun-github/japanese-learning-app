@@ -20,6 +20,7 @@ import (
 	"japanese-learning-app/internal/module/review"
 	"japanese-learning-app/internal/module/shadowing"
 	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/module/studyplan"
 	"japanese-learning-app/internal/module/summary"
 	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
@@ -175,10 +176,13 @@ func main() {
 
 	// Protected API routes wrapped in AuthMiddleware
 	protectedMux := http.NewServeMux()
+	studyplan.NewHandler(db).RegisterRoutes(protectedMux, mux)
 	userH.RegisterProtectedRoutes(protectedMux)
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
 	lessonH.RegisterRoutes(protectedMux)
+	lesson.RegisterCatalogRoute(protectedMux, data.NewLessonCatalog(db, false))
+	lesson.NewAnnotationHandler(db, lessonSvc, wordStore, grammarStore).RegisterRoutes(protectedMux)
 	speakingH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)
 	summaryH.RegisterRoutes(protectedMux)
@@ -190,6 +194,8 @@ func main() {
 	planH.RegisterRoutes(protectedMux)
 	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
 
+	mux.Handle("/api/v1/study-plan", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/study-plan/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/grammar/", user.AuthMiddleware(jwtSecret, protectedMux))

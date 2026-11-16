@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
+import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
+import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -43,6 +45,7 @@ function splitSentences(text: string): string[] {
 
 export function SpeakingPage() {
   const { t } = useTranslation()
+  const { progress, refreshProgress } = useDailyPracticeProgress('speaking')
 
   // material list state
   const [activeType, setActiveType] = useState<PracticeType | ''>('')
@@ -60,7 +63,9 @@ export function SpeakingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [records, setRecords] = useState<SpeakingRecord[]>([])
-  const [recordsLoading, setRecordsLoading] = useState(false)
+  const [recordsLoading, setRecordsLoading] = useState(true)
+  const [recordsError, setRecordsError] = useState(false)
+  const [submissionError, setSubmissionError] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
 
   const recorder = useAudioRecorder()
@@ -89,23 +94,35 @@ export function SpeakingPage() {
     }
   }
 
-  async function fetchRecords() {
-    setRecordsLoading(true)
-    try {
-      const data = await apiFetch<SpeakingRecord[]>('GET', '/api/v1/speaking/records')
-      setRecords(data ?? [])
-    } catch {
-      // silently fail for history
-    } finally {
-      setRecordsLoading(false)
-    }
-  }
+  useEffect(() => {
+    const controller = new AbortController()
+    apiFetch<SpeakingRecord[]>('GET', '/api/v1/speaking/records', undefined, controller.signal)
+      .then((data) => {
+        if (controller.signal.aborted) return
+        setRecords((current) => {
+          const savedIds = new Set(current.map((record) => record.id))
+          return [...current, ...(data ?? []).filter((record) => !savedIds.has(record.id))]
+        })
+        setRecordsError(false)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setRecordsError(true)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setRecordsLoading(false)
+      })
+    return () => controller.abort()
+  }, [])
+
+  const practicedMaterials = new Set(records.map((record) => record.material_id))
 
   // select material and enter practice mode
   async function handleSelectMaterial(m: SpeakingMaterial) {
     setSelectedMaterial(m)
     setSubmitted(false)
     setSelfRating(0)
+    setSubmissionError(false)
+    setHistoryExpanded(false)
     setFuriganaError(false)
     if (recorder.audioURL) {
       URL.revokeObjectURL(recorder.audioURL)
@@ -119,7 +136,6 @@ export function SpeakingPage() {
       setFuriganaError(true)
       setFuriganaTokens([])
     }
-    fetchRecords()
   }
 
   function handleBackToList() {
@@ -154,18 +170,20 @@ export function SpeakingPage() {
 
   // submit self-rated practice
   async function handleSubmit() {
-    if (!selectedMaterial || selfRating === 0) return
+    if (!selectedMaterial || selfRating === 0 || submitting) return
     setSubmitting(true)
+    setSubmissionError(false)
     try {
-      await apiFetch('POST', '/api/v1/speaking/practice', {
+      const record = await apiFetch<SpeakingRecord>('POST', '/api/v1/speaking/practice', {
         type: selectedMaterial.type,
         material_id: selectedMaterial.id,
         score: selfRating * 20,
       })
+      setRecords((current) => [record, ...current.filter((item) => item.id !== record.id)])
       setSubmitted(true)
-      fetchRecords()
-    } catch (err) {
-      // error swallowed per plan — user can retry
+      refreshProgress()
+    } catch {
+      setSubmissionError(true)
     } finally {
       setSubmitting(false)
     }
@@ -209,6 +227,7 @@ export function SpeakingPage() {
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>{t('speaking.title')}</h1>
+        <DailyPracticeProgress progress={progress} />
 
         {/* filter bar: type toggles */}
         <div className={styles.filterBar}>
@@ -237,6 +256,7 @@ export function SpeakingPage() {
         </div>
 
         {/* material list */}
+        {recordsError && <p className={styles.errorMsg} role="alert">{t('speaking.historyError')}</p>}
         {materialsError && <p className={styles.errorMsg}>{materialsError}</p>}
 
         {materialsLoading ? (
@@ -248,23 +268,25 @@ export function SpeakingPage() {
         ) : (
           <div className={styles.materialList}>
             {materials.map((m) => (
-              <div
+              <button
                 key={m.id}
+                type="button"
                 className={styles.materialCard}
                 onClick={() => handleSelectMaterial(m)}
               >
-                <div className={styles.cardHeader}>
+                <span className={styles.cardHeader}>
                   <span className={styles.cardTitle}>{m.title}</span>
                   <span className={`${styles.typeTag} ${m.type === 'shadow' ? styles.typeShadow : styles.typeFree}`}>
                     {m.type === 'shadow' ? t('speaking.materials.shadowLabel') : t('speaking.materials.freeLabel')}
                   </span>
-                </div>
-                <p className={styles.cardPreview}>{m.text.slice(0, 80)}{m.text.length > 80 ? '…' : ''}</p>
-                <div className={styles.cardFooter}>
+                </span>
+                <span className={styles.cardPreview}>{m.text.slice(0, 80)}{m.text.length > 80 ? '…' : ''}</span>
+                <span className={styles.cardFooter}>
                   <span className={styles.levelBadge}>{m.jlpt_level}</span>
-                  <span className={styles.cardArrow}>→</span>
-                </div>
-              </div>
+                  {practicedMaterials.has(m.id) && <span className={styles.practiced}>{t('speaking.practiced')}</span>}
+                  <span className={styles.cardArrow} aria-hidden="true">→</span>
+                </span>
+              </button>
             ))}
           </div>
         )}
@@ -277,7 +299,7 @@ export function SpeakingPage() {
   return (
     <div className={styles.page}>
       {/* back button */}
-      <button className={styles.backBtn} onClick={handleBackToList}>
+      <button className={styles.backBtn} onClick={handleBackToList} disabled={submitting}>
         {t('speaking.practice.back')}
       </button>
 
@@ -289,6 +311,8 @@ export function SpeakingPage() {
           {selectedMaterial.type === 'shadow' ? t('speaking.materials.shadowLabel') : t('speaking.materials.freeLabel')}
         </span>
       </div>
+
+      <DailyPracticeProgress progress={progress} />
 
       {/* furigana text display — grouped by sentence */}
       <div className={styles.textDisplay}>
@@ -406,6 +430,7 @@ export function SpeakingPage() {
         {submitting ? <Spinner size="sm" /> : t('speaking.practice.submit')}
       </button>
 
+      {submissionError && <p className={styles.errorMsg} role="alert">{t('speaking.saveError')}</p>}
       {submitted && (
         <p className={styles.successMsg}>{t('speaking.practice.submitSuccess')}</p>
       )}
@@ -414,7 +439,8 @@ export function SpeakingPage() {
       <div className={styles.historySection}>
         <button
           className={styles.historyToggle}
-          onClick={() => { setHistoryExpanded(!historyExpanded); if (!historyExpanded) fetchRecords() }}
+          aria-expanded={historyExpanded}
+          onClick={() => setHistoryExpanded((expanded) => !expanded)}
         >
           {t('speaking.records.title')} {historyExpanded ? '▲' : '▼'}
         </button>
@@ -424,6 +450,8 @@ export function SpeakingPage() {
             <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '20px' }}>
               <Spinner size="sm" />
             </div>
+          ) : recordsError && records.length === 0 ? (
+            <p className={styles.errorMsg} role="alert">{t('speaking.historyError')}</p>
           ) : records.length === 0 ? (
             <EmptyState icon="🎙️" title={t('speaking.records.empty')} description="" />
           ) : (

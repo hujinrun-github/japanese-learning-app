@@ -1,3 +1,5 @@
+import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
+import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -29,6 +31,7 @@ function filterPoints(items: GrammarPointWithStatus[], f: FilterKey): GrammarPoi
 
 export function GrammarListPage() {
   const { t } = useTranslation()
+  const { progress } = useDailyPracticeProgress('grammar')
   const navigate = useNavigate()
   const [level, setLevel] = useState<JLPTLevel>('N5')
   const [filter, setFilter] = useState<FilterKey>('')
@@ -57,6 +60,7 @@ export function GrammarListPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>{t('grammar.list.title')}</h1>
+      <DailyPracticeProgress progress={progress} />
       </div>
 
       <div className={styles.tabs}>
