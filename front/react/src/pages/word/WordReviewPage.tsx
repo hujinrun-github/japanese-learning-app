@@ -71,6 +71,15 @@ export function WordReviewPage() {
     resetCardState()
   }, [mode, currentIndex])
 
+  // Looking at an answer counts as having studied the word. Persist that fact
+  // immediately so a learner who never picks a rating does not meet the same
+  // card again on the next page load. A failure here must not block the flow.
+  function markSeen(wordID: number) {
+    apiFetch('POST', `/api/v1/words/${wordID}/seen`).catch(err => {
+      console.warn('[word] failed to mark word as seen', wordID, err)
+    })
+  }
+
   function resetCardState() {
     setFlipped(false)
     setReadingInput('')
@@ -118,6 +127,7 @@ export function WordReviewPage() {
 
     submitLock.current = true
     const correct = normalizeDictationAnswer(readingInput) === normalizeDictationAnswer(card.word.reading)
+    markSeen(card.word.id)
     if (correct) {
       setFlipped(true)
       setInputWrong(false)
@@ -128,8 +138,9 @@ export function WordReviewPage() {
     setSubmitting(true)
     try {
       await apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating: 'hard' })
-    } catch {
-      // Keep the learning flow available if saving the rating fails.
+    } catch (err) {
+      console.warn('[word] failed to save hard rating', card.word.id, err)
+      setError(err instanceof Error ? err.message : 'Failed to save rating')
     } finally {
       setInputWrong(true)
       setSubmitting(false)
@@ -142,6 +153,7 @@ export function WordReviewPage() {
 
     submitLock.current = true
     const result = evaluateDictationAnswer(card.word, spellingInput, dictationReadingInput)
+    markSeen(card.word.id)
     setDictationResult(result)
     setFlipped(true)
 
@@ -153,8 +165,9 @@ export function WordReviewPage() {
     setSubmitting(true)
     try {
       await apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating: 'hard' })
-    } catch {
-      // Keep the answer visible and allow the user to continue.
+    } catch (err) {
+      console.warn('[word] failed to save hard dictation rating', card.word.id, err)
+      setError(err instanceof Error ? err.message : 'Failed to save rating')
     } finally {
       setSubmitting(false)
       submitLock.current = false
@@ -163,6 +176,7 @@ export function WordReviewPage() {
 
   function handleNextAfterWrong() {
     if (submitting || submitLock.current) return
+    setError('')
     resetCardState()
     setCurrentIndex(index => index + 1)
   }
@@ -173,13 +187,17 @@ export function WordReviewPage() {
     setSubmitting(true)
     try {
       await apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating })
-    } catch {
-      // Best effort: a temporary save failure should not trap the user on a card.
+      // Only advance after the review is persisted; otherwise the word would
+      // look studied while still waiting in the queue.
+      setError('')
+      resetCardState()
+      setCurrentIndex(index => index + 1)
+    } catch (err) {
+      console.warn('[word] failed to save rating', card.word.id, rating, err)
+      setError(err instanceof Error ? err.message : 'Failed to save rating')
     } finally {
       setSubmitting(false)
       submitLock.current = false
-      resetCardState()
-      setCurrentIndex(index => index + 1)
     }
   }
 
