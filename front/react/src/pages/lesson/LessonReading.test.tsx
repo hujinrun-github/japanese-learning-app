@@ -53,6 +53,29 @@ describe('LessonReading', () => {
     }
   })
 
+  it('keeps legacy unmarked lessons as one vertical paragraph', () => {
+    expect(renderLesson().match(/data-lesson-paragraph="\d+"/g)).toHaveLength(1)
+  })
+
+  it('splits marked paragraphs without resetting annotation offsets', () => {
+    const marked: Sentence[] = [
+      { index: 0, tokens: [{ surface: '朝', reading: '' }], chinese: '早上了。', start_ms: 0, end_ms: 0, paragraph: 0 },
+      { index: 1, tokens: [{ surface: '散歩', reading: '' }], chinese: '我去散步。', start_ms: 0, end_ms: 0, paragraph: 1 },
+    ]
+    const html = renderToStaticMarkup(
+      <I18nextProvider i18n={i18n}>
+        <LessonReading lessonId={1} sentences={marked} />
+      </I18nextProvider>,
+    )
+
+    expect(html.match(/data-lesson-paragraph="\d+"/g)).toHaveLength(2)
+    // Offsets must stay continuous across the break, or saved annotations
+    // would silently attach to the wrong text after a paragraph is inserted.
+    const offsets = [...html.matchAll(/data-lesson-offset="(\d+)"/g)].map((match) => Number(match[1]))
+    expect(offsets).toEqual([0, 1])
+    expect(html).not.toContain('早上了。')
+  })
+
   it('turns on tap selection by default on touch screens', () => {
     vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
     const html = renderLesson()

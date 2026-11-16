@@ -60,11 +60,13 @@ func (h *WordHandler) SetStreakRecorder(r user.StreakRecorder) {
 // RegisterRoutes registers routes onto the provided mux.
 // Routes:
 //   GET  /api/v1/words/queue?level=N5   → GetReviewQueue
+//   POST /api/v1/words/{id}/seen        → MarkSeen
 //   POST /api/v1/words/{id}/rate        → SubmitRating
 //   POST /api/v1/words/{id}/bookmark    → Bookmark
 func (h *WordHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/words/{id}", h.handleGetWord)
 	mux.HandleFunc("GET /api/v1/words/queue", h.handleGetReviewQueue)
+	mux.HandleFunc("POST /api/v1/words/{id}/seen", h.handleMarkSeen)
 	mux.HandleFunc("POST /api/v1/words/{id}/rate", h.handleSubmitRating)
 	mux.HandleFunc("POST /api/v1/words/{id}/bookmark", h.handleBookmark)
 }
@@ -82,13 +84,6 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 		level = LevelN5
 	}
 
-	cards, err := h.svc.GetReviewQueue(userID, level)
-	if err != nil {
-		slog.Error("handleGetReviewQueue failed", "err", err, "user_id", userID)
-		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load review queue", "")
-		return
-	}
-
 	fallbackLimit := 50
 	if h.dailyGoal != nil {
 		if goal := h.dailyGoal.GetWordDailyGoal(userID); goal > 0 {
@@ -96,8 +91,12 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 		}
 	}
 	limit := parseLimitParam(r.URL.Query().Get("limit"), fallbackLimit)
-	if len(cards) > limit {
-		cards = cards[:limit]
+
+	cards, err := h.svc.GetReviewQueue(userID, level, limit)
+	if err != nil {
+		slog.Error("handleGetReviewQueue failed", "err", err, "user_id", userID, "level", level, "limit", limit)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load review queue", "")
+		return
 	}
 
 	// Enrich examples with furigana HTML for any that don't have it pre-rendered
@@ -111,6 +110,32 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: cards})
+}
+
+// handleMarkSeen handles POST /api/v1/words/{id}/seen.
+// The learner has looked at the answer; persist a provisional record so the
+// word will not be served again as a brand new card on the next page load.
+func (h *WordHandler) handleMarkSeen(w http.ResponseWriter, r *http.Request) {
+	userID, ok := user.UserIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+
+	wordID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("handleMarkSeen: invalid word id", "err", err, "raw", r.PathValue("id"))
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid word id", "")
+		return
+	}
+
+	if err := h.svc.MarkSeen(userID, wordID); err != nil {
+		slog.Error("handleMarkSeen failed", "err", err, "user_id", userID, "word_id", wordID)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to mark word as seen", "")
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{"status": "ok"}})
 }
 
 // handleSubmitRating handles POST /api/v1/words/{id}/rate

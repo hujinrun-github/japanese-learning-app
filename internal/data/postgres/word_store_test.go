@@ -322,3 +322,67 @@ func TestWordStoreAdminCRUDAndListAllRecords(t *testing.T) {
 		t.Fatalf("DeleteWord() error = %v", err)
 	}
 }
+
+// TestWordStoreListByLevelLoadsExamplesInBatch 用真实 PostgreSQL 验证
+// scanWords 改成批量加载后，每个词仍然只拿到自己的例句且顺序不变。
+// 需要 DATABASE_URL_TEST；本地未配置时按项目惯例跳过。
+func TestWordStoreListByLevelLoadsExamplesInBatch(t *testing.T) {
+	db := newMigratedPostgresTestDB(t)
+	store := newPostgresWordStoreForDB(db)
+
+	tests := []struct {
+		kanji    string
+		examples []word.WordExample
+	}{
+		{"水", []word.WordExample{{Japanese: "水を飲む", Chinese: "喝水"}}},
+		{
+			"山",
+			[]word.WordExample{
+				{Japanese: "山に登る", Chinese: "爬山"},
+				{Japanese: "高い山", Chinese: "高山"},
+			},
+		},
+		{"空", nil},
+	}
+
+	for _, tt := range tests {
+		wordID, err := store.InsertWord(word.Word{
+			KanjiForm: "批量" + tt.kanji, Reading: "よみ", Meaning: "意思", JLPTLevel: word.LevelN5,
+		})
+		if err != nil {
+			t.Fatalf("InsertWord(%s) error = %v", tt.kanji, err)
+		}
+		for pos, ex := range tt.examples {
+			if _, err := db.Exec(
+				`INSERT INTO word_examples (word_id, position, japanese, chinese, furigana_html)
+				 VALUES ($1, $2, $3, $4, $5)`,
+				wordID, pos, ex.Japanese, ex.Chinese, ex.FuriganaHTML,
+			); err != nil {
+				t.Fatalf("insert example for %s: %v", tt.kanji, err)
+			}
+		}
+	}
+
+	words, err := store.ListByLevel(word.LevelN5)
+	if err != nil {
+		t.Fatalf("ListByLevel() error = %v", err)
+	}
+	byKanji := make(map[string][]word.WordExample, len(words))
+	for _, w := range words {
+		byKanji[w.KanjiForm] = w.Examples
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.kanji, func(t *testing.T) {
+			got := byKanji["批量"+tt.kanji]
+			if len(got) != len(tt.examples) {
+				t.Fatalf("examples len = %d, want %d (got=%+v)", len(got), len(tt.examples), got)
+			}
+			for i, want := range tt.examples {
+				if got[i].Japanese != want.Japanese || got[i].Chinese != want.Chinese {
+					t.Errorf("examples[%d] = %+v, want %+v", i, got[i], want)
+				}
+			}
+		})
+	}
+}

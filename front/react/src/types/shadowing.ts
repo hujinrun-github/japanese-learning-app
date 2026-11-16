@@ -41,3 +41,43 @@ export interface SaveAttemptRequest {
   loop_count: number
   self_score?: number | null
 }
+
+// Local shadowing evaluation result (POST /api/v1/lessons/{id}/shadowing/evaluations).
+export type EvaluationMode = 'shadow' | 'repeat'
+export type EvaluationStatus = 'scoreable' | 'unscorable'
+
+export interface DimensionScore {
+  score: number
+  confidence: number
+  weight: number
+  available: boolean
+}
+
+export interface EvaluationIssue {
+  type: string
+  confidence: number
+  /** Scoring dimension this suggestion belongs to (sync / prosody / ...). */
+  dimension?: string
+  /** Measured numbers behind the suggestion, e.g. "起步延迟 1500 ms". */
+  evidence_zh?: string
+  message_zh: string
+  action_zh?: string
+}
+
+export interface EvaluationResult {
+  status: EvaluationStatus
+  unscorable_code?: string
+  mode: EvaluationMode
+  overall_score?: number
+  partial: boolean
+  scores: Record<string, DimensionScore>
+  recognized_text: string
+  lag_ms: number
+  issues: EvaluationIssue[]
+  score_source: string
+  scorer_version: string
+  weights_version: string
+  model_version: string
+  shadowing_version: number
+  latency_ms: number
+}

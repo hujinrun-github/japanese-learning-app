@@ -74,6 +74,57 @@ func TestLessonStore_ListSummaries_ByTag(t *testing.T) {
 	}
 }
 
+func TestLessonStore_GetDetail_PreservesParagraph(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentJSON string
+		want        []int
+	}{
+		{
+			name: "marked paragraphs survive the store round trip",
+			contentJSON: `[{"index":0,"tokens":[{"surface":"毎朝","reading":"まいあさ"}],"chinese":"每天早上。","start_ms":0,"end_ms":3000,"paragraph":0},` +
+				`{"index":1,"tokens":[{"surface":"午後","reading":"ごご"}],"chinese":"下午。","start_ms":3000,"end_ms":6000,"paragraph":1}]`,
+			want: []int{0, 1},
+		},
+		{
+			name:        "legacy sentences without a marker default to paragraph 0",
+			contentJSON: `[{"index":0,"tokens":[{"surface":"日本語","reading":"にほんご"}],"chinese":"日语","start_ms":0,"end_ms":3000}]`,
+			want:        []int{0},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := testDB.Exec(`
+				INSERT INTO lessons (title, content_furigana_json, translation_json, jlpt_level, tags_json, audio_url, sentence_timestamps_json, char_count, word_ids_json)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				tt.name, tt.contentJSON, `[]`, string(lesson.LevelN5), `[]`, ``, `[]`, 0, `[]`,
+			)
+			if err != nil {
+				t.Fatalf("insert lesson error: %v", err)
+			}
+			id, err := res.LastInsertId()
+			if err != nil {
+				t.Fatalf("LastInsertId error: %v", err)
+			}
+
+			store := &LessonStore{db: testDB}
+			detail, err := store.GetDetail(id)
+			if err != nil {
+				t.Fatalf("GetDetail(%d) error: %v", id, err)
+			}
+			if len(detail.Sentences) != len(tt.want) {
+				t.Fatalf("sentences len = %d, want %d", len(detail.Sentences), len(tt.want))
+			}
+			for i, want := range tt.want {
+				if detail.Sentences[i].Paragraph != want {
+					t.Errorf("sentences[%d].Paragraph = %d, want %d", i, detail.Sentences[i].Paragraph, want)
+				}
+			}
+		})
+	}
+}
+
 func TestLessonStore_GetDetail(t *testing.T) {
 	store := &LessonStore{db: testDB}
 

@@ -60,6 +60,73 @@ func (f *fakeStreakRecorder) RecordStudyDay(userID int64) (int, error) {
 	return len(f.calls), nil
 }
 
+func seenRequest(t *testing.T) *http.Request {
+	t.Helper()
+	token, _, err := user.SignToken(42, testJWTSecret, time.Hour)
+	if err != nil {
+		t.Fatalf("SignToken error: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/words/7/seen", nil)
+	req.SetPathValue("id", "7")
+	req.Header.Set("Authorization", "Bearer "+token)
+	return req
+}
+
+func seenMux(svc *WordService) *http.ServeMux {
+	h := NewWordHandler(svc)
+	protected := http.NewServeMux()
+	h.RegisterRoutes(protected)
+	mux := http.NewServeMux()
+	mux.Handle("/api/v1/words/", user.AuthMiddleware(testJWTSecret, protected))
+	return mux
+}
+
+// TestMarkSeenCreatesProvisionalRecord proves a card that was only looked at
+// still leaves a record, so it will not be served as new again on reload.
+func TestMarkSeenCreatesProvisionalRecord(t *testing.T) {
+	store := newFakeWordStore()
+	rec := httptest.NewRecorder()
+	seenMux(NewWordService(store)).ServeHTTP(rec, seenRequest(t))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	got, err := store.GetRecord(42, 7)
+	if err != nil {
+		t.Fatalf("GetRecord error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("MarkSeen did not persist a record")
+	}
+	if got.MasteryLevel != 0 || got.EaseFactor != 2.5 {
+		t.Errorf("provisional record = %+v, want mastery 0 / EF 2.5", got)
+	}
+	if !got.NextReviewAt.After(time.Now()) {
+		t.Errorf("NextReviewAt = %v, want in the future", got.NextReviewAt)
+	}
+}
+
+// TestMarkSeenIsIdempotent keeps a real rating from being overwritten by a
+// late "seen" call (e.g. two tabs open on the same card).
+func TestMarkSeenIsIdempotent(t *testing.T) {
+	store := newFakeWordStore()
+	_ = store.UpsertRecord(WordRecord{UserID: 42, WordID: 7, MasteryLevel: 4, EaseFactor: 2.9})
+
+	rec := httptest.NewRecorder()
+	seenMux(NewWordService(store)).ServeHTTP(rec, seenRequest(t))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	got, err := store.GetRecord(42, 7)
+	if err != nil {
+		t.Fatalf("GetRecord error: %v", err)
+	}
+	if got.MasteryLevel != 4 || got.EaseFactor != 2.9 {
+		t.Errorf("existing record was overwritten: %+v", got)
+	}
+}
+
 func ratingRequest(t *testing.T) *http.Request {
 	t.Helper()
 	token, _, err := user.SignToken(42, testJWTSecret, time.Hour)

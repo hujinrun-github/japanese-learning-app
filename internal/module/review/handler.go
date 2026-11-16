@@ -49,7 +49,9 @@ func (h *ReviewHandler) handleGetQueue(w http.ResponseWriter, r *http.Request) {
 	if level == "" {
 		level = word.LevelN5
 	}
-	wordCards, err := h.wordSvc.GetReviewQueue(userID, level)
+	// The unified queue mixes words with notes; cap the word side so one
+	// module cannot flood the whole list.
+	wordCards, err := h.wordSvc.GetReviewQueue(userID, level, 50)
 	if err == nil {
 		for _, wc := range wordCards {
 			cards = append(cards, ReviewCard{

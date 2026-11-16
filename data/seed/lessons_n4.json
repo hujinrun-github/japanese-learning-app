@@ -22,7 +22,8 @@
         ],
         "chinese": "这个周末有什么计划吗？",
         "start_ms": 0,
-        "end_ms": 4000
+        "end_ms": 4000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -39,7 +40,8 @@
         ],
         "chinese": "我打算和朋友去看电影。",
         "start_ms": 4000,
-        "end_ms": 8000
+        "end_ms": 8000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -54,7 +56,8 @@
         ],
         "chinese": "打算看什么电影？",
         "start_ms": 8000,
-        "end_ms": 11000
+        "end_ms": 11000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -75,7 +78,8 @@
         ],
         "chinese": "因为喜欢动作片，所以打算去看新的好莱坞电影。",
         "start_ms": 11000,
-        "end_ms": 16000
+        "end_ms": 16000,
+        "paragraph": 0
       },
       {
         "index": 4,
@@ -92,7 +96,8 @@
         ],
         "chinese": "看完电影后要不要一起吃饭？",
         "start_ms": 16000,
-        "end_ms": 20000
+        "end_ms": 20000,
+        "paragraph": 1
       },
       {
         "index": 5,
@@ -104,7 +109,8 @@
         ],
         "chinese": "那当然好啊。",
         "start_ms": 20000,
-        "end_ms": 22000
+        "end_ms": 22000,
+        "paragraph": 1
       }
     ]
   },
@@ -124,7 +130,8 @@
         ],
         "chinese": "您怎么了？",
         "start_ms": 0,
-        "end_ms": 2000
+        "end_ms": 2000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -142,7 +149,8 @@
         ],
         "chinese": "从昨天开始头痛，还发烧了。",
         "start_ms": 2000,
-        "end_ms": 6000
+        "end_ms": 6000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -155,7 +163,8 @@
         ],
         "chinese": "烧到几度了？",
         "start_ms": 6000,
-        "end_ms": 9000
+        "end_ms": 9000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -167,7 +176,8 @@
         ],
         "chinese": "大约38度。",
         "start_ms": 9000,
-        "end_ms": 12000
+        "end_ms": 12000,
+        "paragraph": 0
       },
       {
         "index": 4,
@@ -181,7 +191,8 @@
         ],
         "chinese": "还有其他症状吗？",
         "start_ms": 12000,
-        "end_ms": 15000
+        "end_ms": 15000,
+        "paragraph": 1
       },
       {
         "index": 5,
@@ -195,7 +206,8 @@
         ],
         "chinese": "喉咙也有点痛。",
         "start_ms": 15000,
-        "end_ms": 18000
+        "end_ms": 18000,
+        "paragraph": 1
       },
       {
         "index": 6,
@@ -213,7 +225,8 @@
         ],
         "chinese": "那我开药给您，请好好休息。",
         "start_ms": 18000,
-        "end_ms": 23000
+        "end_ms": 23000,
+        "paragraph": 1
       }
     ]
   },
@@ -236,7 +249,8 @@
         ],
         "chinese": "喂，我想预约一下。",
         "start_ms": 0,
-        "end_ms": 3000
+        "end_ms": 3000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -247,7 +261,8 @@
         ],
         "chinese": "请问几位？",
         "start_ms": 3000,
-        "end_ms": 5000
+        "end_ms": 5000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -258,7 +273,8 @@
         ],
         "chinese": "四位。",
         "start_ms": 5000,
-        "end_ms": 7000
+        "end_ms": 7000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -273,7 +289,8 @@
         ],
         "chinese": "您希望的日期和时间是什么时候？",
         "start_ms": 7000,
-        "end_ms": 11000
+        "end_ms": 11000,
+        "paragraph": 0
       },
       {
         "index": 4,
@@ -290,7 +307,8 @@
         ],
         "chinese": "想预约本周六晚上七点。",
         "start_ms": 11000,
-        "end_ms": 16000
+        "end_ms": 16000,
+        "paragraph": 0
       },
       {
         "index": 5,
@@ -304,7 +322,8 @@
         ],
         "chinese": "请稍候，我来确认一下。",
         "start_ms": 16000,
-        "end_ms": 20000
+        "end_ms": 20000,
+        "paragraph": 1
       },
       {
         "index": 6,
@@ -320,7 +339,8 @@
         ],
         "chinese": "周六七点，四位，已为您预约好了。",
         "start_ms": 20000,
-        "end_ms": 25000
+        "end_ms": 25000,
+        "paragraph": 1
       }
     ]
   },
@@ -345,7 +365,8 @@
         ],
         "chinese": "感谢您今天来参加面试。",
         "start_ms": 0,
-        "end_ms": 4000
+        "end_ms": 4000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -359,7 +380,8 @@
         ],
         "chinese": "能请您告诉我应聘动机吗？",
         "start_ms": 4000,
-        "end_ms": 7000
+        "end_ms": 7000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -380,7 +402,8 @@
         ],
         "chinese": "是的。因为喜欢烹饪，所以想在餐饮店工作试试。",
         "start_ms": 7000,
-        "end_ms": 13000
+        "end_ms": 13000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -394,7 +417,8 @@
         ],
         "chinese": "有打工经验吗？",
         "start_ms": 13000,
-        "end_ms": 16000
+        "end_ms": 16000,
+        "paragraph": 1
       },
       {
         "index": 4,
@@ -411,7 +435,8 @@
         ],
         "chinese": "直到去年我在便利店工作了一年。",
         "start_ms": 16000,
-        "end_ms": 20000
+        "end_ms": 20000,
+        "paragraph": 1
       },
       {
         "index": 5,
@@ -425,7 +450,8 @@
         ],
         "chinese": "那么，从下周开始能来上班吗？",
         "start_ms": 20000,
-        "end_ms": 23000
+        "end_ms": 23000,
+        "paragraph": 1
       }
     ]
   },
@@ -456,7 +482,8 @@
         ],
         "chinese": "日本有春、夏、秋、冬四个季节。",
         "start_ms": 0,
-        "end_ms": 5000
+        "end_ms": 5000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -474,7 +501,8 @@
         ],
         "chinese": "春天樱花盛开，非常美丽。",
         "start_ms": 5000,
-        "end_ms": 9000
+        "end_ms": 9000,
+        "paragraph": 1
       },
       {
         "index": 2,
@@ -496,7 +524,8 @@
         ],
         "chinese": "夏天虽然炎热潮湿，但烟火大会很有趣。",
         "start_ms": 9000,
-        "end_ms": 15000
+        "end_ms": 15000,
+        "paragraph": 1
       },
       {
         "index": 3,
@@ -516,7 +545,8 @@
         ],
         "chinese": "秋天红叶美丽，是食物美味的季节。",
         "start_ms": 15000,
-        "end_ms": 20000
+        "end_ms": 20000,
+        "paragraph": 1
       },
       {
         "index": 4,
@@ -538,7 +568,8 @@
         ],
         "chinese": "冬天虽然寒冷，但在下雪的地方可以享受滑雪的乐趣。",
         "start_ms": 20000,
-        "end_ms": 26000
+        "end_ms": 26000,
+        "paragraph": 1
       }
     ]
   }

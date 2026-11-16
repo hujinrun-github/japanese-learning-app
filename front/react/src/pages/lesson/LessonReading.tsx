@@ -10,6 +10,7 @@ import {
   saveLessonAnnotation,
   type LessonAnnotation,
 } from './lessonAnnotations'
+import { groupSentencesByParagraph, toArticleParagraphs } from './lessonParagraphs'
 import {
   getLessonSelection,
   indexLessonText,
@@ -79,6 +80,10 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
   const [overlapping, setOverlapping] = useState<LessonAnnotation[]>([])
 
   const indexed = useMemo(() => indexLessonText(sentences ?? []), [sentences])
+  // Paragraph breaks are pure presentation: both groupings keep the global
+  // token offsets produced by indexLessonText, so annotation ranges stay valid.
+  const paragraphs = useMemo(() => toArticleParagraphs(indexed), [indexed])
+  const sentenceParagraphs = useMemo(() => groupSentencesByParagraph(indexed), [indexed])
   const chars = useMemo(() => Array.from(indexed.flatMap((s) => s.tokens.map((token) => token.surface)).join('')), [indexed])
   const activeAnnotations = useMemo(() => annotations.filter((item) =>
     chars.slice(item.start, item.end).join('') === item.quote), [annotations, chars])
@@ -234,25 +239,29 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
 
       {parallel ? (
         <div ref={body} id={bodyId} className={styles.parallel} onClick={handleBodyClick}>
-          {indexed.map((sentence) => (
-            <div key={sentence.index} className={styles.pair}>
-              <p lang="ja"><JapaneseText tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} /></p>
-              {sentence.chinese && <p className={styles.translation} lang="zh-Hans">{sentence.chinese}</p>}
-              <ErrataButton
-                module="lesson"
-                itemKey={`${lessonId}:sentence:${sentence.index}`}
-                label={sentence.tokens.map((token) => token.surface).join('')}
-              />
+          {sentenceParagraphs.map((paragraph, paragraphIndex) => (
+            <div key={paragraphIndex} className={styles.paragraphGroup} data-lesson-paragraph={paragraphIndex}>
+              {paragraph.sentences.map((sentence) => (
+                <div key={sentence.index} className={styles.pair}>
+                  <p lang="ja"><JapaneseText tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} /></p>
+                  {sentence.chinese && <p className={styles.translation} lang="zh-Hans">{sentence.chinese}</p>}
+                  <ErrataButton
+                    module="lesson"
+                    itemKey={`${lessonId}:sentence:${sentence.index}`}
+                    label={sentence.tokens.map((token) => token.surface).join('')}
+                  />
+                </div>
+              ))}
             </div>
           ))}
         </div>
       ) : (
         <div ref={body} id={bodyId} className={styles.paper} role="region" aria-label={t('lesson.reading.original')} aria-describedby={hintId} tabIndex={0} lang="ja" onClick={handleBodyClick}>
-          <p className={styles.verticalText}>
-            {indexed.map((sentence) => (
-              <JapaneseText key={sentence.index} tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} />
-            ))}
-          </p>
+          {paragraphs.map((paragraph, paragraphIndex) => (
+            <p key={paragraphIndex} className={styles.verticalText} data-lesson-paragraph={paragraphIndex}>
+              <JapaneseText tokens={paragraph.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} />
+            </p>
+          ))}
         </div>
       )}
 

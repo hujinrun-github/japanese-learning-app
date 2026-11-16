@@ -248,8 +248,9 @@ func updateAudioFKs(ctx context.Context, pgDB *sql.DB, sqliteDB *sql.DB, objectM
 		return nil
 	}
 
-	// Historical word audio can live under words/ or examples/.
-	updated, err := updateTableAudioFKs(ctx, pgDB, sqliteDB, "words", "audio_url", "audio_object_id", "words/", "examples/")
+	// Word pronunciation audio lives exclusively under words/. Historical
+	// copies under examples/ must be normalized before FK linking.
+	updated, err := updateTableAudioFKs(ctx, pgDB, sqliteDB, "words", "audio_url", "audio_object_id", "words/")
 	if err != nil {
 		return fmt.Errorf("update words audio FK: %w", err)
 	}

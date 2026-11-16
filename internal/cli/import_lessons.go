@@ -24,11 +24,12 @@ type lessonImport struct {
 
 // sentenceImport represents a single sentence in the lesson.
 type sentenceImport struct {
-	Index   int    `json:"index"`
-	Tokens  any    `json:"tokens"`
-	Chinese string `json:"chinese"`
-	StartMS int64  `json:"start_ms"`
-	EndMS   int64  `json:"end_ms"`
+	Index     int    `json:"index"`
+	Tokens    any    `json:"tokens"`
+	Chinese   string `json:"chinese"`
+	StartMS   int64  `json:"start_ms"`
+	EndMS     int64  `json:"end_ms"`
+	Paragraph int    `json:"paragraph"` // 所属段落序号；缺省 0 表示整篇第一段
 }
 
 type lessonRow struct {

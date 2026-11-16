@@ -85,6 +85,8 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	noteSyncSvc := notesync.NewService(runtime.App.NoteSync, runtime.App.Notes, notesync.NewEnvClientFactory(envOrDefault("NOTION_API_BASE_URL", "")))
 	summarySvc := summary.NewSummaryService(runtime.App.Sessions)
 	shadowingSvc := shadowing.NewService(runtime.App.Lessons, pgdata.NewShadowingStore(db))
+	shadowingRefAudio := shadowing.NewReferenceAudioReader(cfg.AudioStorePath, newLessonAudioObjectLoader(db, cfg))
+	shadowingEvaluationSvc := shadowing.NewEvaluationService(runtime.App.Lessons, shadowingRefAudio)
 	planSvc := plan.NewPlanService(userSvc, cfg.AppTimezone)
 
 	userH := user.NewUserHandler(userSvc)
@@ -104,6 +106,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	summaryH := summary.NewSummaryHandler(summarySvc)
 	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
 	shadowingH := shadowing.NewHandler(shadowingSvc)
+	shadowingEvaluationH := shadowing.NewEvaluationHandler(shadowingEvaluationSvc)
 	planH := plan.NewPlanHandler(planSvc)
 
 	mux := http.NewServeMux()
@@ -126,6 +129,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	summaryH.RegisterRoutes(protectedMux)
 	reviewH.RegisterRoutes(protectedMux)
 	shadowingH.RegisterRoutes(protectedMux)
+	shadowingEvaluationH.RegisterRoutes(protectedMux)
 	planH.RegisterRoutes(protectedMux)
 	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
 

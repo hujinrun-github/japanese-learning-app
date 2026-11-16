@@ -18,7 +18,8 @@
         ],
         "chinese": "每天早上七点起床。",
         "start_ms": 0,
-        "end_ms": 3000
+        "end_ms": 3000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -33,7 +34,8 @@
         ],
         "chinese": "早饭是面包和咖啡。",
         "start_ms": 3000,
-        "end_ms": 6000
+        "end_ms": 6000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -47,7 +49,8 @@
         ],
         "chinese": "八点半去学校。",
         "start_ms": 6000,
-        "end_ms": 9000
+        "end_ms": 9000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -62,7 +65,8 @@
         ],
         "chinese": "下午在图书馆学习。",
         "start_ms": 9000,
-        "end_ms": 12000
+        "end_ms": 12000,
+        "paragraph": 1
       },
       {
         "index": 4,
@@ -80,7 +84,8 @@
         ],
         "chinese": "晚上和家人一起吃晚饭。",
         "start_ms": 12000,
-        "end_ms": 16000
+        "end_ms": 16000,
+        "paragraph": 1
       },
       {
         "index": 5,
@@ -93,7 +98,8 @@
         ],
         "chinese": "大约十一点睡觉。",
         "start_ms": 16000,
-        "end_ms": 19000
+        "end_ms": 19000,
+        "paragraph": 1
       }
     ]
   },
@@ -112,7 +118,8 @@
         ],
         "chinese": "初次见面。",
         "start_ms": 0,
-        "end_ms": 2000
+        "end_ms": 2000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -126,7 +133,8 @@
         ],
         "chinese": "我叫田中（敬语）。",
         "start_ms": 2000,
-        "end_ms": 5000
+        "end_ms": 5000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -140,7 +148,8 @@
         ],
         "chinese": "是东京大学三年级的学生。",
         "start_ms": 5000,
-        "end_ms": 8000
+        "end_ms": 8000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -156,7 +165,8 @@
         ],
         "chinese": "爱好是听音乐。",
         "start_ms": 8000,
-        "end_ms": 11000
+        "end_ms": 11000,
+        "paragraph": 1
       },
       {
         "index": 4,
@@ -168,7 +178,8 @@
         ],
         "chinese": "请多关照。",
         "start_ms": 11000,
-        "end_ms": 14000
+        "end_ms": 14000,
+        "paragraph": 1
       }
     ]
   },
@@ -192,7 +203,8 @@
         ],
         "chinese": "不好意思，东京站在哪里？",
         "start_ms": 0,
-        "end_ms": 4000
+        "end_ms": 4000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -208,7 +220,8 @@
         ],
         "chinese": "在那栋红色建筑的前面哦。",
         "start_ms": 4000,
-        "end_ms": 7000
+        "end_ms": 7000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -219,7 +232,8 @@
         ],
         "chinese": "非常感谢。",
         "start_ms": 7000,
-        "end_ms": 9000
+        "end_ms": 9000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -232,7 +246,8 @@
         ],
         "chinese": "电车是几号线？",
         "start_ms": 9000,
-        "end_ms": 12000
+        "end_ms": 12000,
+        "paragraph": 1
       },
       {
         "index": 4,
@@ -245,7 +260,8 @@
         ],
         "chinese": "从3号线出发。",
         "start_ms": 12000,
-        "end_ms": 15000
+        "end_ms": 15000,
+        "paragraph": 1
       }
     ]
   },
@@ -267,7 +283,8 @@
         ],
         "chinese": "这件衬衫多少钱？",
         "start_ms": 0,
-        "end_ms": 3000
+        "end_ms": 3000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -278,7 +295,8 @@
         ],
         "chinese": "三千日元。",
         "start_ms": 3000,
-        "end_ms": 5000
+        "end_ms": 5000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -290,7 +308,8 @@
         ],
         "chinese": "稍微有点贵呢。",
         "start_ms": 5000,
-        "end_ms": 7000
+        "end_ms": 7000,
+        "paragraph": 0
       },
       {
         "index": 3,
@@ -308,7 +327,8 @@
         ],
         "chinese": "那么这件蓝色衬衫是两千五百日元哦。",
         "start_ms": 7000,
-        "end_ms": 11000
+        "end_ms": 11000,
+        "paragraph": 1
       },
       {
         "index": 4,
@@ -320,7 +340,8 @@
         ],
         "chinese": "请给我这个。",
         "start_ms": 11000,
-        "end_ms": 13000
+        "end_ms": 13000,
+        "paragraph": 1
       }
     ]
   },
@@ -343,7 +364,8 @@
         ],
         "chinese": "今天天气真好呢。",
         "start_ms": 0,
-        "end_ms": 3000
+        "end_ms": 3000,
+        "paragraph": 0
       },
       {
         "index": 1,
@@ -357,7 +379,8 @@
         ],
         "chinese": "是啊。正是散步的好天气。",
         "start_ms": 3000,
-        "end_ms": 6000
+        "end_ms": 6000,
+        "paragraph": 0
       },
       {
         "index": 2,
@@ -372,7 +395,8 @@
         ],
         "chinese": "听说明天会下雨。",
         "start_ms": 6000,
-        "end_ms": 9000
+        "end_ms": 9000,
+        "paragraph": 1
       },
       {
         "index": 3,
@@ -385,7 +409,8 @@
         ],
         "chinese": "那真是遗憾呢。",
         "start_ms": 9000,
-        "end_ms": 11000
+        "end_ms": 11000,
+        "paragraph": 1
       },
       {
         "index": 4,
@@ -399,7 +424,8 @@
         ],
         "chinese": "下周要是能放晴就好了。",
         "start_ms": 11000,
-        "end_ms": 14000
+        "end_ms": 14000,
+        "paragraph": 1
       }
     ]
   }

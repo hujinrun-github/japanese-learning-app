@@ -59,11 +59,11 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 		return nil, fmt.Errorf("postgres.WordStore.GetByID: %w", translateError(err))
 	}
 
-	examples, err := s.loadExamplesByWordID(ctx, id)
+	examples, err := s.loadExamplesByWordIDs(ctx, []int64{id})
 	if err != nil {
 		return nil, err
 	}
-	item.Examples = examples
+	item.Examples = examples[id]
 
 	return &item, nil
 }
@@ -373,8 +373,11 @@ func (s *WordStore) ListAllRecords(userID int64, offset, limit int) ([]word.Word
 	return records, total, nil
 }
 
+// scanWords scans a word list and loads all of their examples in one extra
+// query. Loading examples per word turns ListByLevel(N4) into ~700 round trips.
 func (s *WordStore) scanWords(ctx context.Context, rows *sql.Rows) ([]word.Word, error) {
 	var items []word.Word
+	wordIDs := make([]int64, 0)
 	for rows.Next() {
 		var item word.Word
 		if err := rows.Scan(
@@ -389,48 +392,67 @@ func (s *WordStore) scanWords(ctx context.Context, rows *sql.Rows) ([]word.Word,
 		); err != nil {
 			return nil, fmt.Errorf("postgres.WordStore.scanWords scan: %w", translateError(err))
 		}
-
-		examples, err := s.loadExamplesByWordID(ctx, item.ID)
-		if err != nil {
-			return nil, err
-		}
-		item.Examples = examples
-
 		items = append(items, item)
+		wordIDs = append(wordIDs, item.ID)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("postgres.WordStore.scanWords rows: %w", translateError(err))
 	}
+	if len(items) == 0 {
+		return items, nil
+	}
+
+	examples, err := s.loadExamplesByWordIDs(ctx, wordIDs)
+	if err != nil {
+		return nil, err
+	}
+	for i := range items {
+		items[i].Examples = examples[items[i].ID]
+	}
 	return items, nil
 }
 
-func (s *WordStore) loadExamplesByWordID(ctx context.Context, wordID int64) ([]word.WordExample, error) {
-	rows, err := s.db.QueryContext(
-		ctx,
-		`SELECT japanese, chinese, furigana_html
+// loadExamplesByWordIDs loads examples for a batch of words in a single query.
+// An IN list of int64 placeholders is used instead of ANY($1::bigint[]) so the
+// database/sql driver does not need pgx-specific array encoding.
+func (s *WordStore) loadExamplesByWordIDs(ctx context.Context, wordIDs []int64) (map[int64][]word.WordExample, error) {
+	result := make(map[int64][]word.WordExample, len(wordIDs))
+	if len(wordIDs) == 0 {
+		return result, nil
+	}
+
+	placeholders := make([]string, len(wordIDs))
+	args := make([]any, len(wordIDs))
+	for i, id := range wordIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	query := fmt.Sprintf(
+		`SELECT word_id, japanese, chinese, furigana_html
 		 FROM word_examples
-		 WHERE word_id = $1
-		 ORDER BY position`,
-		wordID,
+		 WHERE word_id IN (%s)
+		 ORDER BY word_id, position`,
+		strings.Join(placeholders, ","),
 	)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("postgres.WordStore.loadExamplesByWordID query: %w", translateError(err))
+		return nil, fmt.Errorf("postgres.WordStore.loadExamplesByWordIDs query: %w", translateError(err))
 	}
 	defer rows.Close()
 
-	var examples []word.WordExample
 	for rows.Next() {
+		var wordID int64
 		var example word.WordExample
-		if err := rows.Scan(&example.Japanese, &example.Chinese, &example.FuriganaHTML); err != nil {
-			return nil, fmt.Errorf("postgres.WordStore.loadExamplesByWordID scan: %w", translateError(err))
+		if err := rows.Scan(&wordID, &example.Japanese, &example.Chinese, &example.FuriganaHTML); err != nil {
+			return nil, fmt.Errorf("postgres.WordStore.loadExamplesByWordIDs scan: %w", translateError(err))
 		}
-		examples = append(examples, example)
+		result[wordID] = append(result[wordID], example)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres.WordStore.loadExamplesByWordID rows: %w", translateError(err))
+		return nil, fmt.Errorf("postgres.WordStore.loadExamplesByWordIDs rows: %w", translateError(err))
 	}
-
-	return examples, nil
+	return result, nil
 }
 
 func (s *WordStore) countWords(query string, args ...any) (int, error) {

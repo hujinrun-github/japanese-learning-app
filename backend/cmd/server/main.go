@@ -145,6 +145,8 @@ func main() {
 	noteSyncSvc := notesync.NewService(noteSyncStore, noteStore, notesync.NewEnvClientFactory(envOrDefault("NOTION_API_BASE_URL", "")))
 	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)
 	shadowingSvc := shadowing.NewService(lessonAdapter, shadowingStore)
+	shadowingRefAudio := shadowing.NewReferenceAudioReader(cfg.AudioStorePath, nil)
+	shadowingEvaluationSvc := shadowing.NewEvaluationService(lessonAdapter, shadowingRefAudio)
 	planSvc := plan.NewPlanService(userSvc, cfg.AppTimezone)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
@@ -165,6 +167,7 @@ func main() {
 	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)
 	shadowingH := shadowing.NewHandler(shadowingSvc)
+	shadowingEvaluationH := shadowing.NewEvaluationHandler(shadowingEvaluationSvc)
 	planH := plan.NewPlanHandler(planSvc)
 
 	// ── Mux ───────────────────────────────────────────────────────────────────
@@ -191,6 +194,7 @@ func main() {
 	reviewH.RegisterRoutes(protectedMux)
 	translationH.RegisterRoutes(protectedMux)
 	shadowingH.RegisterRoutes(protectedMux)
+	shadowingEvaluationH.RegisterRoutes(protectedMux)
 	planH.RegisterRoutes(protectedMux)
 	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
 
