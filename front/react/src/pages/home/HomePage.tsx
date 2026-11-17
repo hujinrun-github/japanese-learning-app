@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiFetch } from '@/api/client'
+import { getMistakes } from '@/api/mistakes'
 import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
 import type { DailyPlan, JLPTLevel, ModuleStat, UserStats } from '@/types/api'
 import { getDailyProgress, getMasteryProgress, hasDailyGoal, percent } from './progress'
 import { DailyPlanCard } from './DailyPlanCard'
+import { REVIEW_ITEMS } from './reviewQueue'
 import styles from './HomePage.module.css'
 
 const MODULE_CONFIG = [
@@ -19,13 +21,6 @@ const MODULE_CONFIG = [
   { key: 'writing', labelKey: 'home.modules.writing', descKey: 'home.moduleDesc.writing', icon: '✍️', to: '/writing', tone: 'amber' },
   { key: 'translation', labelKey: 'home.modules.translation', descKey: 'home.moduleDesc.translation', icon: '文', to: '/translation', tone: 'teal' },
   { key: 'note', labelKey: 'home.modules.notes', descKey: 'home.moduleDesc.notes', icon: '📝', to: '/notes', tone: 'blue' },
-] as const
-
-const REVIEW_ITEMS = [
-  { key: 'word', icon: 'A', to: '/words/review', labelKey: 'home.reviewQueue.word', detailKey: 'home.reviewQueue.wordDetail' },
-  { key: 'grammar', icon: '文', to: '/grammar', labelKey: 'home.reviewQueue.grammar', detailKey: 'home.reviewQueue.grammarDetail' },
-  { key: 'writing', icon: '✍️', to: '/writing', labelKey: 'home.reviewQueue.writing', detailKey: 'home.reviewQueue.writingDetail' },
-  { key: 'speaking', icon: '🎧', to: '/speaking', labelKey: 'home.reviewQueue.speaking', detailKey: 'home.reviewQueue.speakingDetail' },
 ] as const
 
 const EMPTY_STATS: UserStats = {
@@ -57,6 +52,7 @@ export function HomePage() {
   const { t } = useTranslation()
   const [stats, setStats] = useState<UserStats>(EMPTY_STATS)
   const [plan, setPlan] = useState<DailyPlan | null>(null)
+  const [mistakeCount, setMistakeCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const jlptLevel = primaryJLPTLevel(user?.jlpt_levels)
   const primaryStats = ['word', 'grammar', 'speaking', 'writing'].map(key => getModuleStat(stats, key))
@@ -89,6 +85,12 @@ export function HomePage() {
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false) })
+
+    // A failed mistake count must not hide the rest of the dashboard.
+    getMistakes({ status: 'unmastered', page: 1, size: 1 })
+      .then(m => { if (!cancelled) setMistakeCount(m?.total ?? 0) })
+      .catch(err => { console.error('[home] failed to load mistake count', err) })
+
     return () => { cancelled = true }
   }, [])
 
@@ -219,12 +221,13 @@ export function HomePage() {
             <div className={styles.queueList}>
               {REVIEW_ITEMS.map((item, index) => {
                 const s = getModuleStat(stats, item.key)
+                const count = item.countFrom === 'mistakes' ? mistakeCount : (s.due_count || s.today_completed || 0)
                 return (
                   <Link key={item.key} to={item.to} className={styles.queueItem}>
                     <span className={`${styles.queueIcon} ${styles[`queueTone${index}`]}`}>{item.icon}</span>
                     <span>
                       <strong>{t(item.labelKey)}</strong>
-                      <small>{t(item.detailKey, { count: s.due_count || s.today_completed || 0 })}</small>
+                      <small>{t(item.detailKey, { count })}</small>
                     </span>
                     <em>{t('home.start')}</em>
                   </Link>

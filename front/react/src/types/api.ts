@@ -431,3 +431,40 @@ export interface TranslationRecord {
   ai_feedback?: TranslationFeedback
   practiced_at: string
 }
+
+// Mistake book (错题本)
+export type MistakeModule = 'word' | 'grammar' | 'writing' | 'translation'
+export type MistakeStatus = 'unmastered' | 'mastered'
+
+export interface Mistake {
+  id: number
+  user_id: number
+  module: MistakeModule
+  item_key: string
+  prompt: string
+  user_answer: string
+  correct_answer: string
+  explanation: string
+  source_path: string
+  status: MistakeStatus
+  wrong_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface MistakeList {
+  items: Mistake[]
+  total: number
+  page: number
+  size: number
+}
+
+export interface CreateMistakeInput {
+  module: MistakeModule
+  item_key: string
+  prompt: string
+  user_answer: string
+  correct_answer: string
+  explanation: string
+  source_path: string
+}

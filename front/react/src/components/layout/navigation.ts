@@ -14,6 +14,7 @@ export const DESKTOP_NAV_ITEMS: NavigationItem[] = [
   { to: '/writing', labelKey: 'nav.writing', icon: '✏️' },
   { to: '/notes', labelKey: 'nav.notes', icon: '🗒️' },
   { to: '/translation', labelKey: 'nav.translation', icon: '🌐' },
+  { to: '/mistakes', labelKey: 'nav.mistakes', icon: '📕' },
   { to: '/study-plan', labelKey: 'nav.studyPlan', icon: '📅' },
 ]
 
@@ -35,5 +36,6 @@ export const MOBILE_MORE_ITEMS: NavigationItem[] = [
   { to: '/writing', labelKey: 'nav.writing', icon: '✏️' },
   { to: '/notes', labelKey: 'nav.notes', icon: '🗒️' },
   { to: '/translation', labelKey: 'nav.translation', icon: '🌐' },
+  { to: '/mistakes', labelKey: 'nav.mistakes', icon: '📕' },
   ...ACCOUNT_NAV_ITEMS,
 ]

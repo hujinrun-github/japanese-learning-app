@@ -14,6 +14,7 @@ describe('responsive navigation', () => {
       '/translation',
       '/settings',
       '/errata',
+      '/mistakes',
     ]
 
     const desktopRoutes = new Set([...DESKTOP_NAV_ITEMS, ...ACCOUNT_NAV_ITEMS].map((item) => item.to))

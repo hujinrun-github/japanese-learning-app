@@ -13,6 +13,8 @@ import type { WordCard, JLPTLevel } from '@/types/api'
 import { evaluateDictationAnswer, normalizeDictationAnswer, wordRequiresKanji } from './dictationAnswer'
 import type { DictationAnswerResult } from './dictationAnswer'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { createMistake } from '@/api/mistakes'
+import { buildWordReadingMistake, buildWordDictationMistake } from '@/pages/mistakes/mistakeInput'
 import styles from './WordReviewPage.module.css'
 
 const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
@@ -138,6 +140,10 @@ export function WordReviewPage() {
       return
     }
 
+    createMistake(buildWordReadingMistake(card.word, readingInput)).catch(err => {
+      console.error('[word] failed to record reading mistake', card.word.id, err)
+    })
+
     setSubmitting(true)
     try {
       await apiFetch('POST', `/api/v1/words/${card.word.id}/rate`, { rating: 'hard' })
@@ -165,6 +171,14 @@ export function WordReviewPage() {
       submitLock.current = false
       return
     }
+
+    createMistake(buildWordDictationMistake(card.word, {
+      spelling: spellingInput,
+      reading: dictationReadingInput,
+      requiresKanji: result.requiresKanji,
+    })).catch(err => {
+      console.error('[word] failed to record dictation mistake', card.word.id, err)
+    })
 
     setSubmitting(true)
     try {

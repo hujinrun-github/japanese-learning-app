@@ -11,6 +11,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { speakExample } from '@/util/exampleAudio'
 import type { GrammarPointWithStatus, QuizSubmission, QuizResult } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { createMistake } from '@/api/mistakes'
+import { buildGrammarMistakes } from '@/pages/mistakes/mistakeInput'
 import styles from './GrammarDetailPage.module.css'
 
 export function GrammarDetailPage() {
@@ -82,6 +84,12 @@ export function GrammarDetailPage() {
       const res = await apiFetch<QuizResult>('POST', `/api/v1/grammar/${point.id}/quiz`, submissions)
       setResult(res)
       refreshProgress()
+      const mistakes = buildGrammarMistakes(point.id, point.quiz_questions, res.results ?? [])
+      for (const input of mistakes) {
+        createMistake(input).catch(err => {
+          console.error('[grammar] failed to record quiz mistake', input.item_key, err)
+        })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submit failed')
     } finally {
