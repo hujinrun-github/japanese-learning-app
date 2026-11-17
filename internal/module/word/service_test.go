@@ -13,10 +13,12 @@ import (
 // --- fakes ---
 
 type fakeWordStore struct {
-	words            map[int64]*word.Word
-	records          map[string]*word.WordRecord // key: "userID:wordID"
-	getByIDCalls     int
-	listByLevelCalls int
+	words                     map[int64]*word.Word
+	records                   map[string]*word.WordRecord // key: "userID:wordID"
+	getByIDCalls              int
+	getRecordCalls            int
+	listByLevelCalls          int
+	listReviewCandidatesCalls int
 }
 
 func newFakeWordStore() *fakeWordStore {
@@ -53,11 +55,61 @@ func (f *fakeWordStore) ListByLevel(level word.JLPTLevel) ([]word.Word, error) {
 }
 
 func (f *fakeWordStore) GetRecord(userID, wordID int64) (*word.WordRecord, error) {
+	f.getRecordCalls++
 	r, ok := f.records[recordKey(userID, wordID)]
 	if !ok {
 		return nil, nil // no record yet is normal
 	}
 	return r, nil
+}
+
+// ListReviewCandidates mirrors the SQL the real stores run: at most dueLimit
+// overdue words (excluding ones reviewed today) then at most newLimit words
+// with no record, all scoped to the requested level.
+func (f *fakeWordStore) ListReviewCandidates(userID int64, level word.JLPTLevel, dueLimit, newLimit int) ([]word.ReviewCandidate, error) {
+	f.listReviewCandidatesCalls++
+	now := time.Now()
+
+	var due []word.WordRecord
+	for _, r := range f.records {
+		w, ok := f.words[r.WordID]
+		if !ok || w.JLPTLevel != level || r.UserID != userID || r.NextReviewAt.After(now) {
+			continue
+		}
+		if r.UpdatedAt.Year() == now.Year() && r.UpdatedAt.YearDay() == now.YearDay() {
+			continue
+		}
+		due = append(due, *r)
+	}
+	sort.Slice(due, func(i, j int) bool { return due[i].NextReviewAt.Before(due[j].NextReviewAt) })
+	if len(due) > dueLimit {
+		due = due[:dueLimit]
+	}
+
+	result := make([]word.ReviewCandidate, 0, dueLimit+newLimit)
+	for _, r := range due {
+		rec := r
+		result = append(result, word.ReviewCandidate{Word: *f.words[r.WordID], Record: &rec})
+	}
+
+	var fresh []word.Word
+	for _, w := range f.words {
+		if w.JLPTLevel != level {
+			continue
+		}
+		if _, ok := f.records[recordKey(userID, w.ID)]; ok {
+			continue
+		}
+		fresh = append(fresh, *w)
+	}
+	sort.Slice(fresh, func(i, j int) bool { return fresh[i].ID < fresh[j].ID })
+	if len(fresh) > newLimit {
+		fresh = fresh[:newLimit]
+	}
+	for _, w := range fresh {
+		result = append(result, word.ReviewCandidate{Word: w})
+	}
+	return result, nil
 }
 
 func (f *fakeWordStore) ListDueRecords(userID int64) ([]word.WordRecord, error) {
@@ -389,8 +441,14 @@ func TestWordService_GetReviewQueue_AvoidsPerWordLookups(t *testing.T) {
 			if store.getByIDCalls != 0 {
 				t.Errorf("GetByID calls = %d, want 0 (one per-word query per due record)", store.getByIDCalls)
 			}
-			if store.listByLevelCalls != 1 {
-				t.Errorf("ListByLevel calls = %d, want 1", store.listByLevelCalls)
+			if store.getRecordCalls != 0 {
+				t.Errorf("GetRecord calls = %d, want 0 (one round trip per candidate)", store.getRecordCalls)
+			}
+			if store.listByLevelCalls != 0 {
+				t.Errorf("ListByLevel calls = %d, want 0 (whole level must not be loaded)", store.listByLevelCalls)
+			}
+			if store.listReviewCandidatesCalls != 1 {
+				t.Errorf("ListReviewCandidates calls = %d, want 1", store.listReviewCandidatesCalls)
 			}
 			if len(cards) != len(tt.wantIDs) {
 				t.Fatalf("len = %d, want %d (cards=%+v)", len(cards), len(tt.wantIDs), cards)
