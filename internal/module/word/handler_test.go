@@ -29,6 +29,10 @@ func (f *fakeWordStore) GetByID(id int64) (*Word, error) {
 
 func (f *fakeWordStore) ListByLevel(level JLPTLevel) ([]Word, error) { return nil, nil }
 
+func (f *fakeWordStore) ListReviewCandidates(userID int64, level JLPTLevel, dueLimit, newLimit int) ([]ReviewCandidate, error) {
+	return nil, nil
+}
+
 func (f *fakeWordStore) GetRecord(userID, wordID int64) (*WordRecord, error) {
 	rec, ok := f.records[wordID]
 	if !ok {
