@@ -22,6 +22,7 @@ import { NoteDetailPage } from '@/pages/note/NoteDetailPage'
 import { StudyPlanPage } from '@/pages/studyplan/StudyPlanPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import { ErrataHistoryPage } from '@/pages/errata/ErrataHistoryPage'
+import { MistakesPage } from '@/pages/mistakes/MistakesPage'
 
 export default function App() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="/study-plan" element={<StudyPlanPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/errata" element={<ErrataHistoryPage />} />
+            <Route path="/mistakes" element={<MistakesPage />} />
           </Route>
 
           {/* Fallback */}

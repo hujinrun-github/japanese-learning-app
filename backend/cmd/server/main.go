@@ -14,6 +14,7 @@ import (
 	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/mistake"
 	"japanese-learning-app/internal/module/note"
 	"japanese-learning-app/internal/module/notesync"
 	"japanese-learning-app/internal/module/plan"
@@ -197,6 +198,7 @@ func main() {
 	shadowingEvaluationH.RegisterRoutes(protectedMux)
 	planH.RegisterRoutes(protectedMux)
 	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
+	mistake.RegisterRoutes(protectedMux, mistake.NewStore(db))
 
 	mux.Handle("/api/v1/study-plan", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/study-plan/", user.AuthMiddleware(jwtSecret, protectedMux))
@@ -217,6 +219,8 @@ func main() {
 	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/daily-plan", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/errata", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/mistakes", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/mistakes/", user.AuthMiddleware(jwtSecret, protectedMux))
 
 	// Audio files (TTS-generated example audio)
 	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir(cfg.AudioStorePath))))

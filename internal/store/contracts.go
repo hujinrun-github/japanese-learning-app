@@ -79,14 +79,11 @@ type UserStoreInterface interface {
 	UpdatePassword(userID int64, newPasswordHash string) error
 	UpdateUser(id int64, name, email string, jlptLevels []string) error
 }
-type WordStoreInterface interface {
-	GetByID(id int64) (*word.Word, error)
-	ListByLevel(level word.JLPTLevel) ([]word.Word, error)
-	GetRecord(userID, wordID int64) (*word.WordRecord, error)
-	ListDueRecords(userID int64) ([]word.WordRecord, error)
-	UpsertRecord(r word.WordRecord) error
-	BookmarkWord(userID, wordID int64) error
-}
+
+// WordStoreInterface is the same contract the word service consumes. Keeping
+// one definition avoids the runtime and the service drifting apart.
+type WordStoreInterface = word.WordStoreInterface
+
 type GrammarStoreInterface interface {
 	GetByID(id int64) (*grammar.GrammarPoint, error)
 	ListByLevel(level grammar.JLPTLevel) ([]grammar.GrammarPoint, error)

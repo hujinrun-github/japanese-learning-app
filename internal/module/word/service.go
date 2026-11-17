@@ -11,9 +11,12 @@ import (
 // WordStoreInterface defines data access methods required by WordService.
 type WordStoreInterface interface {
 	GetByID(id int64) (*Word, error)
-	ListByLevel(level JLPTLevel) ([]Word, error)
 	GetRecord(userID, wordID int64) (*WordRecord, error)
-	ListDueRecords(userID int64) ([]WordRecord, error)
+	// ListReviewCandidates returns at most dueLimit overdue words (oldest
+	// first, excluding ones reviewed today) followed by at most newLimit new
+	// words (by id), both scoped to level. Both limits must be pushed down to
+	// SQL: loading a whole JLPT level costs thousands of rows on PostgreSQL.
+	ListReviewCandidates(userID int64, level JLPTLevel, dueLimit, newLimit int) ([]ReviewCandidate, error)
 	UpsertRecord(r WordRecord) error
 	BookmarkWord(userID, wordID int64) error
 }
@@ -42,6 +45,10 @@ func (s *WordService) GetByID(id int64) (*Word, error) {
 //     replay the same batch);
 //   - due words take at most half of the round, so a backlog of overdue words
 //     cannot crowd out new words for days.
+//
+// Both candidate groups are read in a single batched store call with the
+// limits pushed down to SQL. Loading a whole JLPT level or calling GetRecord
+// once per word costs thousands of serial round trips on PostgreSQL.
 func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel, limit int) ([]WordCard, error) {
 	slog.Debug("WordService.GetReviewQueue called", "user_id", userID, "level", level, "limit", limit)
 
@@ -49,72 +56,44 @@ func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel, limit int) (
 		return []WordCard{}, nil
 	}
 
-	dueRecords, err := s.store.ListDueRecords(userID)
-	if err != nil {
-		slog.Error("WordService.GetReviewQueue: ListDueRecords failed", "err", err, "user_id", userID)
-		return nil, fmt.Errorf("word.WordService.GetReviewQueue ListDueRecords: %w", err)
-	}
-
-	allWords, err := s.store.ListByLevel(level)
-	if err != nil {
-		slog.Error("WordService.GetReviewQueue: ListByLevel failed", "err", err, "level", level)
-		return nil, fmt.Errorf("word.WordService.GetReviewQueue ListByLevel: %w", err)
-	}
-
-	// One level query serves both due and new words. Looking up each due word
-	// separately would cost one extra round trip per card on PostgreSQL.
-	wordsByID := make(map[int64]Word, len(allWords))
-	for _, w := range allWords {
-		wordsByID[w.ID] = w
-	}
-
 	dueLimit := limit / 2
 	if dueLimit < 1 {
 		dueLimit = 1
 	}
 
-	now := time.Now()
-	cards := make([]WordCard, 0, limit)
-	queued := make(map[int64]bool, limit)
-
-	for _, r := range dueRecords {
-		if len(cards) >= dueLimit {
-			break
-		}
-		if sameDay(r.UpdatedAt, now) {
-			slog.Debug("WordService.GetReviewQueue: skip word already reviewed today", "word_id", r.WordID)
-			continue
-		}
-		w, ok := wordsByID[r.WordID]
-		if !ok {
-			// The due word is not part of the requested level (or was removed).
-			slog.Debug("WordService.GetReviewQueue: due word outside level, skipping", "word_id", r.WordID, "level", level)
-			continue
-		}
-		cards = append(cards, WordCard{Word: w, Record: r, IsNew: false})
-		queued[w.ID] = true
+	candidates, err := s.store.ListReviewCandidates(userID, level, dueLimit, limit)
+	if err != nil {
+		slog.Error("WordService.GetReviewQueue: ListReviewCandidates failed", "err", err, "user_id", userID, "level", level)
+		return nil, fmt.Errorf("word.WordService.GetReviewQueue ListReviewCandidates: %w", err)
 	}
 
-	// New words (no record yet) fill the remainder of the round.
-	for _, w := range allWords {
+	now := time.Now()
+	cards := make([]WordCard, 0, limit)
+	dueCount := 0
+	for _, c := range candidates {
 		if len(cards) >= limit {
 			break
 		}
-		if queued[w.ID] {
+		if c.Record != nil {
+			if dueCount >= dueLimit {
+				continue
+			}
+			if sameDay(c.Record.UpdatedAt, now) {
+				slog.Debug("WordService.GetReviewQueue: skip word already reviewed today", "word_id", c.Word.ID)
+				continue
+			}
+			dueCount++
+			cards = append(cards, WordCard{Word: c.Word, Record: *c.Record, IsNew: false})
 			continue
 		}
-		rec, err := s.store.GetRecord(userID, w.ID)
-		if err != nil {
-			slog.Error("WordService.GetReviewQueue: GetRecord failed", "err", err, "word_id", w.ID)
-			return nil, fmt.Errorf("word.WordService.GetReviewQueue GetRecord: %w", err)
-		}
-		if rec != nil {
-			continue
-		}
-		cards = append(cards, WordCard{Word: w, Record: WordRecord{UserID: userID, WordID: w.ID, EaseFactor: 2.5}, IsNew: true})
+		cards = append(cards, WordCard{
+			Word:   c.Word,
+			Record: WordRecord{UserID: userID, WordID: c.Word.ID, EaseFactor: 2.5},
+			IsNew:  true,
+		})
 	}
 
-	slog.Debug("WordService.GetReviewQueue done", "user_id", userID, "level", level, "count", len(cards))
+	slog.Debug("WordService.GetReviewQueue done", "user_id", userID, "level", level, "count", len(cards), "due_count", dueCount)
 	return cards, nil
 }
 

@@ -44,6 +44,17 @@ func (a *WordStoreAdapter) ListByLevel(level word.JLPTLevel) ([]word.Word, error
 	return words, nil
 }
 
+// ListReviewCandidates delegates the batched, LIMIT-pushed-down review queue
+// read. It replaces the old "load the whole level, then GetRecord per word" flow.
+func (a *WordStoreAdapter) ListReviewCandidates(userID int64, level word.JLPTLevel, dueLimit, newLimit int) ([]word.ReviewCandidate, error) {
+	slog.Debug("WordStoreAdapter.ListReviewCandidates called", "user_id", userID, "level", level)
+	candidates, err := a.s.ListReviewCandidates(userID, level, dueLimit, newLimit)
+	if err != nil {
+		return nil, fmt.Errorf("WordStoreAdapter.ListReviewCandidates: %w", err)
+	}
+	return candidates, nil
+}
+
 // GetRecord returns the word record for the user/word pair.
 // Returns (nil, nil) when no record exists yet — the service uses nil to mean "new word".
 func (a *WordStoreAdapter) GetRecord(userID, wordID int64) (*word.WordRecord, error) {

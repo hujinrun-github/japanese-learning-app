@@ -1,0 +1,52 @@
+.page { max-width: var(--max-width-content); margin: 0 auto; padding: var(--space-4); min-height: 100vh; }
+
+.header { margin-bottom: var(--space-5); }
+.title { font-size: var(--font-size-2xl); font-weight: 800; letter-spacing: var(--letter-spacing-tight); margin-bottom: var(--space-2); }
+.subtitle { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-bottom: var(--space-2); }
+.total { font-size: var(--font-size-sm); color: var(--color-text-muted); font-weight: 600; }
+
+.filterGroup { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-5); }
+.tabs { display: flex; gap: var(--space-2); overflow-x: auto; }
+.tab { padding: var(--space-1) var(--space-4); border: 1.5px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-surface); font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-secondary); cursor: pointer; white-space: nowrap; transition: all var(--transition-fast); }
+.tab:hover { border-color: var(--color-brand); }
+.tabActive { background: var(--color-brand); color: var(--color-text-inverse); border-color: var(--color-brand); }
+
+.error { color: var(--color-error); font-size: var(--font-size-sm); margin-bottom: var(--space-4); }
+.message { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-8) 0; }
+.spinnerWrap { display: flex; justify-content: center; padding: var(--space-8) 0; }
+
+.list { display: flex; flex-direction: column; gap: var(--space-3); }
+.card { background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); transition: box-shadow var(--transition-base); }
+.card:hover { box-shadow: var(--shadow-md); }
+.cardHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
+.moduleTag { padding: var(--space-1) var(--space-2); background: var(--color-brand-light); color: var(--color-brand); border-radius: var(--radius-full); font-size: var(--font-size-xs); font-weight: 600; }
+.wrongCount { font-size: var(--font-size-xs); color: var(--color-text-muted); flex-shrink: 0; }
+
+.promptRow { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
+.prompt { font-size: var(--font-size-md); font-weight: 600; line-height: var(--line-height-japanese); }
+
+.answers { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-3); }
+.answerRow { display: flex; gap: var(--space-2); align-items: flex-start; font-size: var(--font-size-sm); }
+.answerLabel { flex-shrink: 0; color: var(--color-text-muted); font-weight: 600; white-space: nowrap; }
+.answerValue { padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); line-height: var(--line-height-base); word-break: break-word; }
+.userAnswer { background: var(--color-error-light); color: var(--color-error); }
+.correctAnswer { background: var(--color-success-light); color: var(--color-success); }
+
+.explanation { border-top: 1px dashed var(--color-border); padding-top: var(--space-3); margin-bottom: var(--space-3); font-size: var(--font-size-sm); }
+.explanationText { color: var(--color-text-secondary); line-height: var(--line-height-japanese); margin-top: var(--space-1); }
+
+.cardFooter { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+.practiceLink { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-brand); text-decoration: none; }
+.practiceLink:hover { text-decoration: underline; }
+
+.pagination { display: flex; justify-content: center; align-items: center; gap: var(--space-3); padding: var(--space-5) 0; }
+.pageInfo { font-size: var(--font-size-sm); color: var(--color-text-muted); font-weight: 500; }
+
+@media (max-width: 1023px) {
+  .tabs { scrollbar-width: none; scroll-snap-type: x proximity; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { min-height: 44px; scroll-snap-align: start; }
+  .card { padding: var(--space-4); }
+  .answerRow { flex-direction: column; gap: var(--space-1); }
+  .cardFooter { gap: var(--space-3); }
+}

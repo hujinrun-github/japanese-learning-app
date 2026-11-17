@@ -52,15 +52,15 @@ type Word struct {
 
 // WordRecord 用户与某个单词的学习关系（用户数据，读写）
 type WordRecord struct {
-	ID            int64            `json:"id"`
-	UserID        int64            `json:"user_id"`
-	WordID        int64            `json:"word_id"`
-	MasteryLevel  int              `json:"mastery_level"` // 0~5，SM-2 重复次数
-	NextReviewAt  time.Time        `json:"next_review_at"`
-	EaseFactor    float64          `json:"ease_factor"` // SM-2 EF，初始 2.5
-	Interval      int              `json:"interval"`    // 距下次复习的天数
+	ID            int64             `json:"id"`
+	UserID        int64             `json:"user_id"`
+	WordID        int64             `json:"word_id"`
+	MasteryLevel  int               `json:"mastery_level"` // 0~5，SM-2 重复次数
+	NextReviewAt  time.Time         `json:"next_review_at"`
+	EaseFactor    float64           `json:"ease_factor"` // SM-2 EF，初始 2.5
+	Interval      int               `json:"interval"`    // 距下次复习的天数
 	ReviewHistory []sm2.ReviewEvent `json:"review_history"`
-	UpdatedAt     time.Time        `json:"updated_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
 }
 
 // WordCard 复习队列中的单张卡片（聚合 Word + WordRecord）
@@ -68,4 +68,11 @@ type WordCard struct {
 	Word   Word       `json:"word"`
 	Record WordRecord `json:"record"`
 	IsNew  bool       `json:"is_new"` // true 表示首次学习
+}
+
+// ReviewCandidate 是复习队列的候选词，由 store 一次批量读出。
+// Record 为 nil 表示该用户从未学过这个词（新词），否则为到期复习词。
+type ReviewCandidate struct {
+	Word   Word
+	Record *WordRecord
 }
