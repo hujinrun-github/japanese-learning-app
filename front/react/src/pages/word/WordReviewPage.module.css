@@ -34,6 +34,7 @@
 .badges { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap; }
 .newBadge { font-size: var(--font-size-xs); background: var(--color-brand); color: #fff; padding: 2px 8px; border-radius: var(--radius-full); font-weight: 600; }
 .partOfSpeech { font-size: var(--font-size-xs); color: var(--color-text-secondary); }
+.verbType { font-size: var(--font-size-xs); font-weight: 600; color: var(--color-brand); background: var(--color-brand-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-full, 999px); padding: 2px 8px; }
 
 .kanjiRow { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
 .readingTypeBadge { width: 28px; height: 28px; border-radius: 50%; background: var(--color-brand-subtle); border: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: var(--font-size-xs); font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

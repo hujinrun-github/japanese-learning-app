@@ -40,6 +40,7 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 		        w.meaning,
 		        w.jlpt_level,
 		        w.reading_type,
+		        w.verb_type,
 		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
 		 FROM words w
 		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
@@ -53,6 +54,7 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 		&item.Meaning,
 		&item.JLPTLevel,
 		&item.ReadingType,
+		&item.VerbType,
 		&item.AudioURL,
 	)
 	if err != nil {
@@ -80,6 +82,7 @@ func (s *WordStore) ListByLevel(level word.JLPTLevel) ([]word.Word, error) {
 		        w.meaning,
 		        w.jlpt_level,
 		        w.reading_type,
+		        w.verb_type,
 		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
 		 FROM words w
 		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
@@ -218,6 +221,7 @@ func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit i
 		        w.meaning,
 		        w.jlpt_level,
 		        w.reading_type,
+		        w.verb_type,
 		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
 		 FROM words w
 		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
@@ -249,8 +253,8 @@ func (s *WordStore) InsertWord(item word.Word) (int64, error) {
 	err := withQueryerTx(context.Background(), s.db, func(tx queryer) error {
 		err := tx.QueryRowContext(
 			context.Background(),
-			`INSERT INTO words (kanji_form, reading, part_of_speech, meaning, jlpt_level, reading_type, updated_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7)
+			`INSERT INTO words (kanji_form, reading, part_of_speech, meaning, jlpt_level, reading_type, verb_type, updated_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			 RETURNING id`,
 			item.KanjiForm,
 			item.Reading,
@@ -258,6 +262,7 @@ func (s *WordStore) InsertWord(item word.Word) (int64, error) {
 			item.Meaning,
 			item.JLPTLevel,
 			item.ReadingType,
+			item.VerbType,
 			s.now().UTC(),
 		).Scan(&id)
 		if err != nil {
@@ -284,7 +289,8 @@ func (s *WordStore) UpdateWord(item word.Word) error {
 			     meaning = $5,
 			     jlpt_level = $6,
 			     reading_type = $7,
-			     updated_at = $8
+			     verb_type = $8,
+			     updated_at = $9
 			 WHERE id = $1`,
 			item.ID,
 			item.KanjiForm,
@@ -293,6 +299,7 @@ func (s *WordStore) UpdateWord(item word.Word) error {
 			item.Meaning,
 			item.JLPTLevel,
 			item.ReadingType,
+			item.VerbType,
 			s.now().UTC(),
 		)
 		if err != nil {
@@ -388,6 +395,7 @@ func (s *WordStore) scanWords(ctx context.Context, rows *sql.Rows) ([]word.Word,
 			&item.Meaning,
 			&item.JLPTLevel,
 			&item.ReadingType,
+			&item.VerbType,
 			&item.AudioURL,
 		); err != nil {
 			return nil, fmt.Errorf("postgres.WordStore.scanWords scan: %w", translateError(err))

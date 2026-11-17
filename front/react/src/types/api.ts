@@ -86,6 +86,7 @@ export interface Word {
   jlpt_level: JLPTLevel
   examples: WordExample[]
   reading_type: string
+  verb_type: string
   audio_url?: string
 }
 
