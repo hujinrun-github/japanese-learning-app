@@ -7,6 +7,11 @@ node_modules/
 front/admin/dist/
 .worktrees/
 logs/
+.env.local
+.pgpass.local
+__pycache__/
+*.py[cod]
+/tmp/
 
 # Go toolchain vendored into the repo (huge, not source code)
 /.tools/

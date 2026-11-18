@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"japanese-learning-app/internal/cli"
@@ -112,8 +113,10 @@ func (h *Handler) regenerateAudio(w http.ResponseWriter, r *http.Request) {
 
 	// For words, update audio_url in database
 	if req.Module == "word" && req.WordID > 0 {
-		if _, dbErr := h.cfg.DB.Exec("UPDATE words SET audio_url = ? WHERE id = ?", filename, req.WordID); dbErr != nil {
+		if _, dbErr := h.cfg.DB.Exec("UPDATE words SET local_audio_url = $1, audio_object_id = NULL, updated_at = now() WHERE id = $2", "/audio/words/"+filename, req.WordID); dbErr != nil {
 			slog.Error("regenerateAudio failed to update word audio_url", "word_id", req.WordID, "err", dbErr)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not save regenerated audio"})
+			return
 		}
 	}
 
@@ -214,38 +217,21 @@ func (h *Handler) batchGenerateAudio(w http.ResponseWriter, r *http.Request) {
 }
 
 func collectGrammarAudioTexts(db *sql.DB, level string) ([]string, error) {
-	var (
-		rows *sql.Rows
-		err  error
-	)
-	if level == "" {
-		rows, err = db.Query("SELECT examples_json FROM grammar_points ORDER BY id")
-	} else {
-		rows, err = db.Query("SELECT examples_json FROM grammar_points WHERE jlpt_level = ? ORDER BY id", level)
-	}
+	rows, err := db.Query(`SELECT e.japanese FROM grammar_examples e JOIN grammar_points p ON p.id=e.grammar_point_id WHERE ($1='' OR p.jlpt_level=$1) ORDER BY p.id,e.position`, level)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query grammar audio texts: %w", err)
 	}
 	defer rows.Close()
-
 	var texts []string
 	for rows.Next() {
-		var raw string
-		if err := rows.Scan(&raw); err != nil {
-			return nil, err
+		var text string
+		if err := rows.Scan(&text); err != nil {
+			return nil, fmt.Errorf("scan grammar audio text: %w", err)
 		}
-		var examples []struct {
-			Japanese string `json:"japanese"`
-		}
-		if err := json.Unmarshal([]byte(raw), &examples); err != nil {
-			return nil, fmt.Errorf("unmarshal grammar examples: %w", err)
-		}
-		for _, example := range examples {
-			texts = append(texts, example.Japanese)
-		}
+		texts = append(texts, text)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read grammar audio texts: %w", err)
 	}
 	return texts, nil
 }
@@ -254,11 +240,11 @@ func collectSpeakingAudioTexts(db *sql.DB, level, speakingType string) ([]string
 	where := "WHERE text != ''"
 	args := []any{}
 	if level != "" {
-		where += " AND jlpt_level = ?"
+		where += " AND jlpt_level = $1"
 		args = append(args, level)
 	}
 	if speakingType != "" {
-		where += " AND type = ?"
+		where += " AND type = $" + strconv.Itoa(len(args)+1)
 		args = append(args, speakingType)
 	}
 

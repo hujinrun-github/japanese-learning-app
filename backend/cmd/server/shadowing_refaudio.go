@@ -15,7 +15,7 @@ import (
 
 // newLessonAudioObjectLoader resolves a lesson audio object id to its WAV bytes
 // in MinIO. It is only used by the PostgreSQL runtime, where audio_objects rows
-// point at migrated objects; SQLite seed lessons read local WAV files instead.
+// point at migrated objects; local TTS files are resolved separately.
 func newLessonAudioObjectLoader(db *sql.DB, cfg *config.Config) shadowing.ObjectLoader {
 	return func(ctx context.Context, objectID int64) ([]byte, error) {
 		var bucket, objectKey string

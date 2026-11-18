@@ -128,6 +128,8 @@ func writeShadowingError(w http.ResponseWriter, err error) {
 
 func statusForErrorCode(code string) int {
 	switch code {
+	case ErrEvaluationBusy:
+		return http.StatusServiceUnavailable
 	case ErrUnauthorized:
 		return http.StatusUnauthorized
 	case ErrNotFound:

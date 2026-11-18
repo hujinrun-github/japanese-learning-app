@@ -12,7 +12,7 @@
 - `front/admin/dist`：管理端前端静态文件
 - 两个 Vite preview 配置和锁文件：仅用于线上提供静态文件与 API 代理
 
-服务器上的发布目录为 `${APP_DIR}/releases/<commit-sha>`，`${APP_DIR}/current` 是当前版本的符号链接。SQLite 数据和本地音频仍保存在 `${APP_DIR}/data`，不会随版本切换删除。
+服务器上的发布目录为 `${APP_DIR}/releases/<commit-sha>`，`${APP_DIR}/current` 是当前版本的符号链接。数据库保存在 PostgreSQL，本地音频仍保存在 `${APP_DIR}/data`，不会随版本切换删除。
 
 ## GitHub 配置
 
@@ -22,7 +22,7 @@ Actions 需要以下配置：
 - `SERVER_SSH_KEY` 或 `SERVER_PASSWORD`
 - `ADMIN_TOKEN`、`JWT_SECRET`
 
-根据环境继续配置 `RELATIONAL_STORE`、`DATABASE_URL`、`AUDIO_OBJECT_STORE`、`MINIO_*`、邮件和 AI 相关变量。
+根据环境继续配置 `DATABASE_URL`（必填）、`AUDIO_OBJECT_STORE`、`MINIO_*`、邮件和 AI 相关变量。
 
 生产学习端通过 `https://japanese.jinrunlab.site` 访问，管理端通过 `https://japanese-admin.jinrunlab.site` 访问。未配置 `APP_BASE_URL` 时，部署脚本默认使用学习端公网地址。
 

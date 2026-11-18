@@ -18,6 +18,7 @@ type WordStoreInterface interface {
 	// SQL: loading a whole JLPT level costs thousands of rows on PostgreSQL.
 	ListReviewCandidates(userID int64, level JLPTLevel, dueLimit, newLimit int) ([]ReviewCandidate, error)
 	UpsertRecord(r WordRecord) error
+	InsertRecordIfAbsent(r WordRecord) error
 	BookmarkWord(userID, wordID int64) error
 }
 
@@ -129,9 +130,9 @@ func (s *WordService) MarkSeen(userID, wordID int64) error {
 		NextReviewAt: now.Add(24 * time.Hour),
 		UpdatedAt:    now,
 	}
-	if err := s.store.UpsertRecord(record); err != nil {
-		slog.Error("WordService.MarkSeen: UpsertRecord failed", "err", err, "word_id", wordID)
-		return fmt.Errorf("word.WordService.MarkSeen UpsertRecord: %w", err)
+	if err := s.store.InsertRecordIfAbsent(record); err != nil {
+		slog.Error("WordService.MarkSeen: InsertRecordIfAbsent failed", "err", err, "word_id", wordID)
+		return fmt.Errorf("word.WordService.MarkSeen InsertRecordIfAbsent: %w", err)
 	}
 
 	slog.Debug("WordService.MarkSeen done", "word_id", wordID, "next_review_at", record.NextReviewAt)
@@ -146,7 +147,9 @@ func sameDay(t, now time.Time) bool {
 	return t.Year() == now.Year() && t.YearDay() == now.YearDay()
 }
 
-// SubmitRating records the user's rating for a word review and advances the SM-2 schedule.
+// SubmitRating records a word review. Normal means familiar (daily practice),
+// easy means fully mastered (at least a week between reviews), and hard is
+// reserved for wrong answers. Other modules keep the shared SM-2 schedule.
 func (s *WordService) SubmitRating(userID, wordID int64, rating ReviewRating) error {
 	slog.Debug("WordService.SubmitRating called", "user_id", userID, "word_id", wordID, "rating", rating)
 
@@ -173,6 +176,16 @@ func (s *WordService) SubmitRating(userID, wordID int64, rating ReviewRating) er
 		base.MasteryLevel, base.Interval, base.EaseFactor,
 		rating, base.ReviewHistory,
 	)
+	switch rating {
+	case RatingNormal:
+		newMastery = max(1, min(base.MasteryLevel, 4))
+		newInterval = 1
+	case RatingEasy:
+		newMastery = 5
+		newInterval = max(7, base.Interval+1, newInterval)
+	}
+	now := time.Now()
+	nextReview = now.Add(time.Duration(newInterval) * 24 * time.Hour)
 	updated := WordRecord{
 		UserID:        userID,
 		WordID:        wordID,
@@ -181,7 +194,7 @@ func (s *WordService) SubmitRating(userID, wordID int64, rating ReviewRating) er
 		EaseFactor:    newEF,
 		NextReviewAt:  nextReview,
 		ReviewHistory: newHistory,
-		UpdatedAt:     time.Now(),
+		UpdatedAt:     now,
 	}
 
 	if err := s.store.UpsertRecord(updated); err != nil {
@@ -189,7 +202,9 @@ func (s *WordService) SubmitRating(userID, wordID int64, rating ReviewRating) er
 		return fmt.Errorf("word.WordService.SubmitRating UpsertRecord: %w", err)
 	}
 
-	slog.Debug("WordService.SubmitRating done", "user_id", userID, "word_id", wordID)
+	slog.Debug("WordService.SubmitRating done", "user_id", userID, "word_id", wordID,
+		"rating", rating, "previous_interval_days", base.Interval, "interval_days", newInterval,
+		"mastery_level", newMastery, "next_review_at", nextReview)
 	return nil
 }
 

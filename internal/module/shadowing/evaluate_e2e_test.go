@@ -149,6 +149,7 @@ func pilotEvaluationMux(t *testing.T) (*http.ServeMux, []byte, []byte) {
 			return l, nil
 		}),
 		shadowing.NewReferenceAudioReader(root, nil),
+		shadowing.NewEvaluator(1),
 	)
 	mux := http.NewServeMux()
 	shadowing.NewEvaluationHandler(svc).RegisterRoutes(mux)

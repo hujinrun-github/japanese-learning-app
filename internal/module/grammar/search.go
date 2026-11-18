@@ -36,8 +36,8 @@ type GrammarSearchResult struct {
 // Inner tildes are kept because they are part of patterns such as 〜は〜です.
 func normalizeGrammarName(name string) string {
 	s := strings.TrimSpace(name)
-	s = strings.TrimLeft(s, "〜～~")
-	s = strings.Trim(s, "「」『』\"'")
+	s = strings.TrimLeft(s, " 　〜～~「」『』\"'")
+	s = strings.TrimRight(s, " 　「」『』\"'")
 	if idx := strings.IndexAny(s, "（("); idx >= 0 {
 		s = s[:idx]
 	}
@@ -73,13 +73,16 @@ func (s *GrammarService) SearchByName(query string) (*GrammarSearchResult, error
 		return result, nil
 	}
 
-	points, _, err := s.store.ListAll("", q, 0, grammarSearchLimit)
+	normalizedQuery := normalizeGrammarName(q)
+	if normalizedQuery == "" {
+		return result, nil
+	}
+	points, err := s.store.SearchCandidates(normalizedQuery, grammarSearchLimit)
 	if err != nil {
-		slog.Error("GrammarService.SearchByName: ListAll failed", "err", err, "query", q)
+		slog.Error("GrammarService.SearchByName: SearchCandidates failed", "err", err, "query", q)
 		return nil, fmt.Errorf("grammar.GrammarService.SearchByName: %w", err)
 	}
 
-	normalizedQuery := normalizeGrammarName(q)
 	sort.SliceStable(points, func(i, j int) bool {
 		iExact := normalizeGrammarName(points[i].Name) == normalizedQuery
 		jExact := normalizeGrammarName(points[j].Name) == normalizedQuery

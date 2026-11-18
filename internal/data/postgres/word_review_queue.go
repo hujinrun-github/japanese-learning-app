@@ -22,7 +22,7 @@ const reviewWordColumns = `w.id,
        w.jlpt_level,
        w.reading_type,
        w.verb_type,
-       CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END`
+       CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE w.local_audio_url END`
 
 const reviewAudioJoin = `LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL`
 

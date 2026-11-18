@@ -76,15 +76,10 @@ func (h *Handler) listShadowingMaterialLessons(w http.ResponseWriter, r *http.Re
 	offset := (page - 1) * size
 	search := strings.TrimSpace(r.URL.Query().Get("search"))
 
-	dialect := h.shadowingMaterialsSQL()
 	where := ""
 	args := []any{}
 	if search != "" {
-		if dialect == "postgres" {
-			where = "WHERE title ILIKE " + sqlPlaceholder(dialect, 1)
-		} else {
-			where = "WHERE title LIKE " + sqlPlaceholder(dialect, 1)
-		}
+		where = "WHERE title ILIKE " + sqlPlaceholder(1)
 		args = append(args, "%"+search+"%")
 	}
 
@@ -95,8 +90,8 @@ func (h *Handler) listShadowingMaterialLessons(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	limitPlaceholder := sqlPlaceholder(dialect, len(args)+1)
-	offsetPlaceholder := sqlPlaceholder(dialect, len(args)+2)
+	limitPlaceholder := sqlPlaceholder(len(args) + 1)
+	offsetPlaceholder := sqlPlaceholder(len(args) + 2)
 	args = append(args, size, offset)
 
 	query := fmt.Sprintf(`
@@ -227,8 +222,7 @@ func (h *Handler) uploadShadowingVideo(w http.ResponseWriter, r *http.Request) {
 		uploaded.MimeType = contentType
 	}
 
-	dialect := h.shadowingMaterialsSQL()
-	videoObjectID, err := insertShadowingVideoObject(db, dialect, uploaded)
+	videoObjectID, err := insertShadowingVideoObject(db, uploaded)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "save video object failed: " + err.Error()})
 		return
@@ -248,7 +242,7 @@ func (h *Handler) uploadShadowingVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if lessonID > 0 {
-		config, err := bindShadowingLessonVideoObject(db, dialect, h.shadowingVideoBasePath(), lessonID, videoObjectID)
+		config, err := bindShadowingLessonVideoObject(db, h.shadowingVideoBasePath(), lessonID, videoObjectID)
 		if err != nil {
 			status := http.StatusInternalServerError
 			if errors.Is(err, sql.ErrNoRows) {
@@ -287,8 +281,7 @@ func (h *Handler) bindShadowingLessonVideo(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	dialect := h.shadowingMaterialsSQL()
-	if err := ensurePublicVideoObject(db, dialect, req.VideoObjectID); err != nil {
+	if err := ensurePublicVideoObject(db, req.VideoObjectID); err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, sql.ErrNoRows) {
 			status = http.StatusNotFound
@@ -297,7 +290,7 @@ func (h *Handler) bindShadowingLessonVideo(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	config, err := bindShadowingLessonVideoObject(db, dialect, h.shadowingVideoBasePath(), lessonID, req.VideoObjectID)
+	config, err := bindShadowingLessonVideoObject(db, h.shadowingVideoBasePath(), lessonID, req.VideoObjectID)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, sql.ErrNoRows) {
@@ -321,13 +314,6 @@ func (h *Handler) shadowingMaterialsDB() *sql.DB {
 		return h.cfg.ShadowingMaterialsDB
 	}
 	return h.cfg.DB
-}
-
-func (h *Handler) shadowingMaterialsSQL() string {
-	if h.cfg.ShadowingMaterialsSQL != "" {
-		return h.cfg.ShadowingMaterialsSQL
-	}
-	return "sqlite"
 }
 
 func (h *Handler) shadowingVideoBasePath() string {
@@ -361,21 +347,16 @@ func (h *Handler) shadowingVideoUploader() (ShadowingVideoUploader, error) {
 	}, nil
 }
 
-func sqlPlaceholder(dialect string, position int) string {
-	if dialect == "postgres" {
-		return "$" + strconv.Itoa(position)
-	}
-	return "?"
-}
+func sqlPlaceholder(position int) string { return "$" + strconv.Itoa(position) }
 
-func ensurePublicVideoObject(db *sql.DB, dialect string, videoObjectID int64) error {
-	query := "SELECT id FROM video_objects WHERE id = " + sqlPlaceholder(dialect, 1) + " AND deleted_at IS NULL AND visibility = 'public'"
+func ensurePublicVideoObject(db *sql.DB, videoObjectID int64) error {
+	query := "SELECT id FROM video_objects WHERE id = " + sqlPlaceholder(1) + " AND deleted_at IS NULL AND visibility = 'public'"
 	var id int64
 	return db.QueryRow(query, videoObjectID).Scan(&id)
 }
 
-func loadShadowingLessonConfig(db *sql.DB, dialect string, lessonID int64) (map[string]any, error) {
-	query := "SELECT shadowing_config_json FROM lessons WHERE id = " + sqlPlaceholder(dialect, 1)
+func loadShadowingLessonConfig(db *sql.DB, lessonID int64) (map[string]any, error) {
+	query := "SELECT shadowing_config_json FROM lessons WHERE id = " + sqlPlaceholder(1)
 	var raw string
 	if err := db.QueryRow(query, lessonID).Scan(&raw); err != nil {
 		return nil, err
@@ -390,8 +371,8 @@ func loadShadowingLessonConfig(db *sql.DB, dialect string, lessonID int64) (map[
 	return config, nil
 }
 
-func bindShadowingLessonVideoObject(db *sql.DB, dialect, videoBasePath string, lessonID, videoObjectID int64) (map[string]any, error) {
-	config, err := loadShadowingLessonConfig(db, dialect, lessonID)
+func bindShadowingLessonVideoObject(db *sql.DB, videoBasePath string, lessonID, videoObjectID int64) (map[string]any, error) {
+	config, err := loadShadowingLessonConfig(db, lessonID)
 	if err != nil {
 		return nil, err
 	}
@@ -403,15 +384,15 @@ func bindShadowingLessonVideoObject(db *sql.DB, dialect, videoBasePath string, l
 	if err != nil {
 		return nil, err
 	}
-	if err := updateShadowingLessonVideo(db, dialect, lessonID, videoObjectID, string(configRaw)); err != nil {
+	if err := updateShadowingLessonVideo(db, lessonID, videoObjectID, string(configRaw)); err != nil {
 		return nil, err
 	}
 	return config, nil
 }
 
-func updateShadowingLessonVideo(db *sql.DB, dialect string, lessonID, videoObjectID int64, configJSON string) error {
-	if dialect == "postgres" {
-		_, err := db.Exec(`
+func updateShadowingLessonVideo(db *sql.DB, lessonID, videoObjectID int64, configJSON string) error {
+
+	_, err := db.Exec(`
 			UPDATE lessons
 			SET video_object_id = $1,
 			    shadowing_enabled = TRUE,
@@ -419,20 +400,6 @@ func updateShadowingLessonVideo(db *sql.DB, dialect string, lessonID, videoObjec
 			    shadowing_config_json = $2::jsonb,
 			    updated_at = now()
 			WHERE id = $3`,
-			videoObjectID,
-			configJSON,
-			lessonID,
-		)
-		return err
-	}
-
-	_, err := db.Exec(`
-		UPDATE lessons
-		SET video_object_id = ?,
-		    shadowing_enabled = 1,
-		    shadowing_version = CASE WHEN shadowing_version < 1 THEN 1 ELSE shadowing_version END,
-		    shadowing_config_json = ?
-		WHERE id = ?`,
 		videoObjectID,
 		configJSON,
 		lessonID,
@@ -440,10 +407,10 @@ func updateShadowingLessonVideo(db *sql.DB, dialect string, lessonID, videoObjec
 	return err
 }
 
-func insertShadowingVideoObject(db *sql.DB, dialect string, uploaded uploadedShadowingVideo) (int64, error) {
-	if dialect == "postgres" {
-		var id int64
-		err := db.QueryRow(`
+func insertShadowingVideoObject(db *sql.DB, uploaded uploadedShadowingVideo) (int64, error) {
+
+	var id int64
+	err := db.QueryRow(`
 			INSERT INTO video_objects (
 				bucket, object_key, kind, visibility, content_sha256,
 				size_bytes, mime_type, metadata_json, updated_at
@@ -456,31 +423,13 @@ func insertShadowingVideoObject(db *sql.DB, dialect string, uploaded uploadedSha
 				deleted_at = NULL,
 				updated_at = now()
 			RETURNING id`,
-			uploaded.Bucket,
-			uploaded.ObjectKey,
-			uploaded.ContentSHA256,
-			uploaded.SizeBytes,
-			uploaded.MimeType,
-		).Scan(&id)
-		return id, err
-	}
-
-	result, err := db.Exec(`
-		INSERT INTO video_objects (
-			bucket, object_key, kind, visibility, content_sha256,
-			size_bytes, mime_type, metadata_json
-		)
-		VALUES (?, ?, 'lesson_shadowing', 'public', ?, ?, ?, '{}')`,
 		uploaded.Bucket,
 		uploaded.ObjectKey,
 		uploaded.ContentSHA256,
 		uploaded.SizeBytes,
 		uploaded.MimeType,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.LastInsertId()
+	).Scan(&id)
+	return id, err
 }
 
 func scanShadowingMaterialLesson(rows *sql.Rows, videoBasePath string) (shadowingMaterialLesson, error) {

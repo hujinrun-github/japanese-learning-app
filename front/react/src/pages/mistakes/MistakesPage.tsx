@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import styles from './MistakesPage.module.css'
+import { mistakePageWithinTotal } from './mistakePagination'
 
 const PAGE_SIZE = 20
 
@@ -46,7 +47,13 @@ export function MistakesPage() {
     setLoading(true)
     setLoadFailed(false)
     getMistakes({ module: moduleFilter, status: statusFilter, page, size: PAGE_SIZE })
-      .then((d) => { if (!cancelled) setData(d && d.items ? d : EMPTY) })
+      .then((d) => {
+        if (cancelled) return
+        const next = d && d.items ? d : EMPTY
+        const validPage = mistakePageWithinTotal(page, next.total, next.size || PAGE_SIZE)
+        if (validPage !== page) { setPage(validPage); return }
+        setData(next)
+      })
       .catch((err: unknown) => {
         if (!cancelled) {
           console.error(err)
@@ -69,13 +76,7 @@ export function MistakesPage() {
     setActionFailed(false)
     try {
       await setMistakeStatus(item.id, next)
-      setData((prev) => {
-        const visible = statusFilter === 'all' || statusFilter === next
-        const nextItems = visible
-          ? prev.items.map((m) => (m.id === item.id ? { ...m, status: next } : m))
-          : prev.items.filter((m) => m.id !== item.id)
-        return { ...prev, items: nextItems, total: visible ? prev.total : Math.max(0, prev.total - 1) }
-      })
+      setAttempt(value => value + 1)
     } catch (err) {
       console.error(err)
       setActionFailed(true)
@@ -177,7 +178,10 @@ export function MistakesPage() {
             ))}
           </div>
 
-          {totalPages > 1 && (
+
+        </>
+      )}
+          {!loading && !loadFailed && (page > 1 || totalPages > 1) && (
             <nav className={styles.pagination} aria-label={t('mistakes.pagination')}>
               <Button variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                 {t('mistakes.previous')}
@@ -188,8 +192,6 @@ export function MistakesPage() {
               </Button>
             </nav>
           )}
-        </>
-      )}
     </div>
   )
 }

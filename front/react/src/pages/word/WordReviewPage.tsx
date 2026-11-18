@@ -9,12 +9,13 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { speakExample, speakWord } from '@/util/exampleAudio'
-import type { WordCard, JLPTLevel } from '@/types/api'
+import type { Word, WordCard, JLPTLevel } from '@/types/api'
 import { evaluateDictationAnswer, normalizeDictationAnswer, wordRequiresKanji } from './dictationAnswer'
 import type { DictationAnswerResult } from './dictationAnswer'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import { createMistake } from '@/api/mistakes'
 import { buildWordReadingMistake, buildWordDictationMistake } from '@/pages/mistakes/mistakeInput'
+import { wordReviewTargetID } from './wordReviewTarget'
 import styles from './WordReviewPage.module.css'
 
 const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
@@ -29,14 +30,60 @@ const READING_TYPE_LABELS: Record<string, string> = {
 }
 
 type ReviewMode = 'recognition' | 'dictation'
+type ReviewCard = Omit<WordCard, 'record'> & { record?: WordCard['record'] }
+
+export function WordAnswerReading({ word }: { word: Pick<Word, 'reading' | 'reading_type' | 'verb_type'> }) {
+  return (
+    <div className={styles.readingRow}>
+      {word.reading_type && (
+        <span
+          className={styles.readingTypeBadge}
+          title={READING_TYPE_LABELS[word.reading_type] ?? ''}
+        >
+          {word.reading_type}
+        </span>
+      )}
+      <div className={styles.reading}>{word.reading}</div>
+      {word.verb_type && <span className={styles.verbType}>{word.verb_type}</span>}
+    </div>
+  )
+}
+
+export function WordRatingActions({ onRate, disabled }: {
+  onRate: (rating: 'normal' | 'easy') => void
+  disabled: boolean
+}) {
+  const { t } = useTranslation()
+  return (
+    <div className={styles.ratingRow}>
+      <button
+        className={`${styles.ratingBtn} ${styles.ratingFamiliar}`}
+        onClick={() => onRate('normal')}
+        disabled={disabled}
+        title={t('word.queue.rating.familiarHint')}
+      >
+        {t('word.queue.rating.familiar')}
+      </button>
+      <button
+        className={`${styles.ratingBtn} ${styles.ratingMastered}`}
+        onClick={() => onRate('easy')}
+        disabled={disabled}
+        title={t('word.queue.rating.masteredHint')}
+      >
+        {t('word.queue.rating.mastered')}
+      </button>
+    </div>
+  )
+}
 
 export function WordReviewPage() {
   const { t } = useTranslation()
   const { progress, refreshProgress } = useDailyPracticeProgress('word')
   const [searchParams, setSearchParams] = useSearchParams()
   const mode: ReviewMode = searchParams.get('mode') === 'dictation' ? 'dictation' : 'recognition'
+  const targetWord = searchParams.get('word_id')
   const [level, setLevel] = useState<JLPTLevel>('N5')
-  const [queue, setQueue] = useState<WordCard[]>([])
+  const [queue, setQueue] = useState<ReviewCard[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -48,6 +95,7 @@ export function WordReviewPage() {
   const [dictationReadingInput, setDictationReadingInput] = useState('')
   const [dictationResult, setDictationResult] = useState<DictationAnswerResult | null>(null)
   const submitLock = useRef(false)
+  const queueLevel = targetWord === null ? level : null
 
   const done = queue.length === 0 || currentIndex >= queue.length
   const card = done ? null : queue[currentIndex]
@@ -69,8 +117,10 @@ export function WordReviewPage() {
   }, [mode, flipped, currentIndex, card])
 
   useEffect(() => {
-    loadQueue(level)
-  }, [level])
+    const controller = new AbortController()
+    void loadQueue(queueLevel, targetWord, controller.signal)
+    return () => controller.abort()
+  }, [queueLevel, targetWord])
 
   useEffect(() => {
     resetCardState()
@@ -105,18 +155,38 @@ export function WordReviewPage() {
     setSearchParams(nextParams, { replace: true })
   }
 
-  async function loadQueue(lv: JLPTLevel) {
+  function returnToQueue(lv = level) {
+    if (submitting || submitLock.current) return
+    setLevel(lv)
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('word_id')
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  async function loadQueue(lv: JLPTLevel | null, target: string | null, signal: AbortSignal) {
     setLoading(true)
     setError('')
+    setQueue([])
     setCurrentIndex(0)
     resetCardState()
     try {
-      const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}`)
-      setQueue(cards ?? [])
+      if (target !== null) {
+        const id = wordReviewTargetID(target)
+        if (id === null) throw new Error(t('word.queue.invalidTarget'))
+        const word = await apiFetch<Word>('GET', `/api/v1/words/${id}`, undefined, signal)
+        if (signal.aborted) return
+        if (!word || word.id !== id) throw new Error(t('word.queue.invalidTarget'))
+        setQueue([{ word, is_new: false }])
+        if (LEVELS.includes(word.jlpt_level)) setLevel(word.jlpt_level)
+      } else {
+        const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}`, undefined, signal)
+        if (!signal.aborted) setQueue(cards ?? [])
+      }
     } catch (err) {
+      if (signal.aborted) return
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
-      setLoading(false)
+      if (!signal.aborted) setLoading(false)
     }
   }
 
@@ -200,7 +270,7 @@ export function WordReviewPage() {
     setCurrentIndex(index => index + 1)
   }
 
-  async function handleRate(rating: 'easy' | 'normal' | 'hard') {
+  async function handleRate(rating: 'normal' | 'easy') {
     if (submitting || submitLock.current || !card) return
     submitLock.current = true
     setSubmitting(true)
@@ -242,6 +312,11 @@ export function WordReviewPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>{t('word.queue.title')}</h1>
+        {targetWord !== null && (
+          <button className={styles.returnToQueue} onClick={() => returnToQueue()} disabled={submitting}>
+            {t('word.queue.backToQueue')}
+          </button>
+        )}
       </div>
       <DailyPracticeProgress progress={progress} />
 
@@ -269,18 +344,19 @@ export function WordReviewPage() {
           <button
             key={lv}
             className={`${styles.tab} ${level === lv ? styles.tabActive : ''}`}
-            onClick={() => setLevel(lv)}
+            onClick={() => targetWord !== null ? returnToQueue(lv) : setLevel(lv)}
             disabled={submitting}
+            aria-pressed={level === lv}
           >
             {lv}
           </button>
         ))}
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && <p className={styles.error} role="alert">{error}</p>}
 
       {done ? (
-        <EmptyState icon="🎉" title={t('word.queue.done')} description={t('word.queue.doneDesc')} />
+        !error && <EmptyState icon="🎉" title={t(targetWord !== null ? 'word.queue.targetDone' : 'word.queue.done')} description={t(targetWord !== null ? 'word.queue.targetDoneDesc' : 'word.queue.doneDesc')} />
       ) : (
         <>
           <p className={styles.progress}>
@@ -473,17 +549,7 @@ export function WordReviewPage() {
                     🔊
                   </button>
                 </div>
-                <div className={styles.readingRow}>
-                  {card!.word.reading_type && (
-                    <span
-                      className={styles.readingTypeBadge}
-                      title={READING_TYPE_LABELS[card!.word.reading_type] ?? ''}
-                    >
-                      {card!.word.reading_type}
-                    </span>
-                  )}
-                  <div className={styles.reading}>{card!.word.reading}</div>
-                </div>
+                <WordAnswerReading word={card!.word} />
                 <div className={styles.meaning}>{card!.word.meaning}</div>
                 {card!.word.examples && card!.word.examples.length > 0 && (
                   <>
@@ -515,40 +581,18 @@ export function WordReviewPage() {
                     ))}
                   </>
                 )}
-                <div className={styles.masteryBar}>
+                {card!.record && <div className={styles.masteryBar}>
                   <ProgressBar
                     value={(card!.record?.mastery_level ?? 0) * 20}
                     label={t('word.queue.masteryLevel', { level: card!.record?.mastery_level ?? 0 })}
                   />
-                </div>
+                </div>}
               </div>}
             </div>
           </div>
 
           {flipped && (mode === 'recognition' || dictationResult?.allCorrect) && (
-            <div className={styles.ratingRow}>
-              <button
-                className={`${styles.ratingBtn} ${styles.ratingHard}`}
-                onClick={() => handleRate('hard')}
-                disabled={submitting}
-              >
-                {t('word.queue.rating.hard')}
-              </button>
-              <button
-                className={`${styles.ratingBtn} ${styles.ratingNormal}`}
-                onClick={() => handleRate('normal')}
-                disabled={submitting}
-              >
-                {t('word.queue.rating.normal')}
-              </button>
-              <button
-                className={`${styles.ratingBtn} ${styles.ratingEasy}`}
-                onClick={() => handleRate('easy')}
-                disabled={submitting}
-              >
-                {t('word.queue.rating.easy')}
-              </button>
-            </div>
+            <WordRatingActions onRate={handleRate} disabled={submitting} />
           )}
 
           {flipped && mode === 'dictation' && dictationResult && !dictationResult.allCorrect && (

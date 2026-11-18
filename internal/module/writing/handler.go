@@ -44,6 +44,8 @@ func (h *WritingHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/writing/topics", h.handleListTopics)
 	mux.HandleFunc("POST /api/v1/writing/topics/{id}", h.handleSubmitTopic)
 	mux.HandleFunc("GET /api/v1/writing/records", h.handleListRecords)
+	mux.HandleFunc("GET /api/v1/writing/drafts", h.handleListDrafts)
+	mux.HandleFunc("PUT /api/v1/writing/topics/{id}/draft", h.handleSaveDraft)
 }
 
 // handleGetDailyQueue handles GET /api/v1/writing/queue

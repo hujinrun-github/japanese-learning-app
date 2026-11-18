@@ -41,7 +41,7 @@ func (s *WordStore) GetByID(id int64) (*word.Word, error) {
 		        w.jlpt_level,
 		        w.reading_type,
 		        w.verb_type,
-		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE w.local_audio_url END
 		 FROM words w
 		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
 		 WHERE w.id = $1`,
@@ -83,7 +83,7 @@ func (s *WordStore) ListByLevel(level word.JLPTLevel) ([]word.Word, error) {
 		        w.jlpt_level,
 		        w.reading_type,
 		        w.verb_type,
-		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE w.local_audio_url END
 		 FROM words w
 		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
 		 WHERE w.jlpt_level = $1
@@ -189,6 +189,18 @@ func (s *WordStore) UpsertRecord(record word.WordRecord) error {
 	return nil
 }
 
+// InsertRecordIfAbsent records a first view without overwriting a concurrent rating.
+func (s *WordStore) InsertRecordIfAbsent(r word.WordRecord) error {
+	_, err := s.db.ExecContext(context.Background(), `INSERT INTO word_records
+ (user_id, word_id, mastery_level, next_review_at, ease_factor, interval_days, review_history_json, updated_at)
+ VALUES ($1,$2,$3,$4,$5,$6,'[]'::jsonb,$7)
+ ON CONFLICT (user_id, word_id) DO NOTHING`, r.UserID, r.WordID, r.MasteryLevel, r.NextReviewAt.UTC(), r.EaseFactor, r.Interval, r.UpdatedAt.UTC())
+	if err != nil {
+		return fmt.Errorf("postgres.WordStore.InsertRecordIfAbsent: %w", translateError(err))
+	}
+	return nil
+}
+
 func (s *WordStore) BookmarkWord(userID, wordID int64) error {
 	_, err := s.db.ExecContext(
 		context.Background(),
@@ -222,7 +234,7 @@ func (s *WordStore) ListAll(level word.JLPTLevel, search string, offset, limit i
 		        w.jlpt_level,
 		        w.reading_type,
 		        w.verb_type,
-		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE '' END
+		        CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/' || ao.id::text || '/stream' ELSE w.local_audio_url END
 		 FROM words w
 		 LEFT JOIN audio_objects ao ON ao.id = w.audio_object_id AND ao.deleted_at IS NULL
 		 %s

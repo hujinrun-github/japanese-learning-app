@@ -11,7 +11,7 @@ import (
 
 // speakingImport is the JSON shape expected for each element in the speaking import file.
 type speakingImport struct {
-	Type      string `json:"type"`       // "shadow" | "free"
+	Type      string `json:"type"` // "shadow" | "free"
 	Title     string `json:"title"`
 	Text      string `json:"text"`
 	AudioURL  string `json:"audio_url"`
@@ -19,7 +19,7 @@ type speakingImport struct {
 }
 
 // ImportSpeaking reads a JSON array of speaking materials from r and inserts them
-// into the speaking_materials table using INSERT OR IGNORE (idempotent – duplicate
+// into the speaking_materials table using INSERT (idempotent – duplicate
 // (type, title, jlpt_level) combinations are silently skipped).
 // It returns the number of rows actually inserted.
 func ImportSpeaking(db *sql.DB, r io.Reader) (int, error) {
@@ -32,7 +32,7 @@ func ImportSpeaking(db *sql.DB, r io.Reader) (int, error) {
 }
 
 // ImportSpeakingFromFile reads a JSON array of speaking materials from filePath and inserts
-// them into the speaking_materials table using INSERT OR IGNORE (idempotent – duplicate
+// them into the speaking_materials table using INSERT (idempotent – duplicate
 // (type, title, jlpt_level) combinations are silently skipped).
 // It returns the number of rows actually inserted.
 func ImportSpeakingFromFile(db *sql.DB, filePath string) (int, error) {
@@ -73,9 +73,9 @@ func insertSpeakingMaterials(db *sql.DB, items []speakingImport) (int, error) {
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR IGNORE INTO speaking_materials
-			(type, title, text, audio_url, jlpt_level)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO speaking_materials
+			(type, title, text, audio_url_legacy, jlpt_level)
+		SELECT $1,$2,$3,$4,$5 WHERE NOT EXISTS (SELECT 1 FROM speaking_materials WHERE type=$1 AND title=$2 AND jlpt_level=$5)
 	`)
 	if err != nil {
 		return 0, fmt.Errorf("cli.insertSpeakingMaterials Prepare: %w", err)

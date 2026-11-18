@@ -12,38 +12,18 @@ import (
 	"strings"
 	"testing"
 
-	_ "modernc.org/sqlite"
+	pgdata "japanese-learning-app/internal/data/postgres"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestBindShadowingLessonVideoObject(t *testing.T) {
 	db := openShadowingMaterialsTestDB(t)
-	mustExec(t, db, `
-		CREATE TABLE lessons (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			title TEXT NOT NULL,
-			jlpt_level TEXT NOT NULL,
-			shadowing_enabled INTEGER NOT NULL DEFAULT 0,
-			shadowing_version INTEGER NOT NULL DEFAULT 1,
-			shadowing_config_json TEXT NOT NULL DEFAULT '{}',
-			video_object_id INTEGER
-		)`)
-	mustExec(t, db, `
-		CREATE TABLE video_objects (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			bucket TEXT NOT NULL,
-			object_key TEXT NOT NULL,
-			kind TEXT NOT NULL,
-			visibility TEXT NOT NULL,
-			mime_type TEXT NOT NULL,
-			deleted_at TEXT
-		)`)
 	mustExec(t, db, `INSERT INTO lessons (title, jlpt_level, shadowing_config_json) VALUES ('Video Lesson', 'N5', '{"loop_count":3}')`)
-	mustExec(t, db, `INSERT INTO video_objects (bucket, object_key, kind, visibility, mime_type) VALUES ('lesson-videos', 'lessons/video.mp4', 'lesson_shadowing', 'public', 'video/mp4')`)
+	mustExec(t, db, `INSERT INTO video_objects (bucket, object_key, kind, visibility, mime_type,content_sha256,size_bytes) VALUES ('lesson-videos', 'lessons/video.mp4', 'lesson_shadowing', 'public', 'video/mp4','test-sha256',1)`)
 
 	handler := NewHandler(HandlerConfig{
 		AdminToken:             "test-token",
 		ShadowingMaterialsDB:   db,
-		ShadowingMaterialsSQL:  "sqlite",
 		ShadowingVideoBasePath: "/api/v1/videos",
 	})
 	srv := httptest.NewServer(handler.RegisterRoutes())
@@ -81,14 +61,14 @@ func TestBindShadowingLessonVideoObject(t *testing.T) {
 		t.Fatalf("response = %+v, want bound video URL", got)
 	}
 
-	var enabled int
+	var enabled bool
 	var videoObjectID int64
 	var configRaw string
 	if err := db.QueryRow(`SELECT shadowing_enabled, video_object_id, shadowing_config_json FROM lessons WHERE id = 1`).Scan(&enabled, &videoObjectID, &configRaw); err != nil {
 		t.Fatalf("query lesson: %v", err)
 	}
-	if enabled != 1 || videoObjectID != 1 {
-		t.Fatalf("lesson enabled=%d video_object_id=%d, want enabled=1 video_object_id=1", enabled, videoObjectID)
+	if !enabled || videoObjectID != 1 {
+		t.Fatalf("lesson enabled=%t video_object_id=%d, want enabled=1 video_object_id=1", enabled, videoObjectID)
 	}
 
 	var config map[string]any
@@ -105,29 +85,6 @@ func TestBindShadowingLessonVideoObject(t *testing.T) {
 
 func TestUploadShadowingVideoCreatesObjectAndBindsLesson(t *testing.T) {
 	db := openShadowingMaterialsTestDB(t)
-	mustExec(t, db, `
-		CREATE TABLE lessons (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			title TEXT NOT NULL,
-			jlpt_level TEXT NOT NULL,
-			shadowing_enabled INTEGER NOT NULL DEFAULT 0,
-			shadowing_version INTEGER NOT NULL DEFAULT 1,
-			shadowing_config_json TEXT NOT NULL DEFAULT '{}',
-			video_object_id INTEGER
-		)`)
-	mustExec(t, db, `
-		CREATE TABLE video_objects (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			bucket TEXT NOT NULL,
-			object_key TEXT NOT NULL,
-			kind TEXT NOT NULL,
-			visibility TEXT NOT NULL,
-			content_sha256 TEXT NOT NULL,
-			size_bytes INTEGER NOT NULL,
-			mime_type TEXT NOT NULL,
-			metadata_json TEXT NOT NULL DEFAULT '{}',
-			deleted_at TEXT
-		)`)
 	mustExec(t, db, `INSERT INTO lessons (title, jlpt_level) VALUES ('Upload Lesson', 'N5')`)
 
 	uploader := &stubShadowingVideoUploader{
@@ -142,7 +99,6 @@ func TestUploadShadowingVideoCreatesObjectAndBindsLesson(t *testing.T) {
 	handler := NewHandler(HandlerConfig{
 		AdminToken:             "test-token",
 		ShadowingMaterialsDB:   db,
-		ShadowingMaterialsSQL:  "sqlite",
 		ShadowingVideoBasePath: "/api/v1/videos",
 		ShadowingVideoUploader: uploader,
 		ShadowingVideoBucket:   "lesson-videos",
@@ -282,10 +238,5 @@ func (s *stubShadowingVideoUploader) UploadLessonVideo(_ context.Context, filena
 func openShadowingMaterialsTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	return db
+	return testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 }

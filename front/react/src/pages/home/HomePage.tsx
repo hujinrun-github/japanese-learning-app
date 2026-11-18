@@ -11,6 +11,7 @@ import type { DailyPlan, JLPTLevel, ModuleStat, UserStats } from '@/types/api'
 import { getDailyProgress, getMasteryProgress, hasDailyGoal, percent } from './progress'
 import { DailyPlanCard } from './DailyPlanCard'
 import { REVIEW_ITEMS } from './reviewQueue'
+import { loadWeakGrammarRecommendation, loadWeakWordRecommendation, type WeakGrammarRecommendation, type WeakWordRecommendation } from './weakness'
 import styles from './HomePage.module.css'
 
 const MODULE_CONFIG = [
@@ -54,6 +55,10 @@ export function HomePage() {
   const [plan, setPlan] = useState<DailyPlan | null>(null)
   const [mistakeCount, setMistakeCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [weakGrammar, setWeakGrammar] = useState<WeakGrammarRecommendation | null>(null)
+  const [weakGrammarStatus, setWeakGrammarStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [weakWord, setWeakWord] = useState<WeakWordRecommendation | null>(null)
+  const [weakWordStatus, setWeakWordStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const jlptLevel = primaryJLPTLevel(user?.jlpt_levels)
   const primaryStats = ['word', 'grammar', 'speaking', 'writing'].map(key => getModuleStat(stats, key))
   const totalGoal = primaryStats.reduce((sum, item) => sum + item.daily_goal, 0)
@@ -65,12 +70,6 @@ export function HomePage() {
   const jlptPercent = percent(totalMastered, totalKnown)
   const wordStat = getModuleStat(stats, 'word')
   const nextModule = totalDue > 0 ? MODULE_CONFIG[0] : MODULE_CONFIG[2]
-  const weakModule = MODULE_CONFIG
-    .slice(0, 4)
-    .map(item => ({ ...item, stat: getModuleStat(stats, item.key) }))
-    .filter(item => item.stat.total_count > 0)
-    .sort((a, b) => percent(a.stat.mastered_count, a.stat.total_count) - percent(b.stat.mastered_count, b.stat.total_count))[0]
-    ?? MODULE_CONFIG[1]
 
   useEffect(() => {
     let cancelled = false
@@ -90,6 +89,30 @@ export function HomePage() {
     getMistakes({ status: 'unmastered', page: 1, size: 1 })
       .then(m => { if (!cancelled) setMistakeCount(m?.total ?? 0) })
       .catch(err => { console.error('[home] failed to load mistake count', err) })
+
+    loadWeakGrammarRecommendation()
+      .then(recommendation => {
+        if (cancelled) return
+        setWeakGrammar(recommendation)
+        setWeakGrammarStatus('ready')
+      })
+      .catch(err => {
+        if (cancelled) return
+        console.error('[home] failed to load weak grammar', err)
+        setWeakGrammarStatus('error')
+      })
+
+    loadWeakWordRecommendation()
+      .then(recommendation => {
+        if (cancelled) return
+        setWeakWord(recommendation)
+        setWeakWordStatus('ready')
+      })
+      .catch(err => {
+        if (cancelled) return
+        console.error('[home] failed to load weak word', err)
+        setWeakWordStatus('error')
+      })
 
     return () => { cancelled = true }
   }, [])
@@ -268,14 +291,30 @@ export function HomePage() {
               <span>{t('home.weakness.basedOn')}</span>
             </div>
             <div className={styles.weakList}>
-              <Link to={weakModule.to} className={styles.weakItem}>
-                <span>{t(weakModule.labelKey)}</span>
-                <strong>{t('home.weakness.priority')}</strong>
-              </Link>
-              <Link to="/grammar" className={styles.weakItem}>
-                <span>{t('home.weakness.grammarPoint')}</span>
-                <strong>{t('home.weakness.study')}</strong>
-              </Link>
+              {weakWordStatus === 'loading' ? (
+                <p className={styles.weakMessage} role="status">{t('home.weakness.wordLoading')}</p>
+              ) : weakWordStatus === 'error' ? (
+                <p className={styles.weakMessage} role="alert">{t('home.weakness.wordError')}</p>
+              ) : weakWord ? (
+                <Link to={weakWord.to} className={styles.weakItem}>
+                  <span>{t('home.modules.word')}：{weakWord.name}</span>
+                  <strong>{t('home.weakness.priority')}</strong>
+                </Link>
+              ) : (
+                <p className={styles.weakMessage}>{t('home.weakness.wordEmpty')}</p>
+              )}
+              {weakGrammarStatus === 'loading' ? (
+                <p className={styles.weakMessage} role="status">{t('home.weakness.grammarLoading')}</p>
+              ) : weakGrammarStatus === 'error' ? (
+                <p className={styles.weakMessage} role="alert">{t('home.weakness.grammarError')}</p>
+              ) : weakGrammar ? (
+                <Link to={weakGrammar.to} className={styles.weakItem}>
+                  <span>{weakGrammar.name}</span>
+                  <strong>{t('home.weakness.study')}</strong>
+                </Link>
+              ) : (
+                <p className={styles.weakMessage}>{t('home.weakness.grammarEmpty')}</p>
+              )}
             </div>
           </section>
 

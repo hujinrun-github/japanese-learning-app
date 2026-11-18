@@ -207,7 +207,7 @@ function EditDialog({ report, onClose, onSaved }: {
       <form className={dialogStyles.form} onSubmit={save}>
         <label>
           {t('errata.category')}
-          <select value={category} onChange={(event) => changeCategory(event.target.value)} disabled={busy}>
+          <select value={category} onChange={(event) => changeCategory(event.target.value)} disabled={busy || report.category === 'audio'}>
             {errataCategories.map(option => (
               <option key={option} value={option}>{t(`errata.categories.${option}`)}</option>
             ))}

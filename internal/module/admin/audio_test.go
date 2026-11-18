@@ -12,7 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestBatchGenerateAudioSpeaking(t *testing.T) {
@@ -20,15 +21,7 @@ func TestBatchGenerateAudioSpeaking(t *testing.T) {
 
 	db := openAudioTestDB(t)
 	defer db.Close()
-	mustExec(t, db, `CREATE TABLE speaking_materials (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		type TEXT NOT NULL,
-		title TEXT NOT NULL DEFAULT '',
-		text TEXT NOT NULL,
-		audio_url TEXT NOT NULL DEFAULT '',
-		jlpt_level TEXT NOT NULL
-	)`)
-	mustExec(t, db, `INSERT INTO speaking_materials (type, title, text, audio_url, jlpt_level) VALUES
+	mustExec(t, db, `INSERT INTO speaking_materials (type, title, text, audio_url_legacy, jlpt_level) VALUES
 		('read_aloud', 'n5', 'alpha', '', 'N5'),
 		('read_aloud', 'n4', 'beta', '', 'N4')`)
 
@@ -99,15 +92,7 @@ func TestBatchGenerateAudioUsesExplicitTexts(t *testing.T) {
 
 	db := openAudioTestDB(t)
 	defer db.Close()
-	mustExec(t, db, `CREATE TABLE speaking_materials (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		type TEXT NOT NULL,
-		title TEXT NOT NULL DEFAULT '',
-		text TEXT NOT NULL,
-		audio_url TEXT NOT NULL DEFAULT '',
-		jlpt_level TEXT NOT NULL
-	)`)
-	mustExec(t, db, `INSERT INTO speaking_materials (type, title, text, audio_url, jlpt_level) VALUES
+	mustExec(t, db, `INSERT INTO speaking_materials (type, title, text, audio_url_legacy, jlpt_level) VALUES
 		('read_aloud', 'n5', 'alpha', '', 'N5'),
 		('read_aloud', 'n4', 'beta', '', 'N4')`)
 
@@ -162,16 +147,9 @@ func TestBatchGenerateAudioUsesExplicitWordIDs(t *testing.T) {
 
 	db := openAudioTestDB(t)
 	defer db.Close()
-	mustExec(t, db, `CREATE TABLE words (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		kanji_form TEXT NOT NULL,
-		reading TEXT NOT NULL,
-		audio_url TEXT NOT NULL DEFAULT '',
-		jlpt_level TEXT NOT NULL
-	)`)
-	mustExec(t, db, `INSERT INTO words (kanji_form, reading, audio_url, jlpt_level) VALUES
-		('一', 'いち', '', 'N5'),
-		('二', 'に', '', 'N5')`)
+	mustExec(t, db, `INSERT INTO words (kanji_form, reading, local_audio_url, meaning, jlpt_level) VALUES
+		('一', 'いち', '', '一', 'N5'),
+		('二', 'に', '', '二', 'N5')`)
 
 	var synthRequests []string
 	ttsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -213,11 +191,11 @@ func TestBatchGenerateAudioUsesExplicitWordIDs(t *testing.T) {
 	}
 
 	var audioURL string
-	if err := db.QueryRow("SELECT audio_url FROM words WHERE id = 2").Scan(&audioURL); err != nil {
-		t.Fatalf("query audio_url: %v", err)
+	if err := db.QueryRow("SELECT local_audio_url FROM words WHERE id = 2").Scan(&audioURL); err != nil {
+		t.Fatalf("query local_audio_url: %v", err)
 	}
-	if audioURL != audioTestFilename("に") {
-		t.Fatalf("audio_url = %q, want %q", audioURL, audioTestFilename("に"))
+	if audioURL != "/audio/words/"+audioTestFilename("に") {
+		t.Fatalf("local_audio_url = %q, want %q", audioURL, audioTestFilename("に"))
 	}
 	if _, err := os.Stat(filepath.Join("data", "audio", "words", audioTestFilename("いち"))); !os.IsNotExist(err) {
 		t.Fatalf("expected no audio file for いち, stat err = %v", err)
@@ -226,11 +204,7 @@ func TestBatchGenerateAudioUsesExplicitWordIDs(t *testing.T) {
 
 func openAudioTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := data.OpenDB(filepath.Join(t.TempDir(), "test.db"))
-	if err != nil {
-		t.Fatalf("OpenDB: %v", err)
-	}
-	return db
+	return testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 }
 
 func mustExec(t *testing.T, db *sql.DB, query string, args ...any) {

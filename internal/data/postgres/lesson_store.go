@@ -46,7 +46,7 @@ func (s *LessonStore) ListSummaries(level lesson.JLPTLevel) ([]lesson.LessonSumm
 		 FROM lessons l
 		 LEFT JOIN audio_objects ao ON ao.id = l.audio_object_id AND ao.deleted_at IS NULL
 		 LEFT JOIN video_objects vo ON vo.id = l.video_object_id AND vo.deleted_at IS NULL
-		 WHERE l.jlpt_level = $1
+		 WHERE l.jlpt_level = $1 AND l.speaking_material_id IS NULL
 		 ORDER BY l.id`,
 		level,
 	)

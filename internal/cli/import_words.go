@@ -74,63 +74,40 @@ func ImportWordsFromFile(db *sql.DB, filePath string, autoFill bool) (int, error
 func insertWords(db *sql.DB, items []wordImport) (int, error) {
 	tx, err := db.Begin()
 	if err != nil {
-		return 0, fmt.Errorf("cli.insertWords Begin: %w", err)
+		return 0, fmt.Errorf("cli.insertWords begin: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-
-	stmt, err := tx.Prepare(`
-		INSERT INTO words
-			(kanji_form, reading, part_of_speech, meaning, examples_json, jlpt_level, reading_type, audio_url, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-		ON CONFLICT (kanji_form, reading) DO UPDATE SET
-			part_of_speech = excluded.part_of_speech,
-			meaning = excluded.meaning,
-			examples_json = excluded.examples_json,
-			jlpt_level = excluded.jlpt_level,
-			reading_type = excluded.reading_type,
-				updated_at = datetime('now')
-	`)
-	if err != nil {
-		return 0, fmt.Errorf("cli.insertWords Prepare: %w", err)
-	}
-	defer stmt.Close()
-
-	inserted := 0
+	defer tx.Rollback()
 	for _, w := range items {
-		examplesJSON, jsonErr := json.Marshal(w.Examples)
-		if jsonErr != nil {
-			err = fmt.Errorf("cli.insertWords marshal examples: %w", jsonErr)
-			return 0, err
+		var id int64
+		err := tx.QueryRow(`INSERT INTO words (kanji_form,reading,part_of_speech,meaning,jlpt_level,reading_type)
+   VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(kanji_form,reading) DO UPDATE SET
+   part_of_speech=excluded.part_of_speech,meaning=excluded.meaning,jlpt_level=excluded.jlpt_level,reading_type=excluded.reading_type,updated_at=now()
+   RETURNING id`, w.KanjiForm, w.Reading, w.PartOfSpeech, w.Meaning, w.JLPTLevel, w.ReadingType).Scan(&id)
+		if err != nil {
+			return 0, fmt.Errorf("cli.insertWords upsert: %w", err)
 		}
-
-		result, execErr := stmt.Exec(
-			w.KanjiForm,
-			w.Reading,
-			w.PartOfSpeech,
-			w.Meaning,
-			string(examplesJSON),
-			w.JLPTLevel,
-			w.ReadingType,
-				"", // audio_url — preserved on conflict via ON CONFLICT DO UPDATE
-		)
-		if execErr != nil {
-			err = fmt.Errorf("cli.insertWords Exec: %w", execErr)
-			return 0, err
+		if _, err := tx.Exec(`DELETE FROM word_examples WHERE word_id=$1`, id); err != nil {
+			return 0, fmt.Errorf("cli.insertWords clear examples: %w", err)
 		}
-
-		n, _ := result.RowsAffected()
-		inserted += int(n)
+		raw, err := json.Marshal(w.Examples)
+		if err != nil {
+			return 0, fmt.Errorf("encode word examples: %w", err)
+		}
+		var examples []struct {
+			Japanese string `json:"japanese"`
+			Chinese  string `json:"chinese"`
+		}
+		if err := json.Unmarshal(raw, &examples); err != nil {
+			return 0, fmt.Errorf("decode word examples: %w", err)
+		}
+		for i, e := range examples {
+			if _, err := tx.Exec(`INSERT INTO word_examples(word_id,position,japanese,chinese) VALUES($1,$2,$3,$4)`, id, i, e.Japanese, e.Chinese); err != nil {
+				return 0, fmt.Errorf("insert word example: %w", err)
+			}
+		}
 	}
-
-	if commitErr := tx.Commit(); commitErr != nil {
-		err = fmt.Errorf("cli.insertWords Commit: %w", commitErr)
-		return 0, err
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("cli.insertWords commit: %w", err)
 	}
-
-	slog.Debug("insertWords done", "inserted", inserted)
-	return inserted, nil
+	return len(items), nil
 }

@@ -201,6 +201,11 @@ func updateMine(store *Store) http.HandlerFunc {
 			return
 		}
 
+		if report.Category == "audio" && req.Category != nil && *req.Category != report.Category {
+			slog.Error("audio errata category change rejected", "user_id", userID, "id", id)
+			httputil.WriteError(w, http.StatusConflict, "ERR_ERRATA_DELETE_RESTRICTED", "audio errata category cannot be changed by the learner", "")
+			return
+		}
 		next := report
 		if req.Category != nil {
 			next.Category = *req.Category

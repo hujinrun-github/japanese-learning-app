@@ -8,11 +8,11 @@ sends them in batches to the API, and updates the database with the results.
 
 import json
 import os
-import sqlite3
+import subprocess
 import sys
 import time
 import re
-from pathlib import Path
+
 
 import requests
 
@@ -21,7 +21,7 @@ API_URL = f"{os.environ.get('ANTHROPIC_BASE_URL', 'https://api.anthropic.com')}/
 API_TOKEN = os.environ.get('ANTHROPIC_AUTH_TOKEN', '')
 MODEL = os.environ.get('ANTHROPIC_MODEL', 'deepseek-v4-pro')
 
-DB_PATH = Path(__file__).resolve().parent.parent / 'data' / 'app.db'
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
 BATCH_SIZE = 10
 SLEEP_BETWEEN_BATCHES = 3
 MAX_RETRIES = 3
@@ -59,33 +59,31 @@ Important rules:
 - Do NOT use overly complex kanji in example sentences"""
 
 
-def get_words_to_enrich(db_path: str) -> list[dict]:
-    """Get N4 words that need enrichment."""
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute("""
-        SELECT id, kanji_form, reading, meaning, part_of_speech, examples_json
-        FROM words
-        WHERE jlpt_level = 'N4'
-        AND (examples_json IS NULL OR examples_json = 'null' OR examples_json = '[]')
-    """).fetchall()
-    conn.close()
+def run_sql(database_url: str, query: str) -> str:
+    # PGDATABASE accepts a connection URI; avoid putting credentials in argv.
+    env = os.environ.copy()
+    env['PGDATABASE'] = database_url
+    result = subprocess.run(
+        ['psql', '-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1'],
+        input=query, env=env, text=True, capture_output=True, check=True,
+    )
+    return result.stdout.strip()
 
-    words = []
-    for r in rows:
-        # Check if meaning looks like English (not Chinese)
-        meaning = r['meaning'] or ''
-        has_chars = any('一' <= c <= '鿿' or '㐀' <= c <= '䶿' for c in meaning)
-        words.append({
-            'id': r['id'],
-            'kanji_form': r['kanji_form'],
-            'reading': r['reading'],
-            'meaning': meaning,
-            'part_of_speech': r['part_of_speech'] or '',
-            'needs_meaning': not has_chars or len(meaning) < 2,
-            'examples_json': r['examples_json'],
-        })
-    return words
+
+def get_words_to_enrich(database_url: str) -> list[dict]:
+    rows = json.loads(run_sql(database_url, """
+        SELECT COALESCE(json_agg(q), '[]'::json) FROM (
+            SELECT w.id, w.kanji_form, w.reading, w.meaning, w.part_of_speech
+            FROM words w WHERE w.jlpt_level = 'N4'
+            AND NOT EXISTS (SELECT 1 FROM word_examples e WHERE e.word_id = w.id)
+            ORDER BY w.id
+        ) q
+    """))
+    for row in rows:
+        meaning = row['meaning'] or ''
+        row['needs_meaning'] = not any('一' <= c <= '鿿' for c in meaning)
+        row['examples_json'] = '[]'
+    return rows
 
 
 def build_batch(words_batch: list[dict]) -> str:
@@ -180,27 +178,31 @@ def parse_response(text: str, batch_words: list[dict]) -> list[dict]:
     return results
 
 
-def update_database(db_path: str, results: list[dict]) -> int:
-    """Update the database with enriched data. Returns count of updated words."""
-    conn = sqlite3.connect(db_path)
-    updated = 0
-    for r in results:
-        examples = r.get('examples', [])
-        examples_json = json.dumps(examples, ensure_ascii=False) if examples else '[]'
-        meaning = r.get('meaning_zh', '')
-        pos = r.get('part_of_speech_zh', '')
-
-        conn.execute("""
-            UPDATE words
-            SET meaning = CASE WHEN ? != '' THEN ? ELSE meaning END,
-                part_of_speech = CASE WHEN ? != '' THEN ? ELSE part_of_speech END,
-                examples_json = ?
-            WHERE id = ?
-        """, (meaning, meaning, pos, pos, examples_json, r['id']))
-        updated += 1
-    conn.commit()
-    conn.close()
-    return updated
+def update_database(database_url: str, results: list[dict]) -> int:
+    # Validate generated data before replacing normalized child rows.
+    for row in results:
+        meaning = row.get('meaning_zh', '')
+        examples = row.get('examples', [])
+        if not any('一' <= c <= '鿿' for c in meaning) or not examples:
+            raise ValueError('Chinese meaning and at least one example are required')
+        if any(not e.get('japanese') or not e.get('chinese') for e in examples):
+            raise ValueError('Each example requires Japanese and Chinese text')
+    statements = ['BEGIN;', 'SET LOCAL standard_conforming_strings = on;']
+    for row in results:
+        word_id = int(row['id'])
+        payload = json.dumps(row, ensure_ascii=False).replace("'", "''")
+        statements.append(f"""
+            UPDATE words SET meaning = '{payload}'::jsonb->>'meaning_zh',
+                part_of_speech = COALESCE(NULLIF('{payload}'::jsonb->>'part_of_speech_zh', ''), part_of_speech),
+                updated_at = now() WHERE id = {word_id};
+            DELETE FROM word_examples WHERE word_id = {word_id};
+            INSERT INTO word_examples(word_id, position, japanese, chinese)
+            SELECT {word_id}, ordinality - 1, e->>'japanese', e->>'chinese'
+            FROM jsonb_array_elements('{payload}'::jsonb->'examples') WITH ORDINALITY AS x(e, ordinality);
+        """)
+    statements.append('COMMIT;')
+    run_sql(database_url, '\n'.join(statements))
+    return len(results)
 
 
 def main():
@@ -211,12 +213,12 @@ def main():
     print(f"Using API: {API_URL}")
     print(f"Model: {MODEL}")
 
-    db_path = str(DB_PATH)
-    if not os.path.exists(db_path):
-        print(f"Error: database not found at {db_path}")
+    database_url = DATABASE_URL
+    if not database_url:
+        print("Error: DATABASE_URL not set")
         sys.exit(1)
 
-    words = get_words_to_enrich(db_path)
+    words = get_words_to_enrich(database_url)
     print(f"Words to enrich: {len(words)}")
 
     if not words:
@@ -242,7 +244,7 @@ def main():
             print("SKIPPED (parse error)")
             continue
 
-        updated = update_database(db_path, results)
+        updated = update_database(database_url, results)
         total_updated += updated
         print(f"OK ({updated} updated)")
 

@@ -3,7 +3,6 @@ package postgres
 import (
 	"bytes"
 	"context"
-	"os"
 	"testing"
 
 	"japanese-learning-app/internal/store"
@@ -15,21 +14,8 @@ func TestAdapterContracts(t *testing.T) {
 }
 
 func TestRunMigrationsTwice(t *testing.T) {
-	url := os.Getenv("DATABASE_URL_TEST")
-	if url == "" {
-		t.Skip("DATABASE_URL_TEST is required")
-	}
-
+	db := openPostgresTestDB(t)
 	ctx := context.Background()
-	db, err := (Adapter{}).Open(ctx, store.DatabaseConfig{
-		DatabaseURL:  url,
-		MaxOpenConns: 2,
-		MaxIdleConns: 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
 
 	if err := (Adapter{}).RunMigrations(ctx, db); err != nil {
 		t.Fatal(err)

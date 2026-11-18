@@ -241,8 +241,10 @@ func (s *WritingStore) SaveRecord(r writing.WritingRecord) error {
 
 	_, err := s.db.ExecContext(
 		context.Background(),
-		`INSERT INTO writing_records (user_id, type, question, user_answer, ai_feedback_json, score, practiced_at)
-		 VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)`,
+		`WITH saved AS (
+		 INSERT INTO writing_records (user_id, type, question, user_answer, ai_feedback_json, score, practiced_at)
+		 VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7) RETURNING id
+		 ) DELETE FROM writing_drafts WHERE user_id = $1 AND topic_id = $8 AND type = $2 AND EXISTS (SELECT 1 FROM saved)`,
 		r.UserID,
 		r.Type,
 		r.Question,
@@ -250,6 +252,7 @@ func (s *WritingStore) SaveRecord(r writing.WritingRecord) error {
 		feedbackJSON,
 		r.Score,
 		practicedAt.UTC(),
+		r.TopicID,
 	)
 	if err != nil {
 		return fmt.Errorf("postgres.WritingStore.SaveRecord: %w", translateError(err))

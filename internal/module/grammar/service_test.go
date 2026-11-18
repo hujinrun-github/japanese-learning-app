@@ -317,3 +317,22 @@ func TestGrammarService_ListByLevel(t *testing.T) {
 		t.Errorf("expected 1 grammar point for N5, got %d", len(points))
 	}
 }
+
+func (f *fakeGrammarStore) SearchCandidates(query string, limit int) ([]grammar.GrammarPoint, error) {
+	points, _, err := f.ListAll("", query, 0, len(f.points))
+	if err != nil {
+		return nil, err
+	}
+	normalize := func(s string) string { return strings.TrimLeft(s, "〜～~「」『』") }
+	sort.SliceStable(points, func(i, j int) bool {
+		a, b := normalize(points[i].Name) == query, normalize(points[j].Name) == query
+		if a != b {
+			return a
+		}
+		return len([]rune(points[i].Name)) < len([]rune(points[j].Name))
+	})
+	if len(points) > limit {
+		points = points[:limit]
+	}
+	return points, nil
+}

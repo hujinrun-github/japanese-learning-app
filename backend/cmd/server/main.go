@@ -2,31 +2,15 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
-	"time"
 
 	"japanese-learning-app/internal/config"
-	"japanese-learning-app/internal/data"
-	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/grammar"
-	"japanese-learning-app/internal/module/lesson"
-	"japanese-learning-app/internal/module/mistake"
 	"japanese-learning-app/internal/module/note"
-	"japanese-learning-app/internal/module/notesync"
-	"japanese-learning-app/internal/module/plan"
-	"japanese-learning-app/internal/module/review"
-	"japanese-learning-app/internal/module/shadowing"
-	"japanese-learning-app/internal/module/speaking"
-	"japanese-learning-app/internal/module/studyplan"
-	"japanese-learning-app/internal/module/summary"
-	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/word"
-	"japanese-learning-app/internal/module/writing"
 )
 
 func main() {
@@ -45,212 +29,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	dbPath := cfg.DBPath
-	listenAddr := cfg.ListenAddr
-	jwtSecret := cfg.JWTSecret
-	logLevel := cfg.LogLevel
-	aiAPIKey := cfg.AIAPIKey
-	aiEndpoint := cfg.AIAPIEndpoint
-	staticDir := envOrDefault("STATIC_DIR", "./front/dist/assets")
-	templateDir := envOrDefault("TEMPLATE_DIR", "./front/dist")
-	mailerConfig := passwordResetMailerSettings(os.Getenv)
-	appBaseURL := envOrDefault("APP_BASE_URL", "http://localhost:35173")
-
-	setupLogger(logLevel)
-
-	if cfg.RelationalStore == "postgres" {
-		mailer := newPasswordResetMailer(mailerConfig)
-		mux, cleanup, err := buildPostgresServerMux(context.Background(), cfg, staticDir, templateDir, mailer, appBaseURL)
-		if err != nil {
-			slog.Error("failed to build postgres server", "err", err)
-			os.Exit(1)
-		}
-		defer cleanup()
-
-		slog.Info("server starting", "addr", listenAddr, "relational_store", cfg.RelationalStore)
-		if err := http.ListenAndServe(listenAddr, mux); err != nil {
-			slog.Error("server error", "err", err)
-			fmt.Fprintf(os.Stderr, "server: %v\n", err)
-			os.Exit(1)
-		}
-		return
-	}
-	if cfg.RelationalStore != "" && cfg.RelationalStore != "sqlite" {
-		slog.Error("unsupported relational store", "relational_store", cfg.RelationalStore)
-		os.Exit(1)
-	}
-
-	// ── Database ──────────────────────────────────────────────────────────────
-	db, err := data.OpenDB(dbPath)
+	setupLogger(cfg.LogLevel)
+	mailer := newPasswordResetMailer(passwordResetMailerSettings(os.Getenv))
+	mux, cleanup, err := buildPostgresServerMux(context.Background(), cfg,
+		envOrDefault("STATIC_DIR", "./front/dist/assets"), envOrDefault("TEMPLATE_DIR", "./front/dist"),
+		mailer, envOrDefault("APP_BASE_URL", "http://localhost:35173"))
 	if err != nil {
-		slog.Error("failed to open database", "db", dbPath, "err", err)
+		slog.Error("failed to build PostgreSQL server", "err", err)
 		os.Exit(1)
 	}
-	defer db.Close()
-
-	if err := data.RunMigrations(db); err != nil {
-		slog.Error("failed to run migrations", "err", err)
-		os.Exit(1)
-	}
-
-	// ── Stores ────────────────────────────────────────────────────────────────
-	wordStore := data.NewWordStore(db)
-	grammarStore := data.NewGrammarStore(db)
-	lessonStore := data.NewLessonStore(db)
-	speakingStore := data.NewSpeakingStore(db)
-	writingStore := data.NewWritingStore(db)
-	userStore := data.NewUserStore(db)
-	sessionStore := data.NewSessionStore(db)
-	noteStore := data.NewNoteStore(db)
-	noteSyncStore := data.NewNoteSyncStore(db)
-	translationStore := data.NewTranslationStore(db)
-	shadowingStore := data.NewShadowingStore(db)
-
-	// ── AI reviewer (writing) ─────────────────────────────────────────────────
-	var aiReviewer writing.AIReviewer
-	if aiAPIKey != "" {
-		slog.Info("using ClaudeClient for AI writing review", "endpoint", aiEndpoint)
-		aiReviewer = writing.NewClaudeClient(aiAPIKey, aiEndpoint, time.Duration(cfg.AITimeoutSec)*time.Second)
-	} else {
-		slog.Warn("AI_API_KEY not set — topic writing will be saved without AI feedback")
-	}
-
-	// ── AI reviewer (translation) ──────────────────────────────────────────────
-	var translationReviewer translation.TranslationReviewer
-	if aiAPIKey != "" {
-		translationReviewer = translation.NewClaudeTranslationReviewer(aiAPIKey, aiEndpoint, time.Duration(cfg.AITimeoutSec)*time.Second)
-	} else {
-		slog.Warn("AI_API_KEY not set — using StubReviewer for translation (no real AI feedback)")
-		translationReviewer = &translation.StubReviewer{}
-	}
-
-	// ── Mailer (password reset) ───────────────────────────────────────────────
-	mailer := newPasswordResetMailer(mailerConfig)
-
-	// ── Store adapters (bridge data.*Store to module.*StoreInterface) ─────────
-	wordAdapter := data.NewWordStoreAdapter(wordStore)
-	lessonAdapter := data.NewLessonStoreAdapter(lessonStore)
-	userAdapter := data.NewUserStoreAdapter(userStore)
-	sessionAdapter := data.NewSessionStoreAdapter(sessionStore)
-	noteAdapter := data.NewNoteStoreAdapter(noteStore)
-
-	// ── Services ──────────────────────────────────────────────────────────────
-	wordSvc := word.NewWordService(wordAdapter)
-	grammarSvc := grammar.NewGrammarService(grammarStore)
-	lessonSvc := lesson.NewLessonService(lessonAdapter)
-	speakingSvc := speaking.NewSpeakingService(speakingStore, speaking.NewWaveformScorer())
-	writingSvc := writing.NewWritingService(writingStore, aiReviewer)
-	userSvc := user.NewUserService(userAdapter, jwtSecret, time.Duration(cfg.JWTExpireHours)*time.Hour, mailer, appBaseURL)
-	summarySvc := summary.NewSummaryService(sessionAdapter)
-	noteSvc := note.NewNoteService(noteAdapter)
-	noteSyncSvc := notesync.NewService(noteSyncStore, noteStore, notesync.NewEnvClientFactory(envOrDefault("NOTION_API_BASE_URL", "")))
-	translationSvc := translation.NewTranslationService(translationStore, translationReviewer)
-	shadowingSvc := shadowing.NewService(lessonAdapter, shadowingStore)
-	shadowingRefAudio := shadowing.NewReferenceAudioReader(cfg.AudioStorePath, nil)
-	shadowingEvaluationSvc := shadowing.NewEvaluationService(lessonAdapter, shadowingRefAudio)
-	planSvc := plan.NewPlanService(userSvc, cfg.AppTimezone)
-
-	// ── Handlers ─────────────────────────────────────────────────────────────
-	wordH := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
-	wordH.SetDailyGoalProvider(&wordGoalProvider{store: userStore})
-	wordH.SetStreakRecorder(userSvc)
-	grammarH := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
-	grammarH.SetStreakRecorder(userSvc)
-	lessonH := lesson.NewLessonHandler(lessonSvc)
-	speakingH := speaking.NewSpeakingHandler(speakingSvc)
-	speakingH.SetStreakRecorder(userSvc)
-	speakingEvaluationH := speaking.NewEvaluationHandler(speakingSvc, cfg.AudioStorePath, nil)
-	writingH := writing.NewWritingHandler(writingSvc)
-	writingH.SetStreakRecorder(userSvc)
-	userH := user.NewUserHandler(userSvc)
-	summaryH := summary.NewSummaryHandler(summarySvc)
-	noteH := note.NewNoteHandler(noteSvc)
-	noteSyncH := notesync.NewHandler(noteSyncSvc)
-	reviewH := review.NewReviewHandler(wordSvc, noteSvc)
-	translationH := translation.NewTranslationHandler(translationSvc)
-	shadowingH := shadowing.NewHandler(shadowingSvc)
-	shadowingEvaluationH := shadowing.NewEvaluationHandler(shadowingEvaluationSvc)
-	planH := plan.NewPlanHandler(planSvc)
-
-	// ── Mux ───────────────────────────────────────────────────────────────────
-	mux := http.NewServeMux()
-	registerHealthRoute(mux)
-
-	// Public auth routes (no middleware)
-	userH.RegisterPublicRoutes(mux)
-
-	// Protected API routes wrapped in AuthMiddleware
-	protectedMux := http.NewServeMux()
-	studyplan.NewHandler(db).RegisterRoutes(protectedMux, mux)
-	userH.RegisterProtectedRoutes(protectedMux)
-	wordH.RegisterRoutes(protectedMux)
-	grammarH.RegisterRoutes(protectedMux)
-	lessonH.RegisterRoutes(protectedMux)
-	lesson.RegisterCatalogRoute(protectedMux, data.NewLessonCatalog(db, false))
-	lesson.NewAnnotationHandler(db, lessonSvc, wordStore, grammarStore).RegisterRoutes(protectedMux)
-	speakingH.RegisterRoutes(protectedMux)
-	speakingEvaluationH.RegisterRoutes(protectedMux)
-	writingH.RegisterRoutes(protectedMux)
-	summaryH.RegisterRoutes(protectedMux)
-	noteH.RegisterRoutes(protectedMux)
-	noteSyncH.RegisterRoutes(protectedMux)
-	reviewH.RegisterRoutes(protectedMux)
-	translationH.RegisterRoutes(protectedMux)
-	shadowingH.RegisterRoutes(protectedMux)
-	shadowingEvaluationH.RegisterRoutes(protectedMux)
-	planH.RegisterRoutes(protectedMux)
-	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
-	mistake.RegisterRoutes(protectedMux, mistake.NewStore(db))
-
-	mux.Handle("/api/v1/study-plan", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/study-plan/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/words/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/grammar", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/grammar/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/lessons", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/lessons/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/speaking/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/writing/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/summary", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/summary/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/users/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/notes", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/notes/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/note-sync/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/review/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/daily-plan", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/errata", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/errata/", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/mistakes", user.AuthMiddleware(jwtSecret, protectedMux))
-	mux.Handle("/api/v1/mistakes/", user.AuthMiddleware(jwtSecret, protectedMux))
-
-	// Audio files (TTS-generated example audio)
-	mux.Handle("/audio/", http.StripPrefix("/audio/", http.FileServer(http.Dir(cfg.AudioStorePath))))
-
-	// Static files
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
-
-	// SPA fallback: serve static files if they exist, otherwise serve index.html
-	// so React Router can handle client-side routes.
-	spaFS := http.Dir(templateDir)
-	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		f, err := spaFS.Open(path)
-		if err != nil {
-			// File not found — serve index.html for client-side routing
-			http.ServeFile(w, r, filepath.Join(string(spaFS), "index.html"))
-			return
-		}
-		f.Close()
-		http.FileServer(spaFS).ServeHTTP(w, r)
-	}))
-
-	// ── Server ────────────────────────────────────────────────────────────────
-	slog.Info("server starting", "addr", listenAddr)
-	if err := http.ListenAndServe(listenAddr, mux); err != nil {
+	defer cleanup()
+	slog.Info("server starting", "addr", cfg.ListenAddr, "database", "postgres")
+	if err := http.ListenAndServe(cfg.ListenAddr, mux); err != nil {
 		slog.Error("server error", "err", err)
-		fmt.Fprintf(os.Stderr, "server: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -358,7 +149,7 @@ func (p *wordNoteProvider) ListByReference(userID int64, refType string, refID i
 
 // wordGoalProvider adapts data.UserStore to word.DailyGoalProvider.
 // dailyGoalStore is the minimal contract needed to read a user's daily goals.
-// Both the SQLite (*data.UserStore) and PostgreSQL store implementations satisfy it.
+// The PostgreSQL user store supplies this interface.
 type dailyGoalStore interface {
 	GetDailyGoals(userID int64) (map[string]int, error)
 }

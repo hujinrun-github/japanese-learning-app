@@ -2,7 +2,7 @@
 """Synthesize one full human-sounding audio per lesson and register it.
 
 Lesson text is concatenated from lesson_sentences.tokens surfaces. Object keys
-are lessons/lesson-<id>.wav because the legacy SQLite lessons.audio_url mapping
+are lessons/lesson-<id>.wav because the local lesson audio URL mapping
 is empty, so there is no historical filename to preserve.
 
 NOTE: lesson_sentences.start_ms / end_ms are the old fixed 3-second-per-sentence

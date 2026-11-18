@@ -24,7 +24,6 @@ type HandlerConfig struct {
 	ErrataStore            *errata.Store
 	DB                     *sql.DB
 	ShadowingMaterialsDB   *sql.DB
-	ShadowingMaterialsSQL  string
 	ShadowingVideoBasePath string
 	ShadowingVideoUploader ShadowingVideoUploader
 	ShadowingVideoBucket   string

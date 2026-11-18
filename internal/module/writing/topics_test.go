@@ -9,20 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/module/writing"
+	"japanese-learning-app/internal/store"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestWritingTopicPractice(t *testing.T) {
-	db, err := data.OpenDB(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { db.Close() })
-	if err := data.RunMigrations(db); err != nil {
-		t.Fatal(err)
-	}
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 	if _, err := db.Exec("INSERT INTO users (id, email, password_hash) VALUES (1, 'writer@example.com', 'unused')"); err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +26,7 @@ func TestWritingTopicPractice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := data.NewWritingStore(db)
+	store := pgdata.NewWritingStore(db, store.StoreDeps{})
 	request := func(reviewer writing.AIReviewer, method, path, body string) *httptest.ResponseRecorder {
 		mux := http.NewServeMux()
 		writing.NewWritingHandler(writing.NewWritingService(store, reviewer)).RegisterRoutes(mux)

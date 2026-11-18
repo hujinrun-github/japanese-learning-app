@@ -464,3 +464,10 @@ func TestWordService_GetReviewQueue_AvoidsPerWordLookups(t *testing.T) {
 		})
 	}
 }
+
+func (f *fakeWordStore) InsertRecordIfAbsent(r word.WordRecord) error {
+	if _, ok := f.records[recordKey(r.UserID, r.WordID)]; ok {
+		return nil
+	}
+	return f.UpsertRecord(r)
+}

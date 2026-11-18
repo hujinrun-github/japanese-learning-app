@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"japanese-learning-app/internal/config"
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/user"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestPostgresLessonCatalog(t *testing.T) {
@@ -22,7 +22,7 @@ func TestPostgresLessonCatalog(t *testing.T) {
 		t.Fatalf("seed lesson catalog: %v", err)
 	}
 	cfg := &config.Config{
-		DatabaseURL: os.Getenv("DATABASE_URL_TEST"), DBMaxOpenConns: 4, DBMaxIdleConns: 2,
+		DatabaseURL: testdb.URL(t, db), DBMaxOpenConns: 4, DBMaxIdleConns: 2,
 		DBConnMaxLifetime: time.Minute, AppTimezone: time.UTC, JWTSecret: "lesson-catalog-test",
 	}
 	mux, cleanup, err := buildPostgresServerMux(context.Background(), cfg, t.TempDir(), t.TempDir(), &user.StubMailer{}, "http://localhost")

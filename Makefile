@@ -1,4 +1,7 @@
-.PHONY: run web test build lint seed seed-grammar seed-lessons seed-speaking seed-writing seed-all seed-postgres postgres-migrate storage-reconcile migrate-to-pg migrate-to-pg-dry-run validate-shadowing-pilot front-build clean kill-ports start-all start-backend start-admin start-learner-front start-admin-front admin-run admin-build admin-front-build admin-front-dev
+-include .env.local
+export DATABASE_URL DATABASE_URL_TEST PGPASSFILE APP_TIMEZONE
+
+.PHONY: run web test build lint seed seed-grammar seed-lessons seed-speaking seed-writing seed-all seed-postgres test-db validate-shadowing-pilot front-build clean kill-ports start-all start-preview start-backend start-admin start-learner-front start-admin-front admin-run admin-build admin-front-build admin-front-dev
 
 MAIN_PORT := 30081
 ADMIN_PORT := 30082
@@ -9,12 +12,15 @@ ADMIN_TOKEN ?= change-me
 LOG_DIR := logs
 
 run: ## Start the backend server
-	RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) go run ./backend/cmd/server/
+	LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) go run ./backend/cmd/server/
 
 web: build ## Build the web service binary
 
-test: ## Run all Go tests
-	go test ./... -v -count=1
+test-db: ## Prepare the isolated PostgreSQL test database
+	go run ./backend/cmd/testdb/
+
+test: test-db ## Run all Go tests against PostgreSQL
+	REQUIRE_TEST_DATABASE=1 go test ./... -v -count=1
 
 build: ## Build the backend binary
 	go build -o bin/server ./backend/cmd/server/
@@ -46,21 +52,6 @@ seed-all: seed seed-grammar seed-lessons seed-speaking seed-writing ## Import al
 seed-postgres: ## Import PostgreSQL seed data
 	DATABASE_URL=$(DATABASE_URL) go run ./backend/cmd/appctl import-lessons-postgres --file ./data/seed/lessons_shadowing_pilot.json
 
-postgres-migrate: ## Show SQLite to relational migration help
-	go run ./backend/cmd/storage-migrate migrate-sqlite-to-relational --help
-
-storage-reconcile: ## Dry-run audio object reconciliation
-	go run ./backend/cmd/storage-migrate audio-reconcile --dry-run
-
-migrate-to-pg: ## Migrate all data from SQLite to PostgreSQL
-ifndef DATABASE_URL
-	$(error DATABASE_URL is required. Usage: make migrate-to-pg DATABASE_URL="postgres://user:pass@localhost:5432/db" [SQLITE_DB=./data/app.db] [AUDIO_DIR=./data/audio])
-endif
-	go run ./backend/cmd/appctl migrate-sqlite-to-pg --database-url "$(DATABASE_URL)" --sqlite-db "$(or $(SQLITE_DB),./data/app.db)" --audio-dir "$(or $(AUDIO_DIR),./data/audio)" $(if $(MINIO_ENDPOINT),--minio-endpoint "$(MINIO_ENDPOINT)") $(if $(DRY_RUN),--dry-run) $(if $(SKIP_AUDIO),--skip-audio) $(if $(PHASE),--phase "$(PHASE)")
-
-migrate-to-pg-dry-run: ## Dry-run SQLite to PostgreSQL migration (no writes)
-	$(MAKE) migrate-to-pg DRY_RUN=1
-
 validate-shadowing-pilot: ## Validate the shadowing pilot lesson material pack
 	python scripts/validate_lessons_shadowing.py --file ./data/seed/lessons_shadowing_pilot.json
 
@@ -68,7 +59,7 @@ front-build: ## Build legacy frontend TypeScript assets
 	npx esbuild front/web/static/js/*.ts --bundle --outdir=front/web/static/js/dist
 
 admin-run: ## Start the admin API
-	RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) go run ./backend/cmd/admin/
+	ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) go run ./backend/cmd/admin/
 
 admin-build: ## Build the admin API binary
 	go build -o bin/admin ./backend/cmd/admin/
@@ -93,7 +84,7 @@ kill-ports: ## Kill processes bound to the app ports
 start-backend: ## Start the main backend on :30081
 	@mkdir -p $(LOG_DIR)
 	@echo "==> Starting main server on :$(MAIN_PORT)..."
-	@RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) nohup go run ./backend/cmd/server/ > $(LOG_DIR)/server.log 2>&1 &
+	@LISTEN_ADDR=:$(MAIN_PORT) APP_BASE_URL=http://localhost:$(LEARNER_PORT) nohup go run ./backend/cmd/server/ > $(LOG_DIR)/server.log 2>&1 &
 	@sleep 1
 	@if lsof -ti :$(MAIN_PORT) >/dev/null 2>&1; then \
 		echo "  main server started (log: $(LOG_DIR)/server.log)"; \
@@ -104,7 +95,7 @@ start-backend: ## Start the main backend on :30081
 start-admin: ## Start the admin API on :30082
 	@mkdir -p $(LOG_DIR)
 	@echo "==> Starting admin server on :$(ADMIN_PORT)..."
-	@RELATIONAL_STORE=$(RELATIONAL_STORE) DATABASE_URL=$(DATABASE_URL) ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) nohup go run ./backend/cmd/admin/ > $(LOG_DIR)/admin.log 2>&1 &
+	@ADMIN_TOKEN=$(ADMIN_TOKEN) LISTEN_ADDR=:$(ADMIN_PORT) nohup go run ./backend/cmd/admin/ > $(LOG_DIR)/admin.log 2>&1 &
 	@sleep 1
 	@if lsof -ti :$(ADMIN_PORT) >/dev/null 2>&1; then \
 		echo "  admin server started (log: $(LOG_DIR)/admin.log)"; \
@@ -133,6 +124,20 @@ start-admin-front: ## Start the admin frontend on :35174
 	else \
 		echo "  admin frontend may have failed, check $(LOG_DIR)/admin-front.log"; \
 	fi
+
+start-preview: ## Prepare a separate preview database and start local services
+	@preview_url="$${DATABASE_URL:?DATABASE_URL is required}"; \
+	integration_url="$${DATABASE_URL_TEST:?DATABASE_URL_TEST is required}"; \
+	DATABASE_URL_TEST="$$preview_url" DATABASE_URL="$$integration_url" go run ./backend/cmd/testdb/
+	@$(MAKE) start-backend
+	@$(MAKE) start-admin
+	@$(MAKE) start-learner-front start-admin-front
+	@curl --fail --silent --show-error http://localhost:$(MAIN_PORT)/healthz
+	@curl --fail --silent --show-error http://localhost:$(ADMIN_PORT)/healthz
+	@curl --fail --silent --show-error --output /dev/null http://localhost:$(LEARNER_PORT)/
+	@curl --fail --silent --show-error --output /dev/null http://localhost:$(ADMIN_FRONT_PORT)/
+	@echo "Learner: http://localhost:$(LEARNER_PORT)"
+	@echo "Admin:   http://localhost:$(ADMIN_FRONT_PORT)"
 
 start-all: kill-ports start-backend start-admin start-learner-front start-admin-front ## Start all local services
 	@echo ""

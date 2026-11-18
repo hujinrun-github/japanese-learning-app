@@ -52,7 +52,7 @@ type Page struct {
 }
 
 // Store persists mistakes in the shared SQL database. The SQL uses numbered
-// placeholders so the same code works with SQLite and PostgreSQL.
+// placeholders for PostgreSQL.
 type Store struct {
 	db *sql.DB
 }

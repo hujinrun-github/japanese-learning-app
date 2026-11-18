@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"os"
@@ -9,7 +8,7 @@ import (
 	"testing"
 
 	pgdata "japanese-learning-app/internal/data/postgres"
-	"japanese-learning-app/internal/store"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestImportLessonsToPostgresFromFileUpsertsContentAndShadowingMediaURL(t *testing.T) {
@@ -143,7 +142,7 @@ func TestImportLessonsToPostgresFromFilePreservesVideoMediaURL(t *testing.T) {
 
 func TestRunImportLessonsPostgresCommand(t *testing.T) {
 	db := newMigratedPostgresLessonImportDB(t)
-	url := os.Getenv("DATABASE_URL_TEST")
+	url := testdb.URL(t, db)
 	filePath := writePostgresLessonImportTempJSON(t, []map[string]any{
 		postgresLessonImportJSON("PG Shadowing Command", "/audio/lessons/command.wav", "command sentence", 1),
 	})
@@ -206,36 +205,5 @@ func postgresVideoLessonImportJSON(title, videoURL string) map[string]any {
 }
 
 func newMigratedPostgresLessonImportDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	url := os.Getenv("DATABASE_URL_TEST")
-	if url == "" {
-		t.Skip("DATABASE_URL_TEST is required")
-	}
-
-	ctx := context.Background()
-	adapter := pgdata.Adapter{}
-	db, err := adapter.Open(ctx, store.DatabaseConfig{
-		DatabaseURL:  url,
-		MaxOpenConns: 4,
-		MaxIdleConns: 2,
-	})
-	if err != nil {
-		t.Fatalf("open postgres test db: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-
-	if _, err := db.Exec(`
-DROP SCHEMA IF EXISTS public CASCADE;
-CREATE SCHEMA public;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO public;
-`); err != nil {
-		t.Fatalf("reset postgres test schema: %v", err)
-	}
-	if err := adapter.RunMigrations(ctx, db); err != nil {
-		t.Fatalf("run postgres migrations: %v", err)
-	}
-
-	return db
+	return testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 }

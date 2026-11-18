@@ -49,6 +49,11 @@ func (f *fakeWritingStore) ListRecords(userID int64) ([]writing.WritingRecord, e
 
 // --- tests ---
 
+func (f *fakeWritingStore) ListDrafts(int64) ([]writing.WritingDraft, error) { return nil, nil }
+func (f *fakeWritingStore) SaveDraft(d writing.WritingDraft) (writing.WritingDraft, error) {
+	return d, nil
+}
+
 func TestWritingService_GetDailyQueue_StripExpectedAnswer(t *testing.T) {
 	store := &fakeWritingStore{
 		questions: []writing.WritingQuestion{

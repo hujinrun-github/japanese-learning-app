@@ -120,6 +120,11 @@ func EvaluateWAV(referenceWAV, userWAV []byte, mode EvaluationMode) (EvaluationR
 	if err != nil {
 		return result, fmt.Errorf("shadowing.EvaluateWAV parse user audio: %w", err)
 	}
+	for name, parsed := range map[string]audio.WAV{"reference": refParsed, "recording": userParsed} {
+		if int64(len(parsed.Samples))*1000 > int64(parsed.SampleRate)*MaxEvaluationDurationMS {
+			return result, fmt.Errorf("shadowing.EvaluateWAV: %s exceeds %dms", name, MaxEvaluationDurationMS)
+		}
+	}
 	// Reference WAVs come from the lesson material (8 kHz locally, 24 kHz in
 	// the PostgreSQL/MinIO path) while browser recorders usually capture at
 	// 16 kHz. Every feature below is computed on a 10 ms frame grid, and F0 is

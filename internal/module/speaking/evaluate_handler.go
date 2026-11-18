@@ -2,6 +2,7 @@ package speaking
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -29,13 +30,14 @@ type EvaluationHandler struct {
 	svc       *SpeakingService
 	audioRoot string
 	loader    shadowing.ObjectLoader
+	evaluator *shadowing.Evaluator
 }
 
 // NewEvaluationHandler creates an EvaluationHandler. audioRoot is the directory
 // served under /audio; loader is optional and only needed for object-storage
 // audio URLs.
-func NewEvaluationHandler(svc *SpeakingService, audioRoot string, loader shadowing.ObjectLoader) *EvaluationHandler {
-	return &EvaluationHandler{svc: svc, audioRoot: audioRoot, loader: loader}
+func NewEvaluationHandler(svc *SpeakingService, audioRoot string, loader shadowing.ObjectLoader, evaluator *shadowing.Evaluator) *EvaluationHandler {
+	return &EvaluationHandler{svc: svc, audioRoot: audioRoot, loader: loader, evaluator: evaluator}
 }
 
 // RegisterRoutes registers POST /api/v1/speaking/evaluate.
@@ -124,9 +126,14 @@ func (h *EvaluationHandler) handleEvaluate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	result, err := shadowing.EvaluateWAV(refWAV, userAudio, mode)
+	result, err := h.evaluator.Evaluate(r.Context(), refWAV, userAudio, mode)
 	if err != nil {
 		slog.Error("speaking.EvaluationHandler: scoring failed", "err", err, "material_id", materialID)
+		var busy *shadowing.Error
+		if errors.As(err, &busy) && busy.Code == shadowing.ErrEvaluationBusy {
+			httputil.WriteError(w, http.StatusServiceUnavailable, busy.Code, busy.Message, "")
+			return
+		}
 		httputil.WriteError(w, http.StatusUnprocessableEntity, ErrSpeakingAudioUnsupported,
 			"failed to analyze the recording", "")
 		return

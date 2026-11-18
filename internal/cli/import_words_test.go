@@ -8,30 +8,12 @@ import (
 	"testing"
 
 	"japanese-learning-app/internal/cli"
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
+	"japanese-learning-app/internal/testdb"
 )
 
-// openTestDB creates an in-memory SQLite database with migrations applied.
-func openTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-	f, err := os.CreateTemp("", "cli_test_*.db")
-	if err != nil {
-		t.Fatalf("create temp db: %v", err)
-	}
-	dbPath := f.Name()
-	f.Close()
-	t.Cleanup(func() { os.Remove(dbPath) })
-
-	db, err := data.OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if err := data.RunMigrations(db); err != nil {
-		t.Fatalf("run migrations: %v", err)
-	}
-	t.Cleanup(func() { db.Close() })
-	return db
-}
+// openTestDB creates an isolated PostgreSQL schema with migrations applied.
+func openTestDB(t *testing.T) *sql.DB { return testdb.Open(t, (pgdata.Adapter{}).RunMigrations) }
 
 // writeTempJSON writes v as JSON to a temp file and returns the path.
 func writeTempJSON(t *testing.T, v any) string {

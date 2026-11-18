@@ -79,7 +79,8 @@
 @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
 
 /* Back face */
-.readingRow { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); width: 100%; }
+.readingRow { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); width: 100%; }
+.readingRow .verbType { white-space: nowrap; }
 .reading { font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-brand); }
 .answerHeading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; margin-bottom: var(--space-1); }
 .answerSpelling { color: var(--color-text); font-size: var(--font-size-2xl); font-weight: 800; }
@@ -114,9 +115,9 @@
 
 .ratingBtn { flex: 1; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); border: 2px solid var(--color-border); background: var(--color-bg-surface); font-size: var(--font-size-md); font-weight: 600; cursor: pointer; transition: all var(--transition-fast); color: var(--color-text); }
 .ratingBtn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.ratingHard:hover { border-color: var(--color-error); background: var(--color-error-light); color: var(--color-error); }
-.ratingNormal:hover { border-color: var(--color-warning); background: var(--color-warning-light); color: var(--color-warning); }
-.ratingEasy:hover { border-color: var(--color-success); background: var(--color-success-light); color: var(--color-success); }
+.ratingBtn:disabled { opacity: 0.5; cursor: default; }
+.ratingFamiliar:hover { border-color: var(--color-warning); background: var(--color-warning-light); color: var(--color-warning); }
+.ratingMastered:hover { border-color: var(--color-success); background: var(--color-success-light); color: var(--color-success); }
 
 @media (max-width: 767px) {
   .tabs { scrollbar-width: none; scroll-snap-type: x proximity; }
@@ -128,9 +129,8 @@
   .speakBtn,
   .speakBtnSm { width: 44px; height: 44px; }
   .ratingBtn { min-height: 52px; padding-inline: var(--space-2); }
-  .ratingHard { border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-border)); background: var(--color-error-light); }
-  .ratingNormal { border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); background: var(--color-warning-light); }
-  .ratingEasy { border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border)); background: var(--color-success-light); }
+  .ratingFamiliar { border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); background: var(--color-warning-light); }
+  .ratingMastered { border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border)); background: var(--color-success-light); }
   .dictationInputs { grid-template-columns: 1fr; }
   .dictationField:only-child { grid-column: auto; width: 100%; }
 }
@@ -150,3 +150,5 @@
   .dictationCardScene { height: 455px; }
   .dictationCardScene .cardFace { overflow-y: auto; justify-content: flex-start; }
 }
+.returnToQueue { margin-top: var(--space-3); padding: var(--space-2) var(--space-3); min-height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-surface); color: var(--color-brand); font: inherit; cursor: pointer; }
+.returnToQueue:disabled { opacity: 0.5; cursor: not-allowed; }

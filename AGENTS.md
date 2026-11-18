@@ -39,21 +39,13 @@
   - 校验脚本位置：`scripts/validate_words.py`，导入前先跑，不通过则拒绝导入
 
 ---
-## 5. 数据库迁移系统问题（已知缺陷）
-- **迁移系统无追踪机制**（`internal/data/db.go`）：每次启动重新执行所有 `.sql` 文件，仅靠错误字符串 `"duplicate column name"` 判断跳过。
-  - `CREATE TABLE IF NOT EXISTS` → 静默成功，日志显示 "applied"
-  - `ALTER TABLE ADD COLUMN` → 列已存在时报错 "duplicate column name"，被正确跳过
-  - **002_seed.sql** 的 `INSERT OR IGNORE INTO words` 在 004 的 UNIQUE 索引之前执行，每次启动会重复插入 60 条种子词，产生重复数据
-- **003_fix_writing_questions.sql** 包含 `DROP TABLE + CREATE TABLE`，每次启动会重建 `writing_questions` 表
-- **用户进度数据（word_records、grammar_records 等）未被迁移破坏**，不会丢失
-- **修复重复词**（保留最小 ID 的原始行）：
-  ```sql
-  DELETE FROM words WHERE id NOT IN (
-    SELECT MIN(id) FROM words GROUP BY kanji_form, reading
-  );
-  ```
-  **注意**：仅在应用首次启动后需要执行，后续若再重启会再次产生重复
-- **TODO**: 添加 `schema_migrations` 表实现真正的迁移追踪；将 002 的 UNIQUE 约束提前或让 seed 真正幂等
+## 5. PostgreSQL 数据库与迁移
+- 唯一数据库为 PostgreSQL；主服务、管理端、导入工具和集成测试使用同一套数据访问层。
+- 运行连接使用 `DATABASE_URL`，测试连接使用 `DATABASE_URL_TEST`，二者必须是不同数据库。
+- 测试数据库名以 `_test` 结尾或包含 `_test_`；测试通过 `internal/testdb` 创建独立 schema，禁止清空 `public` 或业务 schema。
+- `make test` 会准备独立测试库；缺少配置或连接失败时必须失败，不能静默跳过集成验证。
+- 迁移位于 `internal/data/migrations/postgres/schema/`，由 `schema_migrations` 跟踪文件名与校验和；已发布迁移不能修改，结构变更新增文件。
+- 数据库密码仅通过环境变量或被忽略的本地配置提供，不写入代码或提交。
 
 ---
 ## 6. UI 规范
@@ -69,10 +61,10 @@
 ---
 ## 7. 经验教训：可避免的问题（开发前必读）
 
-### 7.1 SQLite 操作铁律
-- **`ALTER TABLE ADD COLUMN` 不支持函数表达式作为 DEFAULT**。如 `DEFAULT (datetime('now'))` 会报错 `non-constant default`。正确做法：加可空列 `ALTER TABLE t ADD COLUMN c DATETIME`，再 `UPDATE t SET c = datetime('now') WHERE c IS NULL`
-- **多进程共享 SQLite 必须加 `PRAGMA busy_timeout = 5000`**，否则同时启动会报 `SQLITE_BUSY`。在 `OpenDB()` 中 Ping 之后、WAL 之前设置
-- `db.Exec()` 支持多语句（用 `;` 分隔），但迁移文件按文件为单位执行，一个文件内的多语句可以正常工作
+### 7.1 PostgreSQL 操作规则
+- SQL 参数使用 `$1`、`$2` 等占位符；新增行获取 ID 使用 `RETURNING id`。
+- 并发下的“首次创建”使用 `ON CONFLICT DO NOTHING`，避免读后覆盖已保存的学习记录。
+- 所有数据库集成测试通过 `internal/testdb` 使用独立测试库和临时 schema；不要自行删除共享 schema。
 
 ### 7.2 音频/文件缓存
 - **文件名 = `sha256(text)[:16].wav`**，相同文本产生相同文件名
@@ -96,5 +88,5 @@
 
 ### 7.6 后端迁移/重启流程
 - 修改 Go 代码后需要重启对应服务（`make start-backend` / `make start-admin`）
-- 两个服务同时启动可能抢迁移锁 → `busy_timeout` 能解决，但最好分开启动间隔 3 秒
+- 两个服务共享 PostgreSQL 迁移锁，由 advisory lock 串行执行迁移
 - 前端代码修改无需重启，Vite HMR 自动生效

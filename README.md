@@ -6,8 +6,8 @@
 
 | 维度 | 选型 |
 |---|---|
-| 后端 | Go 1.22 + 标准库 `net/http` |
-| 数据库 | SQLite（`modernc.org/sqlite`，纯 Go 实现） |
+| 后端 | Go 1.25 + 标准库 `net/http` |
+| 数据库 | PostgreSQL 18.4（pgx） |
 | 前端 | React 18 + TypeScript + Vite |
 | 认证 | JWT（HMAC-SHA256） |
 | AI | Anthropic Claude API（写作批改，可选） |
@@ -40,17 +40,20 @@
 
 ### 环境要求
 
-- Go ≥ 1.22
+- Go ≥ 1.25
 - Node.js ≥ 18（前端开发）
 
 ### 启动后端
+
+复制 `.env.example` 为 `.env.local`，配置应用库 `DATABASE_URL` 和独立测试库 `DATABASE_URL_TEST`。两者可以连接同一 PostgreSQL 实例，但数据库名必须不同。`.env.local` 和 `.pgpass.local` 已加入忽略列表。
+
 
 ```bash
 # 最简启动（默认监听 :30081）
 make run
 
 # 或指定配置
-JWT_SECRET=your-secret DB_PATH=./data/app.db go run ./backend/cmd/server/
+JWT_SECRET=your-secret DATABASE_URL="$DATABASE_URL" go run ./backend/cmd/server/
 ```
 
 ### 导入种子数据
@@ -62,24 +65,24 @@ make seed        # 仅导入词汇（N5/N4）
 
 ### CLI 数据导入
 
-服务器二进制提供了多个 `import-*` 子命令，用于批量或单条导入数据。
+`appctl` 提供多个 `import-*` 子命令，用于批量或单条导入数据。
 
 ```bash
-# 构建服务器
-go build -o ./server ./backend/cmd/server/
+# 构建导入工具
+go build -o ./appctl ./backend/cmd/appctl/
 
 # 导入单词
-./server import-words --file ./data/seed/words_n5.json
+./appctl import-words --file ./data/seed/words_n5.json
 
 # 导入单词 + 自动生成语音
-./server import-words --file ./data/seed/words_n5.json --generate-audio=sbv
-./server import-words --file ./data/seed/words_n5.json --generate-audio=vllm --tts-url=http://localhost:8091/v1/audio/speech
+./appctl import-words --file ./data/seed/words_n5.json --generate-audio=sbv
+./appctl import-words --file ./data/seed/words_n5.json --generate-audio=vllm --tts-url=http://localhost:8091/v1/audio/speech
 
 # 导入语法 / 课文 / 口语 / 写作
-./server import-grammar --file ./data/seed/grammar_n5.json
-./server import-lessons --file ./data/seed/lessons_n5.json
-./server import-speaking --file ./data/seed/speaking_materials.json --generate-audio=sbv
-./server import-writing --file ./data/seed/writing_questions.json
+./appctl import-grammar --file ./data/seed/grammar_n5.json
+./appctl import-lessons --file ./data/seed/lessons_n5.json
+./appctl import-speaking --file ./data/seed/speaking_materials.json --generate-audio=sbv
+./appctl import-writing --file ./data/seed/writing_questions.json
 ```
 
 **`import-words` 选项:**
@@ -87,7 +90,7 @@ go build -o ./server ./backend/cmd/server/
 | 选项 | 默认值 | 说明 |
 |---|---|---|
 | `--file` | (必填) | JSON 文件路径，文件内容为单词对象数组 |
-| `--db` | `./data/app.db` | SQLite 数据库路径 |
+| `--database-url` | `DATABASE_URL` | PostgreSQL 连接地址 |
 | `--auto-fill` | `false` | 使用 kagome 形态分析自动填充缺失字段 |
 | `--generate-audio` | `""` | 导入后自动生成单词语音：`vllm`、`sbv` 或 `gradio` |
 | `--provider` | `vllm` | TTS provider（与 `--generate-audio` 配合使用） |
@@ -129,7 +132,7 @@ go build -o ./server ./backend/cmd/server/
 
 ```bash
 # 示例：导入只含 kanji_form + meaning 的 N4 词汇
-./server import-words --file ./data/n4_words.json --auto-fill
+./appctl import-words --file ./data/n4_words.json --auto-fill
 ```
 
 示例 JSON（`n4_words.json`）:
@@ -160,7 +163,8 @@ npm run dev      # http://localhost:35173，/api 和 /audio 代理至 :30081
 | 变量 | 默认值 | 说明 |
 |---|---|---|
 | `LISTEN_ADDR` | `:30081` | HTTP 监听地址 |
-| `DB_PATH` | `./data/app.db` | SQLite 数据库路径 |
+| `DATABASE_URL` | 必填 | 应用 PostgreSQL 连接地址 |
+| `DATABASE_URL_TEST` | 必填（测试） | 独立 PostgreSQL 测试库，名称以 `_test` 结尾 |
 | `JWT_SECRET` | `change-me-in-production` | 生产环境必须修改 |
 | `LOG_LEVEL` | `INFO` | DEBUG / INFO / WARN / ERROR |
 | `AI_API_KEY` | `""` | Claude API 密钥（留空时，主题写作会保存为未批改） |
@@ -306,14 +310,14 @@ go run ./backend/cmd/server/ generate-word-audio \
 | `--dry-run` | 预览将要生成的单词，不实际调用 TTS |
 | `--force` | 强制重新生成已存在的音频文件 |
 | `--out` | 音频输出目录（默认 `./data/audio/words`） |
-| `--db` | SQLite 数据库路径（默认 `./data/app.db`） |
+| `--database-url` | PostgreSQL 连接地址，默认读取 `DATABASE_URL` |
 
 **生成例句/口语语音：**
 
 ```bash
 # 为所有例句和口语材料生成语音
 go run ./scripts/generate_tts_examples/ \
-  --db ./data/app.db \
+  --database-url "$DATABASE_URL" \
   --tts-url http://localhost:8091/v1/audio/speech \
   --out ./data/audio/examples
 ```
@@ -326,7 +330,7 @@ go run ./scripts/generate_tts_examples/ \
 
 | 模块 | 说明 |
 |---|---|
-| **单词记忆** | SM-2 间隔重复算法，闪卡翻转复习，按 JLPT 等级筛选 |
+| **单词记忆** | 按 JLPT 等级复习；「有印象」次日再练，「已完全掌握」至少 7 天后复习，连续掌握逐步延长间隔 |
 | **语法学习** | N5-N1 语法点 + 即时测验（填空/选择），学习状态追踪 |
 | **课文阅读** | 振り仮名（ruby）标注，中日翻译切换，已读标记 |
 | **口语练习** | 影子跟读 + 自由朗读，录音后本地韵律评分（维度分 + 改进建议），无参考音频时自评兜底 |
@@ -365,9 +369,11 @@ make clean         # 清理构建产物
 ## 运行测试
 
 ```bash
-make test                        # 全部测试
-go test ./internal/module/word/... -v   # 指定包
-go test ./internal/data/... -run TestWordStore_GetByID -v  # 指定用例
+make test-db   # 在同一 PostgreSQL 实例上创建/检查独立测试库（不操作应用库）
+make test      # 全部 Go 测试，数据库连接失败时直接失败
+make web       # 构建主服务
+make admin-build
+cd front/react && npm test && npm run build
 ```
 
-测试策略：表格驱动 + 真实 SQLite（不使用 Mock），禁用缓存（`-count=1`）。
+`DATABASE_URL_TEST` 必须与 `DATABASE_URL` 使用不同数据库，名称以 `_test` 结尾或包含 `_test_`。每个集成测试使用独立临时 schema，结束后只清理该 schema。CI 使用 PostgreSQL 18.4 服务执行相同测试。表格驱动测试优先，禁用测试缓存（`-count=1`）。

@@ -607,3 +607,31 @@ func normalizeStringSlice(values []string) []string {
 	}
 	return values
 }
+
+// SearchCandidates normalizes and ranks exact matches before applying LIMIT.
+// This query deliberately excludes examples and quiz tables.
+func (s *GrammarStore) SearchCandidates(query string, limit int) ([]grammar.GrammarPoint, error) {
+	rows, err := s.db.QueryContext(context.Background(), `WITH entries AS (
+ SELECT id,name,meaning,jlpt_level,updated_at,
+ btrim(regexp_replace(btrim(ltrim(btrim(name), ' 　〜～~「」『』"'''), ' 　「」『』"'''), '[（(].*$', '')) AS normalized_name
+ FROM grammar_points)
+ SELECT id,name,meaning,jlpt_level FROM entries
+ WHERE strpos(lower(normalized_name),lower($1))>0 OR strpos(lower(meaning),lower($1))>0
+ ORDER BY (normalized_name=$1) DESC,length(name),updated_at DESC,id DESC LIMIT $2`, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.GrammarStore.SearchCandidates query: %w", translateError(err))
+	}
+	defer rows.Close()
+	result := []grammar.GrammarPoint{}
+	for rows.Next() {
+		var p grammar.GrammarPoint
+		if err := rows.Scan(&p.ID, &p.Name, &p.Meaning, &p.JLPTLevel); err != nil {
+			return nil, fmt.Errorf("scan grammar search: %w", err)
+		}
+		result = append(result, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read grammar search: %w", err)
+	}
+	return result, nil
+}

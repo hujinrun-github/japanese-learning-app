@@ -7,29 +7,24 @@ import (
 	"reflect"
 	"testing"
 
+	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestLessonCatalog(t *testing.T) {
-	db, err := OpenDB(t.TempDir() + "/catalog.db")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	if err := RunMigrations(db); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := db.Exec(`INSERT INTO lessons (id, title, jlpt_level, tags_json) VALUES
-		(1, '私の一日', 'N5', '["日常生活"]'),
-		(2, '週末の計画', 'N4', '["生活"]'),
-		(3, 'お互いさま', 'N2', '["人际关系"]'),
-		(4, 'A 100% 日記', 'N2', '["生活"]'),
-		(5, 'A 1000 日記', 'N2', '["生活"]')`); err != nil {
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
+	if _, err := db.Exec(`INSERT INTO lessons (id, title, jlpt_level, tags) VALUES
+		(1, '私の一日', 'N5', ARRAY['日常生活']),
+		(2, '週末の計画', 'N4', ARRAY['生活']),
+		(3, 'お互いさま', 'N2', ARRAY['人际关系']),
+		(4, 'A 100% 日記', 'N2', ARRAY['生活']),
+		(5, 'A 1000 日記', 'N2', ARRAY['生活'])`); err != nil {
 		t.Fatal(err)
 	}
 
 	mux := http.NewServeMux()
-	lesson.RegisterCatalogRoute(mux, NewLessonCatalog(db, false))
+	lesson.RegisterCatalogRoute(mux, NewLessonCatalog(db))
 	for _, tt := range []struct {
 		name, query               string
 		status, total, page, size int

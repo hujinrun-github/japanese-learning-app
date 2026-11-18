@@ -384,6 +384,7 @@ func TestEvaluateHandler(t *testing.T) {
 			return testLesson("/audio/lessons/unit.wav"), nil
 		}),
 		shadowing.NewReferenceAudioReader(dir, nil),
+		shadowing.NewEvaluator(1),
 	)
 	mux := http.NewServeMux()
 	shadowing.NewEvaluationHandler(svc).RegisterRoutes(mux)

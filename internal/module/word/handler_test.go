@@ -220,3 +220,10 @@ func TestSubmitRatingWithoutStreakRecorder(t *testing.T) {
 		t.Errorf("status = %q, want ok", envelope.Data["status"])
 	}
 }
+
+func (f *fakeWordStore) InsertRecordIfAbsent(r WordRecord) error {
+	if _, ok := f.records[r.WordID]; ok {
+		return nil
+	}
+	return f.UpsertRecord(r)
+}

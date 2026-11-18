@@ -1,13 +1,12 @@
 package postgres
 
 import (
-	"context"
 	"database/sql"
-	"os"
 	"testing"
 	"time"
 
 	"japanese-learning-app/internal/store"
+	"japanese-learning-app/internal/testdb"
 )
 
 func newPostgresRuntimeForTest(t *testing.T) *store.StoreRuntime {
@@ -80,55 +79,9 @@ func newPostgresLessonStoreForDB(db queryer) *LessonStore {
 	return NewLessonStore(db)
 }
 
-func openPostgresTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	url := os.Getenv("DATABASE_URL_TEST")
-	if url == "" {
-		t.Skip("DATABASE_URL_TEST is required")
-	}
-
-	db, err := (Adapter{}).Open(context.Background(), store.DatabaseConfig{
-		DatabaseURL:  url,
-		MaxOpenConns: 4,
-		MaxIdleConns: 2,
-	})
-	if err != nil {
-		t.Fatalf("Open() error = %v", err)
-	}
-
-	return db
-}
-
+func openPostgresTestDB(t *testing.T) *sql.DB { return testdb.Open(t, nil) }
 func newMigratedPostgresTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	db := openPostgresTestDB(t)
-	t.Cleanup(func() {
-		_ = db.Close()
-	})
-
-	ctx := context.Background()
-	adapter := Adapter{}
-	resetPostgresTestSchema(t, db)
-	if err := adapter.RunMigrations(ctx, db); err != nil {
-		t.Fatalf("RunMigrations() error = %v", err)
-	}
-
-	return db
-}
-
-func resetPostgresTestSchema(t *testing.T, db *sql.DB) {
-	t.Helper()
-
-	if _, err := db.Exec(`
-DROP SCHEMA IF EXISTS public CASCADE;
-CREATE SCHEMA public;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO public;
-`); err != nil {
-		t.Fatalf("resetPostgresTestSchema() error = %v", err)
-	}
+	return testdb.Open(t, (Adapter{}).RunMigrations)
 }
 
 type fixedClock struct {

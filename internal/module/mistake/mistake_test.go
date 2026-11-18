@@ -1,6 +1,7 @@
 package mistake_test
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,9 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/mistake"
 	"japanese-learning-app/internal/module/user"
+	"japanese-learning-app/internal/testdb"
 )
 
 const testSecret = "mistake-test-secret"
@@ -27,14 +29,7 @@ type testEnv struct {
 
 func newTestEnv(t *testing.T) testEnv {
 	t.Helper()
-	db, err := data.OpenDB(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	if err := data.RunMigrations(db); err != nil {
-		t.Fatal(err)
-	}
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 	if _, err := db.Exec(`INSERT INTO users (id, email, password_hash) VALUES
 		(1, 'learner@example.com', 'unused'), (2, 'other@example.com', 'unused')`); err != nil {
 		t.Fatal(err)
@@ -132,7 +127,7 @@ func TestMistakeWorkflow(t *testing.T) {
 	}
 
 	// Migrations run on every startup. Re-running them must not destroy collected mistakes.
-	if err := data.RunMigrations(env.db); err != nil {
+	if err := (pgdata.Adapter{}).RunMigrations(context.Background(), env.db); err != nil {
 		t.Fatal(err)
 	}
 

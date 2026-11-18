@@ -9,7 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
+	"japanese-learning-app/internal/store"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestAuthMiddleware(t *testing.T) {
@@ -46,20 +48,12 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestWordCRUD(t *testing.T) {
-	// Set up test SQLite database
-	dbPath := t.TempDir() + "/test.db"
-	db, err := data.OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("OpenDB: %v", err)
-	}
-	defer db.Close()
-	if err := data.RunMigrations(db); err != nil {
-		t.Fatalf("RunMigrations: %v", err)
-	}
+	// Use an isolated PostgreSQL test schema.
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 
 	cfg := HandlerConfig{
 		AdminToken: "test-token",
-		WordStore:  data.NewWordStore(db),
+		WordStore:  pgdata.NewWordStore(db, store.StoreDeps{}),
 		DB:         db,
 	}
 	h := NewHandler(cfg)

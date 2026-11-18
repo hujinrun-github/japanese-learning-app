@@ -43,6 +43,14 @@ describe('buildSpeakingEvaluationFormData', () => {
 })
 
 describe('evaluateSpeaking', () => {
+  it('passes the cancellation signal through to fetch', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null })
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: resultFixture() }) }))
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+    await evaluateSpeaking({ audio: new Blob(['wav']), material_id: 1 }, controller.signal)
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: controller.signal }))
+  })
   it('posts multipart to the speaking evaluation endpoint and unwraps data', async () => {
     vi.stubGlobal('localStorage', { getItem: () => null, removeItem: () => {} })
     const fetchMock = vi.fn(async (_path: string, _init?: RequestInit) => ({

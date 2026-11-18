@@ -18,14 +18,14 @@ type Config struct {
 	AppTimezoneName   string
 	AppTimezone       *time.Location
 
-	AudioObjectStore        string
-	MinIOEndpoint           string
-	MinIOAccessKey          string
-	MinIOSecretKey          string
-	MinIOBucketAudio        string
-	MinIOUseSSL             bool
-	MinIOPublicEndpoint     string
-	MinIOPresignTTLSeconds  int
+	AudioObjectStore       string
+	MinIOEndpoint          string
+	MinIOAccessKey         string
+	MinIOSecretKey         string
+	MinIOBucketAudio       string
+	MinIOUseSSL            bool
+	MinIOPublicEndpoint    string
+	MinIOPresignTTLSeconds int
 
 	JWTSecret      string
 	JWTExpireHours int
@@ -34,13 +34,14 @@ type Config struct {
 	AIAPIEndpoint  string
 	AITimeoutSec   int
 
-	// Compatibility fields kept while SQLite-backed runtime still exists.
-	DBPath         string
 	AudioStorePath string
 }
 
 func Load(path string) (*Config, error) {
 	_ = path
+	if backend := os.Getenv("RELATIONAL_STORE"); backend != "" && backend != "postgres" {
+		return nil, fmt.Errorf("only PostgreSQL is supported, got RELATIONAL_STORE=%q", backend)
+	}
 
 	maxOpenConns, err := loadInt("DB_MAX_OPEN_CONNS", 25)
 	if err != nil {
@@ -86,7 +87,7 @@ func Load(path string) (*Config, error) {
 	cfg := &Config{
 		ListenAddr: envOrDefault("LISTEN_ADDR", ":30081"),
 
-		RelationalStore:   os.Getenv("RELATIONAL_STORE"),
+		RelationalStore:   "postgres",
 		DatabaseURL:       os.Getenv("DATABASE_URL"),
 		DBMaxOpenConns:    maxOpenConns,
 		DBMaxIdleConns:    maxIdleConns,
@@ -110,7 +111,6 @@ func Load(path string) (*Config, error) {
 		AIAPIEndpoint:  envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages"),
 		AITimeoutSec:   aiTimeoutSec,
 
-		DBPath:         envOrDefault("DB_PATH", "./data/app.db"),
 		AudioStorePath: envOrDefault("AUDIO_STORE_PATH", "./data/audio"),
 	}
 

@@ -12,6 +12,7 @@ type GrammarStoreInterface interface {
 	ListByLevel(level JLPTLevel) ([]GrammarPoint, error)
 	ListByLevelWithStatus(userID int64, level JLPTLevel) ([]GrammarPointWithStatus, error)
 	ListAll(level, search string, offset, limit int) ([]GrammarPoint, int, error)
+	SearchCandidates(query string, limit int) ([]GrammarPoint, error)
 	GetRecord(userID, grammarPointID int64) (*GrammarRecord, error)
 	UpsertRecord(r GrammarRecord) error
 	ListDueRecords(userID int64) ([]GrammarRecord, error)

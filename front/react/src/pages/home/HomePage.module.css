@@ -529,9 +529,14 @@
 }
 
 .weakItem strong {
+  flex-shrink: 0;
+  white-space: nowrap;
   color: #c83f34;
   font-size: var(--font-size-xs);
 }
+
+.weakMessage { margin: 0; padding: var(--space-3) 0; color: var(--color-text-secondary); font-size: var(--font-size-sm); }
+.weakMessage[role="alert"] { color: var(--color-error); }
 
 .weakItem + .weakItem strong {
   color: #2354bd;

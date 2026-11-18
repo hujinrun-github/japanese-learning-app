@@ -17,12 +17,13 @@ const maxUserAudioBytes = 2 << 20
 // intentionally independent from the progress/attempt Service so S2 needs no
 // schema changes and cannot break existing shadowing behavior.
 type EvaluationService struct {
-	lessons  LessonReader
-	refAudio ReferenceAudioReader
+	lessons   LessonReader
+	refAudio  ReferenceAudioReader
+	evaluator *Evaluator
 }
 
-func NewEvaluationService(lessons LessonReader, refAudio ReferenceAudioReader) *EvaluationService {
-	return &EvaluationService{lessons: lessons, refAudio: refAudio}
+func NewEvaluationService(lessons LessonReader, refAudio ReferenceAudioReader, evaluator *Evaluator) *EvaluationService {
+	return &EvaluationService{lessons: lessons, refAudio: refAudio, evaluator: evaluator}
 }
 
 func (s *EvaluationService) Evaluate(ctx context.Context, req EvaluationRequest) (EvaluationResult, error) {
@@ -75,9 +76,13 @@ func (s *EvaluationService) Evaluate(ctx context.Context, req EvaluationRequest)
 		return result, err
 	}
 
-	result, err = EvaluateWAV(referenceWAV, req.UserAudio, req.Mode)
+	result, err = s.evaluator.Evaluate(ctx, referenceWAV, req.UserAudio, req.Mode)
 	if err != nil {
 		slog.Error("shadowing.EvaluationService.Evaluate: scoring failed", "err", err)
+		var busy *Error
+		if errors.As(err, &busy) && busy.Code == ErrEvaluationBusy {
+			return result, err
+		}
 		return result, &Error{
 			Code:    ErrShadowingAudioUnsupported,
 			Message: "failed to analyze the recording",

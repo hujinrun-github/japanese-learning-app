@@ -22,6 +22,18 @@ func TestGrammarService_SearchByName(t *testing.T) {
 		wantErr   bool
 	}{
 		{
+			name:      "quoted annotation finds library entry",
+			query:     "「から」",
+			points:    []grammar.GrammarPoint{{ID: 10, Name: "〜から", JLPTLevel: grammar.LevelN5}},
+			wantExact: 10, wantIDs: []int64{10}, wantQuery: "「から」",
+		},
+		{
+			name:      "fullwidth tilde finds wave-dash library entry",
+			query:     "～から",
+			points:    []grammar.GrammarPoint{{ID: 10, Name: "〜から", JLPTLevel: grammar.LevelN5}},
+			wantExact: 10, wantIDs: []int64{10}, wantQuery: "～から",
+		},
+		{
 			name:  "exact match is found and ranked first",
 			query: "から",
 			points: []grammar.GrammarPoint{

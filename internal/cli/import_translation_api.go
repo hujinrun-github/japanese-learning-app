@@ -74,21 +74,21 @@ func ImportTranslationFromAPIConfig(db *sql.DB, configPath string) (int, error) 
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(
+	var sourceID int64
+	err = tx.QueryRow(
 		`INSERT INTO translation_sources (title, source_type, source_url, api_endpoint, raw_content)
-		 VALUES (?, 'api', ?, ?, ?)`,
+		 VALUES ($1, 'api', $2, $3, $4) RETURNING id`,
 		config.Title, config.Endpoint, config.Endpoint, text,
-	)
+	).Scan(&sourceID)
 	if err != nil {
 		return 0, fmt.Errorf("cli.ImportTranslationFromAPIConfig insert source: %w", err)
 	}
-	sourceID, _ := result.LastInsertId()
 
 	inserted := 0
 	for i, s := range sentences {
 		_, err := tx.Exec(
 			`INSERT INTO translation_sentences (source_id, direction, source_text, position)
-			 VALUES (?, ?, ?, ?)`,
+			 VALUES ($1,$2,$3,$4)`,
 			sourceID, string(direction), s, i,
 		)
 		if err != nil {

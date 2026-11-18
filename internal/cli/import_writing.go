@@ -11,7 +11,7 @@ import (
 
 // writingImport is the JSON shape expected for each element in the writing import file.
 type writingImport struct {
-	Type           string `json:"type"`             // "input" | "sentence"
+	Type           string `json:"type"` // "input" | "sentence"
 	Prompt         string `json:"prompt"`
 	ExpectedAnswer string `json:"expected_answer"`
 	GrammarPointID int64  `json:"grammar_point_id"` // 0 means no association
@@ -19,7 +19,7 @@ type writingImport struct {
 }
 
 // ImportWriting reads a JSON array of writing questions from r and inserts them
-// into the writing_questions table using INSERT OR IGNORE (idempotent – duplicate
+// into the writing_questions table using INSERT (idempotent – duplicate
 // (type, prompt) combinations are silently skipped).
 // It returns the number of rows actually inserted.
 func ImportWriting(db *sql.DB, r io.Reader) (int, error) {
@@ -32,7 +32,7 @@ func ImportWriting(db *sql.DB, r io.Reader) (int, error) {
 }
 
 // ImportWritingFromFile reads a JSON array of writing questions from filePath and inserts
-// them into the writing_questions table using INSERT OR IGNORE (idempotent – duplicate
+// them into the writing_questions table using INSERT (idempotent – duplicate
 // (type, prompt) combinations are silently skipped).
 // It returns the number of rows actually inserted.
 func ImportWritingFromFile(db *sql.DB, filePath string) (int, error) {
@@ -73,9 +73,9 @@ func insertWritingQuestions(db *sql.DB, items []writingImport) (int, error) {
 	}()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR IGNORE INTO writing_questions
+		INSERT INTO writing_questions
 			(type, prompt, expected_answer, grammar_point_id, jlpt_level)
-		VALUES (?, ?, ?, ?, ?)
+		SELECT $1,$2,$3,$4,$5 WHERE NOT EXISTS (SELECT 1 FROM writing_questions WHERE type=$1 AND prompt=$2)
 	`)
 	if err != nil {
 		return 0, fmt.Errorf("cli.insertWritingQuestions Prepare: %w", err)
@@ -88,7 +88,7 @@ func insertWritingQuestions(db *sql.DB, items []writingImport) (int, error) {
 			item.Type,
 			item.Prompt,
 			item.ExpectedAnswer,
-			item.GrammarPointID,
+			nullableGrammarID(item.GrammarPointID),
 			item.JLPTLevel,
 		)
 		if execErr != nil {
@@ -109,4 +109,11 @@ func insertWritingQuestions(db *sql.DB, items []writingImport) (int, error) {
 
 	slog.Debug("insertWritingQuestions done", "inserted", inserted)
 	return inserted, nil
+}
+
+func nullableGrammarID(id int64) any {
+	if id == 0 {
+		return nil
+	}
+	return id
 }

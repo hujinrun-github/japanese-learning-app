@@ -14,8 +14,11 @@ import (
 	"testing"
 
 	"japanese-learning-app/internal/audio"
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
+	"japanese-learning-app/internal/module/shadowing"
 	"japanese-learning-app/internal/module/speaking"
+	"japanese-learning-app/internal/store"
+	"japanese-learning-app/internal/testdb"
 )
 
 const (
@@ -188,32 +191,18 @@ func TestSpeakingEvaluationHandler(t *testing.T) {
 				writeEvaluationFile(t, filepath.Join(dir, "examples", hash+".wav"), ref)
 			}
 
-			db, err := data.OpenDB(":memory:")
-			if err != nil {
-				t.Fatalf("data.OpenDB: %v", err)
-			}
-			defer db.Close()
-			if _, err := db.Exec(`CREATE TABLE speaking_materials (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				type TEXT NOT NULL,
-				title TEXT NOT NULL DEFAULT '',
-				text TEXT NOT NULL,
-				audio_url TEXT NOT NULL DEFAULT '',
-				jlpt_level TEXT NOT NULL
-			)`); err != nil {
-				t.Fatalf("create speaking_materials: %v", err)
-			}
+			db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 			if _, err := db.Exec(`INSERT INTO speaking_materials
-				(id, type, title, text, audio_url, jlpt_level) VALUES
-				(1, 'free', '自由朗读', ?, ?, 'N5'),
-				(2, 'shadow', '道を聞く', ?, '', 'N5')`,
+				(id, type, title, text, audio_url_legacy, jlpt_level) VALUES
+				(1, 'free', '自由朗读', $1, $2, 'N5'),
+				(2, 'shadow', '道を聞く', $3, '', 'N5')`,
 				evaluationRefText, evaluationExplicitURL, evaluationRefText); err != nil {
 				t.Fatalf("insert speaking_materials: %v", err)
 			}
 
-			svc := speaking.NewSpeakingService(data.NewSpeakingStore(db), speaking.NewWaveformScorer())
+			svc := speaking.NewSpeakingService(pgdata.NewSpeakingStore(db, store.StoreDeps{}), speaking.NewWaveformScorer())
 			mux := http.NewServeMux()
-			speaking.NewEvaluationHandler(svc, dir, nil).RegisterRoutes(mux)
+			speaking.NewEvaluationHandler(svc, dir, nil, shadowing.NewEvaluator(1)).RegisterRoutes(mux)
 
 			var body bytes.Buffer
 			form := multipart.NewWriter(&body)

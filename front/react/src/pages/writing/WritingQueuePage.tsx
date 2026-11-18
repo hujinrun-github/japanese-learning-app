@@ -1,18 +1,19 @@
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { WritingMode, WritingRecord, WritingTopic } from '@/types/api'
+import type { WritingDraft, WritingMode, WritingRecord, WritingTopic } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './WritingQueuePage.module.css'
 
 const modes = ['essay', 'sentence'] as const
 const maxAnswerLength = 1000
+type TopicDrafts = Record<string, Partial<Record<WritingMode, string>>>
 
 function scoreColor(score: number) {
   if (score >= 80) return 'var(--color-success)'
@@ -26,7 +27,12 @@ export function WritingQueuePage() {
   const [topics, setTopics] = useState<WritingTopic[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [mode, setMode] = useState<WritingMode>('essay')
-  const [drafts, setDrafts] = useState<Partial<Record<WritingMode, string>>>({})
+  const [drafts, setDrafts] = useState<TopicDrafts>({})
+  const [savedDrafts, setSavedDrafts] = useState<TopicDrafts>({})
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [draftMessage, setDraftMessage] = useState('')
+  const [draftError, setDraftError] = useState('')
+  const requests = useRef<AbortController | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -35,25 +41,74 @@ export function WritingQueuePage() {
   const [recordsLoading, setRecordsLoading] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
   const topic = topics[currentIndex]
-  const answer = drafts[mode] ?? ''
+  const answer = topic ? drafts[topic.id]?.[mode] ?? '' : ''
   const trimmedAnswer = answer.trim()
   const answerLength = Array.from(trimmedAnswer).length
   const canSubmit = answerLength > 0 && answerLength <= maxAnswerLength
+  const busy = submitting || savingDraft
+  const hasDraftChanges = topic && modes.some(option => (drafts[topic.id]?.[option] ?? '') !== (savedDrafts[topic.id]?.[option] ?? ''))
 
   useEffect(() => {
-    void loadTopics()
+    const controller = new AbortController()
+    requests.current = controller
+    void loadTopics(controller.signal)
+    return () => controller.abort()
   }, [])
 
-  async function loadTopics() {
+  async function loadTopics(signal = requests.current?.signal) {
     setLoading(true)
     setError('')
     try {
-      const data = await apiFetch<WritingTopic[]>('GET', '/api/v1/writing/topics')
+      const [data, saved] = await Promise.all([
+        apiFetch<WritingTopic[]>('GET', '/api/v1/writing/topics', undefined, signal),
+        apiFetch<WritingDraft[]>('GET', '/api/v1/writing/drafts', undefined, signal),
+      ])
+      if (signal?.aborted) return
       setTopics(data ?? [])
+      const restored: TopicDrafts = {}
+      const validDrafts = (saved ?? []).filter(draft => data?.some(item => item.id === draft.topic_id))
+      for (const draft of validDrafts) {
+        restored[draft.topic_id] = { ...restored[draft.topic_id], [draft.type]: draft.user_answer }
+      }
+      setDrafts(restored)
+      setSavedDrafts(restored)
+      const resume = validDrafts[0]
+      setCurrentIndex(resume ? data.findIndex(item => item.id === resume.topic_id) : 0)
+      setMode(resume?.type ?? 'essay')
+      setDraftMessage(resume ? t('writing.draftRestored') : '')
     } catch (err) {
+      if (signal?.aborted) return
       setError(err instanceof Error ? err.message : t('writing.loadError'))
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
+    }
+  }
+
+  async function saveCurrentDrafts(): Promise<boolean> {
+    if (!topic) return true
+    const changed = [...modes.filter(option => option !== mode), mode].filter(option =>
+      (drafts[topic.id]?.[option] ?? '') !== (savedDrafts[topic.id]?.[option] ?? ''),
+    )
+    if (changed.length === 0) return true
+    const signal = requests.current?.signal
+    setSavingDraft(true)
+    setDraftMessage('')
+    setDraftError('')
+    try {
+      for (const option of changed) {
+        const value = drafts[topic.id]?.[option] ?? ''
+        await apiFetch<WritingDraft>('PUT', `/api/v1/writing/topics/${topic.id}/draft`, {
+          type: option, user_answer: value,
+        }, signal)
+        setSavedDrafts(previous => ({ ...previous, [topic.id]: { ...previous[topic.id], [option]: value } }))
+      }
+      setDraftMessage(t('writing.draftSaved'))
+      return true
+    } catch {
+      if (!signal?.aborted) setDraftError(t('writing.draftSaveError'))
+      return false
+    } finally {
+      setSavingDraft(false)
     }
   }
 
@@ -70,15 +125,20 @@ export function WritingQueuePage() {
   }
 
   async function handleSubmit() {
-    if (!topic || !canSubmit || submitting) return
+    if (!topic || !canSubmit || busy) return
     setSubmitting(true)
     setError('')
+    setDraftError('')
     try {
+      if (!(await saveCurrentDrafts())) return
       const rec = await apiFetch<WritingRecord>('POST', `/api/v1/writing/topics/${topic.id}`, {
         type: mode,
         user_answer: trimmedAnswer,
-      })
+      }, requests.current?.signal)
       setFeedback(rec)
+      setDrafts(previous => ({ ...previous, [topic.id]: { ...previous[topic.id], [mode]: '' } }))
+      setSavedDrafts(previous => ({ ...previous, [topic.id]: { ...previous[topic.id], [mode]: '' } }))
+      setDraftMessage('')
       refreshProgress()
       if (historyExpanded) void fetchRecords()
     } catch (err) {
@@ -88,9 +148,13 @@ export function WritingQueuePage() {
     }
   }
 
-  function handleNext() {
+  async function handleNext() {
+    if (!topic || busy || (currentIndex + 1 === topics.length && !feedback)) return
+    if (!(await saveCurrentDrafts())) return
     setFeedback(null)
-    setDrafts({})
+    setError('')
+    setDraftError('')
+    setDraftMessage('')
     setCurrentIndex((i) => i + 1)
   }
 
@@ -109,7 +173,14 @@ export function WritingQueuePage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>{t('writing.title')}</h1>
+        <div className={styles.headerRow}>
+          <h1 className={styles.title}>{t('writing.title')}</h1>
+          {topic && (
+            <Button variant="secondary" onClick={() => void handleNext()} disabled={busy || (currentIndex + 1 === topics.length && !feedback)}>
+              {t(currentIndex + 1 === topics.length ? (feedback ? 'writing.finish' : 'writing.last') : 'writing.next')}
+            </Button>
+          )}
+        </div>
         <p className={styles.intro}>{t('writing.intro')}</p>
         {topic && (
           <p className={styles.progress}>
@@ -120,6 +191,7 @@ export function WritingQueuePage() {
 
       <DailyPracticeProgress progress={progress} />
       {error && <p className={styles.error} role="alert">{error}</p>}
+      {draftError && <p className={styles.error} role="alert">{draftError}</p>}
 
       {topic ? (
         <>
@@ -138,8 +210,8 @@ export function WritingQueuePage() {
                     key={option}
                     variant={option === mode ? 'primary' : 'secondary'}
                     aria-pressed={option === mode}
-                    disabled={submitting}
-                    onClick={() => { setMode(option); setError('') }}
+                    disabled={busy}
+                    onClick={() => { setMode(option); setError(''); setDraftMessage('') }}
                   >
                     <span aria-hidden="true">{option === 'essay' ? '📝' : '✏️'}</span>
                     {t(`writing.modes.${option}`)}
@@ -167,18 +239,26 @@ export function WritingQueuePage() {
                   value={answer}
                   onChange={(e) => {
                     const value = e.target.value
-                    setDrafts((previous) => ({ ...previous, [mode]: value }))
+                    setDrafts((previous) => ({ ...previous, [topic.id]: { ...previous[topic.id], [mode]: value } }))
+                    setDraftMessage('')
                   }}
-                  disabled={submitting}
+                  disabled={busy}
                 />
                 <div className={styles.submitRow}>
                   <span id="writing-length" className={answerLength > maxAnswerLength ? styles.error : styles.progress}>
                     {t('writing.answerLength', { count: answerLength, max: maxAnswerLength })}
                   </span>
-                  <Button onClick={handleSubmit} loading={submitting} disabled={!canSubmit}>
-                    {t('writing.submit')}
-                  </Button>
+                  <div className={styles.answerActions}>
+                    <Button variant="secondary" onClick={() => void saveCurrentDrafts()} loading={savingDraft && !submitting} disabled={busy || !hasDraftChanges}>
+                      {t('writing.saveDraft')}
+                    </Button>
+                    <Button onClick={handleSubmit} loading={submitting} disabled={!canSubmit || savingDraft}>
+                      {t('writing.submit')}
+                    </Button>
+                  </div>
                 </div>
+                <p className={styles.draftHint}>{t('writing.draftHint')}</p>
+                {draftMessage && <p className={styles.draftStatus} role="status">{draftMessage}</p>}
               </>
             )}
           </section>
@@ -249,13 +329,13 @@ export function WritingQueuePage() {
               )}
 
               <div className={styles.nextRow}>
-                <Button onClick={handleNext}>{t(currentIndex + 1 === topics.length ? 'writing.finish' : 'writing.next')}</Button>
+                <Button onClick={() => void handleNext()} disabled={busy}>{t(currentIndex + 1 === topics.length ? 'writing.finish' : 'writing.next')}</Button>
               </div>
             </div>
           )}
         </>
       ) : error ? (
-        <Button onClick={loadTopics} variant="secondary">{t('writing.retry')}</Button>
+        <Button onClick={() => void loadTopics()} variant="secondary">{t('writing.retry')}</Button>
       ) : (
         <EmptyState icon="🎉" title={t('writing.done')} description={t('writing.doneDesc')} />
       )}

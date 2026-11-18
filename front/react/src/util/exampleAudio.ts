@@ -2,12 +2,26 @@ import { getVolume } from './audioVolume'
 
 let audioEl: HTMLAudioElement | null = null
 
-function stopCurrent() {
+export function stopCurrent() {
   if (audioEl) {
     audioEl.pause()
     audioEl = null
   }
   speechSynthesis.cancel()
+}
+
+// Configured speaking references must be played verbatim. Falling back to a
+// different synthesizer would change the audio used as the scoring baseline.
+export function playReferenceAudio(url: string): Promise<void> {
+  stopCurrent()
+  return new Promise((resolve, reject) => {
+    const audio = new Audio(url)
+    audio.volume = getVolume()
+    audioEl = audio
+    audio.onended = () => { if (audioEl === audio) audioEl = null; resolve() }
+    audio.onerror = () => { if (audioEl === audio) audioEl = null; reject(new Error('Reference audio unavailable')) }
+    audio.play().catch(reject)
+  })
 }
 
 async function sha256Hex(text: string): Promise<string> {

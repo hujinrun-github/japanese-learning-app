@@ -169,3 +169,5 @@ func TestWordService_GetReviewQueue_PropagatesBatchError(t *testing.T) {
 		t.Errorf("error = %v, want it to wrap the store error", err)
 	}
 }
+
+func (f *batchQueueStore) InsertRecordIfAbsent(r word.WordRecord) error { return nil }

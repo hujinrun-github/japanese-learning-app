@@ -42,7 +42,7 @@ export function canDelete(report: ErrataReport): boolean {
 // 只提交允许修改且确实变化的字段；切换到新类别时按新类别的规则过滤。
 export function buildEditPayload(draft: EditDraft, report: ErrataReport): Record<string, string> {
   const payload: Record<string, string> = {}
-  const category = draft.category.trim()
+  const category = report.category === 'audio' ? 'audio' : draft.category.trim()
   const description = draft.description.trim()
   const itemLabel = draft.itemLabel.trim()
 

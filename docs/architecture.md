@@ -1,3 +1,5 @@
+> 当前数据库架构：项目仅使用 PostgreSQL，运行连接为 `DATABASE_URL`，集成测试为独立数据库 `DATABASE_URL_TEST`。数据访问层在 `internal/data/postgres/`，迁移按 `schema_migrations` 追踪。以下早期设计记录中的本地文件数据库和适配层流程已退役；以 [README](../README.md) 的启动、导入与测试命令为准。
+
 # Japanese Learning App — 架构文档
 
 > Go 1.22 · SQLite · 纯标准库 HTTP · TypeScript 前端
@@ -405,10 +407,10 @@ handler.go   HTTP Handler + RegisterRoutes()
 
 ### word — 单词记忆
 
-- 核心算法：SM-2 间隔重复（`sm2.go`）
-  - Rating `easy` → ease_factor +0.3，interval ×2.5
-  - Rating `normal` → ease_factor 不变，interval ×ease_factor
-  - Rating `hard` → ease_factor -0.2，interval 重置为 1 天
+- 核心算法：基于共享 SM-2 的单词自评排期（`internal/module/word/service.go`）
+  - 「有印象」提交 `normal`：次日复习，掌握度保留在 1～4，避免自动升为完全掌握。
+  - 「已完全掌握」提交 `easy`：掌握度设为 5，间隔至少 7 天；后续按 SM-2 延长，且必须长于上次间隔。
+  - 答错自动提交 `hard`：掌握度归零，次日强化复习。
 - 复习队列：先返回到期卡片，再补充该等级新单词
 
 ### grammar — 语法学习
@@ -629,7 +631,7 @@ front/react/src/
 3. 闪卡正面：汉字（大号）+ 词性 + "新词" badge
 4. 点击卡片：CSS 3D 翻转（`perspective: 1000px` + `rotateY(180deg)`）
 5. 背面：假名读音 + 中文释义 + 例句
-6. 翻转后显示 3 档评分按钮（😓困难 / 🙂普通 / 😄简单）
+6. 展开答案后显示「有印象 / 已完全掌握」两个自评按钮，分别增加和减少后续复习频率。
 7. `POST /api/v1/words/{id}/rate` 提交评分，自动切换下一张
 8. 队列耗尽 → `EmptyState` 展示"今日复习完成🎉"
 

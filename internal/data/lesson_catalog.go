@@ -14,20 +14,15 @@ type LessonCatalog struct {
 	query string
 }
 
-func NewLessonCatalog(db *sql.DB, postgres bool) *LessonCatalog {
-	tags := "tags_json"
-	matches := `instr(lower(title), lower($2)) > 0 OR EXISTS (
-		SELECT 1 FROM json_each(tags_json) AS tag WHERE instr(lower(tag.value), lower($2)) > 0
-	)`
-	if postgres {
-		tags = "array_to_json(tags)::text"
-		matches = `strpos(lower(title), lower($2)) > 0 OR EXISTS (
-			SELECT 1 FROM unnest(tags) AS tag WHERE strpos(lower(tag), lower($2)) > 0
-		)`
-	}
+func NewLessonCatalog(db *sql.DB) *LessonCatalog {
+	tags := "array_to_json(tags)::text"
+	matches := `strpos(lower(title), lower($2)) > 0 OR EXISTS (
+ SELECT 1 FROM unnest(tags) AS tag WHERE strpos(lower(tag), lower($2)) > 0
+ )`
 	query := fmt.Sprintf(`WITH filtered AS (
 		SELECT id, title, jlpt_level, %s AS tags, char_count
-		FROM lessons WHERE ($1 = '' OR jlpt_level = $1) AND ($2 = '' OR %s)
+		FROM lessons WHERE speaking_material_id IS NULL
+		AND ($1 = '' OR jlpt_level = $1) AND ($2 = '' OR %s)
 	), page AS (
 		SELECT * FROM filtered ORDER BY id LIMIT $3 OFFSET $4
 	)

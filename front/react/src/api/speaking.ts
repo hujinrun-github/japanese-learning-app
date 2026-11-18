@@ -15,10 +15,11 @@ export function buildSpeakingEvaluationFormData(req: EvaluateSpeakingRequest): F
   return form
 }
 
-export function evaluateSpeaking(req: EvaluateSpeakingRequest) {
+export function evaluateSpeaking(req: EvaluateSpeakingRequest, signal?: AbortSignal) {
   return apiFetch<EvaluationResult>(
     'POST',
     '/api/v1/speaking/evaluate',
     buildSpeakingEvaluationFormData(req),
+    signal,
   )
 }

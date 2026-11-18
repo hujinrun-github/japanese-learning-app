@@ -259,6 +259,13 @@ export interface WritingQuestion {
 
 export type WritingMode = 'essay' | 'sentence'
 
+export interface WritingDraft {
+  topic_id: string
+  type: WritingMode
+  user_answer: string
+  updated_at: string
+}
+
 export interface WritingTopic {
   id: string
   title: string

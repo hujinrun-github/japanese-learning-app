@@ -31,7 +31,6 @@ func TestLoad(t *testing.T) {
 		"AI_API_KEY",
 		"AI_API_ENDPOINT",
 		"AI_TIMEOUT_SEC",
-		"DB_PATH",
 		"AUDIO_STORE_PATH",
 	}
 
@@ -45,7 +44,6 @@ func TestLoad(t *testing.T) {
 		wantAudioStore     string
 		wantMinIOUseSSL    bool
 		wantPresignTTL     int
-		wantDBPath         string
 		wantAudioPath      string
 		wantMaxOpenConns   int
 		wantMaxIdleConns   int
@@ -79,7 +77,6 @@ func TestLoad(t *testing.T) {
 			wantAudioStore:     "s3",
 			wantMinIOUseSSL:    true,
 			wantPresignTTL:     600,
-			wantDBPath:         "./data/app.db",
 			wantAudioPath:      "./data/audio",
 			wantMaxOpenConns:   12,
 			wantMaxIdleConns:   6,
@@ -90,13 +87,12 @@ func TestLoad(t *testing.T) {
 			name:               "defaults",
 			env:                map[string]string{},
 			wantListenAddr:     ":30081",
-			wantStore:          "",
+			wantStore:          "postgres",
 			wantDBURL:          "",
 			wantTZ:             time.Local.String(),
 			wantAudioStore:     "",
 			wantMinIOUseSSL:    false,
 			wantPresignTTL:     900,
-			wantDBPath:         "./data/app.db",
 			wantAudioPath:      "./data/audio",
 			wantMaxOpenConns:   25,
 			wantMaxIdleConns:   25,
@@ -142,9 +138,6 @@ func TestLoad(t *testing.T) {
 			}
 			if cfg.MinIOPresignTTLSeconds != tt.wantPresignTTL {
 				t.Fatalf("MinIOPresignTTLSeconds = %d, want %d", cfg.MinIOPresignTTLSeconds, tt.wantPresignTTL)
-			}
-			if cfg.DBPath != tt.wantDBPath {
-				t.Fatalf("DBPath = %q, want %q", cfg.DBPath, tt.wantDBPath)
 			}
 			if cfg.AudioStorePath != tt.wantAudioPath {
 				t.Fatalf("AudioStorePath = %q, want %q", cfg.AudioStorePath, tt.wantAudioPath)

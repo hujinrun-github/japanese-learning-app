@@ -9,26 +9,21 @@ import (
 	"testing"
 	"time"
 
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
+	"japanese-learning-app/internal/store"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestTranslationPracticeSkipsSubmittedPrompts(t *testing.T) {
-	db, err := data.OpenDB(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	if err := data.RunMigrations(db); err != nil {
-		t.Fatal(err)
-	}
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 	if _, err := db.Exec(`INSERT INTO users (id, email, password_hash) VALUES
 		(1, 'learner@example.com', 'unused'), (2, 'other@example.com', 'unused')`); err != nil {
 		t.Fatal(err)
 	}
 
-	store := data.NewTranslationStore(db)
+	store := pgdata.NewTranslationStore(db, store.StoreDeps{})
 	addSource := func(title string) int64 {
 		t.Helper()
 		id, err := store.SaveSource(translation.TranslationSource{Title: title, SourceType: "manual"})

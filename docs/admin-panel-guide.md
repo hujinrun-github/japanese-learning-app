@@ -4,7 +4,7 @@
 
 管理后台是一个独立部署的 Web 应用，用于管理日语学习内容（单词、语法、口语、写作、翻译）和查看用户数据/学习记录。
 
-- **后端**: Go 二进制，监听 `:30082`，复用主应用的 SQLite 数据库
+- **后端**: Go 二进制，监听 `:30082`，复用主应用的 PostgreSQL 数据库
 - **前端**: React SPA，开发服务器 `:35174`
 - **认证**: 通过环境变量 `ADMIN_TOKEN` 设置 token，前端登录页输入相同 token
 
@@ -22,7 +22,7 @@
 | 变量 | 必填 | 默认值 | 说明 |
 |------|------|--------|------|
 | `ADMIN_TOKEN` | ✅ | - | 管理后台登录 token |
-| `DB_PATH` | | `./data/app.db` | SQLite 数据库路径 |
+| `DATABASE_URL` | 是 | 无 | PostgreSQL 应用数据库连接 |
 | `LISTEN_ADDR` | | `:30082` | 监听地址 |
 | `AI_API_KEY` | | `sk-a235671815e6469c8c15e69f18494500` | LLM API 密钥（默认 DeepSeek） |
 | `AI_API_ENDPOINT` | | `https://api.deepseek.com/v1/chat/completions` | LLM API 地址 |
@@ -588,7 +588,7 @@ curl.exe -X POST "http://localhost:30082/api/admin/audio/batch" `
 
 ```bash
 go run ./backend/cmd/server/ generate-word-audio \
-  --db ./data/app.db \
+  --database-url "$DATABASE_URL" \
   --level N5 \
   --provider vllm \
   --tts-url http://127.0.0.1:8091/v1/audio/speech \

@@ -113,7 +113,7 @@ func (s *Store) GetByIDForUser(ctx context.Context, id, userID int64) (Report, b
 func (s *Store) UpdateForUser(ctx context.Context, report Report) (bool, error) {
 	result, err := s.db.ExecContext(ctx, `UPDATE errata_reports
 		SET item_label = $1, item_key = $2, category = $3, description = $4
-		WHERE id = $5 AND user_id = $6 AND status = $7`,
+		WHERE id = $5 AND user_id = $6 AND status = $7 AND (category <> 'audio' OR $3 = 'audio')`,
 		report.ItemLabel, report.ItemKey, report.Category, report.Description,
 		report.ID, report.UserID, Pending)
 	if err != nil {
@@ -129,7 +129,7 @@ func (s *Store) UpdateForUser(ctx context.Context, report Report) (bool, error) 
 // DeleteForUser 物理删除本人且仍待处理的勘误。
 func (s *Store) DeleteForUser(ctx context.Context, id, userID int64) (bool, error) {
 	result, err := s.db.ExecContext(ctx,
-		`DELETE FROM errata_reports WHERE id = $1 AND user_id = $2 AND status = $3`,
+		`DELETE FROM errata_reports WHERE id = $1 AND user_id = $2 AND status = $3 AND category <> 'audio'`,
 		id, userID, Pending)
 	if err != nil {
 		return false, fmt.Errorf("errata.Store.DeleteForUser delete: %w", err)

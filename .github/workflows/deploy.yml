@@ -1,6 +1,9 @@
 name: Deploy to Tencent Cloud
 
 on:
+  pull_request:
+    branches:
+      - master
   push:
     branches:
       - master
@@ -10,13 +13,29 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-production
+  group: deploy-${{ github.event.pull_request.number || 'production' }}
   cancel-in-progress: false
 
 jobs:
   quality:
     name: Quality gates and release build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: japanese_learning_app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d japanese_learning_app_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgres://postgres:postgres@localhost:5432/japanese_learning_app_test?sslmode=disable
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -109,6 +128,7 @@ jobs:
 
   deploy:
     name: Deploy production
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
     needs: quality
     runs-on: ubuntu-latest
     steps:
@@ -153,8 +173,8 @@ jobs:
             missing=1
           fi
 
-          relational_store="${RELATIONAL_STORE:-sqlite}"
-          if [ "$relational_store" = "postgres" ] && [ -z "${DATABASE_URL:-}" ]; then
+          relational_store="${RELATIONAL_STORE:-postgres}"
+          if [ -z "${DATABASE_URL:-}" ]; then
             echo "::error title=Missing PostgreSQL configuration::DATABASE_URL is required when RELATIONAL_STORE=postgres."
             missing=1
           fi
@@ -315,7 +335,7 @@ jobs:
               ln -s "$APP_DIR/front/admin/node_modules" "$RELEASE_DIR/front/admin/node_modules"
             fi
 
-            RELATIONAL_STORE="${RELATIONAL_STORE:-sqlite}"
+            RELATIONAL_STORE="${RELATIONAL_STORE:-postgres}"
             APP_TIMEZONE="${APP_TIMEZONE:-Asia/Shanghai}"
             LOG_LEVEL="${LOG_LEVEL:-INFO}"
 

@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"japanese-learning-app/internal/data"
 	"japanese-learning-app/internal/module/speaking"
 )
 
@@ -118,8 +117,10 @@ func generateWordAudioRows(db *sql.DB, client speaking.TTSSynthesizer, outDir st
 
 		if _, statErr := os.Stat(path); statErr == nil {
 			if !force {
-				if r.AudioURL != filename {
-					updateWordAudio(db, r.ID, filename)
+				if r.AudioURL != "/audio/words/"+filename {
+					if err := updateWordAudio(db, r.ID, filename); err != nil {
+						return stats, err
+					}
 				}
 				stats.Existing++
 				continue
@@ -149,7 +150,9 @@ func generateWordAudioRows(db *sql.DB, client speaking.TTSSynthesizer, outDir st
 			continue
 		}
 
-		updateWordAudio(db, r.ID, filename)
+		if err := updateWordAudio(db, r.ID, filename); err != nil {
+			return stats, err
+		}
 		stats.Generated++
 
 		time.Sleep(200 * time.Millisecond)
@@ -162,7 +165,7 @@ func generateWordAudioRows(db *sql.DB, client speaking.TTSSynthesizer, outDir st
 // runGenerateWordAudio regenerates TTS audio for all words in the database.
 func runGenerateWordAudio(args []string) int {
 	fs := flag.NewFlagSet("generate-word-audio", flag.ContinueOnError)
-	dbPath := fs.String("db", "./data/app.db", "path to the SQLite database file")
+	databaseURL := fs.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL database URL")
 	ttsURL := fs.String("tts-url", speaking.DefaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := fs.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	outDir := fs.String("out", "./data/audio/words", "output directory for audio files")
@@ -184,17 +187,12 @@ func runGenerateWordAudio(args []string) int {
 		return 1
 	}
 
-	db, err := data.OpenDB(*dbPath)
+	db, err := openDatabase(*databaseURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "generate-word-audio: open db: %v\n", err)
 		return 1
 	}
 	defer db.Close()
-
-	if err := data.RunMigrations(db); err != nil {
-		fmt.Fprintf(os.Stderr, "generate-word-audio: run migrations: %v\n", err)
-		return 1
-	}
 
 	cfg := TTSConfig{
 		Provider:     *provider,
@@ -227,10 +225,10 @@ func queryWords(db *sql.DB, level string) ([]wordRow, error) {
 	var query string
 	var args []any
 	if level != "" {
-		query = "SELECT id, kanji_form, reading, audio_url FROM words WHERE jlpt_level = ? AND reading != '' ORDER BY id"
+		query = "SELECT id, kanji_form, reading, local_audio_url FROM words WHERE jlpt_level = $1 AND reading != '' ORDER BY id"
 		args = append(args, level)
 	} else {
-		query = "SELECT id, kanji_form, reading, audio_url FROM words WHERE reading != '' ORDER BY id"
+		query = "SELECT id, kanji_form, reading, local_audio_url FROM words WHERE reading != '' ORDER BY id"
 	}
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -259,7 +257,7 @@ func queryWordsByIDs(db *sql.DB, ids []int64) ([]wordRow, error) {
 		seen[id] = true
 
 		var wr wordRow
-		err := db.QueryRow("SELECT id, kanji_form, reading, audio_url FROM words WHERE id = ? AND reading != ''", id).
+		err := db.QueryRow("SELECT id, kanji_form, reading, local_audio_url FROM words WHERE id = $1 AND reading != ''", id).
 			Scan(&wr.ID, &wr.KanjiForm, &wr.Reading, &wr.AudioURL)
 		if err == sql.ErrNoRows {
 			continue
@@ -272,8 +270,10 @@ func queryWordsByIDs(db *sql.DB, ids []int64) ([]wordRow, error) {
 	return rows, nil
 }
 
-func updateWordAudio(db *sql.DB, id int64, filename string) {
-	if _, err := db.Exec("UPDATE words SET audio_url = ? WHERE id = ?", filename, id); err != nil {
+func updateWordAudio(db *sql.DB, id int64, filename string) error {
+	if _, err := db.Exec("UPDATE words SET local_audio_url = $1, audio_object_id = NULL, updated_at = now() WHERE id = $2", "/audio/words/"+filename, id); err != nil {
 		slog.Error("failed to update word audio_url", "id", id, "filename", filename, "err", err)
+		return fmt.Errorf("update generated word audio: %w", err)
 	}
+	return nil
 }

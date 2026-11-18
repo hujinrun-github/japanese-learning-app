@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"net"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type ttsRequest struct {
@@ -30,7 +30,7 @@ type ttsItem struct {
 }
 
 func main() {
-	dbPath := flag.String("db", "./data/app.db", "path to SQLite database")
+	databaseURL := flag.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL database URL")
 	ttsURL := flag.String("tts-url", defaultVLLMTTSURL(), "vLLM TTS endpoint URL")
 	ttsModel := flag.String("tts-model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "TTS model name")
 	outDir := flag.String("out", "./data/audio/examples", "output directory for audio files")
@@ -43,9 +43,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := sql.Open("sqlite3", *dbPath)
+	db, err := sql.Open("pgx", *databaseURL)
 	if err != nil {
-		slog.Error("failed to open database", "path", *dbPath, "err", err)
+		slog.Error("failed to open database", "err", err)
 		os.Exit(1)
 	}
 	defer db.Close()
@@ -120,11 +120,9 @@ func loadSentences(db *sql.DB) ([]ttsItem, error) {
 	query := `
 		SELECT DISTINCT 'word' as src, reading as text FROM words WHERE reading != ''
 		UNION
-		SELECT 'example', json_extract(value, '$.japanese')
-		FROM words, json_each(words.examples_json)
+		SELECT 'example', japanese FROM word_examples
 		UNION
-		SELECT 'example', json_extract(value, '$.japanese')
-		FROM grammar_points, json_each(grammar_points.examples_json)
+		SELECT 'example', japanese FROM grammar_examples
 		UNION
 		SELECT 'speaking', text FROM speaking_materials WHERE text != ''
 		ORDER BY 2

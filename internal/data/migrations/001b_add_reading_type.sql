@@ -1,1 +1,0 @@
-ALTER TABLE words ADD COLUMN reading_type TEXT NOT NULL DEFAULT '';

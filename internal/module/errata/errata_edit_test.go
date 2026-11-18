@@ -11,9 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"japanese-learning-app/internal/data"
+	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/user"
+	"japanese-learning-app/internal/testdb"
 )
 
 const editTestSecret = "errata-edit-test"
@@ -27,14 +28,7 @@ type editEnv struct {
 
 func newEditEnv(t *testing.T) *editEnv {
 	t.Helper()
-	db, err := data.OpenDB(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { db.Close() })
-	if err := data.RunMigrations(db); err != nil {
-		t.Fatal(err)
-	}
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 	if _, err := db.Exec(`INSERT INTO users (id, email, password_hash) VALUES
 		(1, 'owner@example.com', 'unused'), (2, 'other@example.com', 'unused')`); err != nil {
 		t.Fatal(err)
@@ -316,10 +310,10 @@ func TestLearnerDeleteErrata(t *testing.T) {
 	e := newEditEnv(t)
 	for _, tc := range []struct {
 		name, module, category, status string
-		owner                         int64
-		auth, path                    string
-		want                          int
-		gone                          bool
+		owner                          int64
+		auth, path                     string
+		want                           int
+		gone                           bool
 	}{
 		{"word prompt is deletable", "word", "prompt", "", 1, "", "", http.StatusNoContent, true},
 		{"grammar answer is deletable", "grammar", "answer", "", 1, "", "", http.StatusNoContent, true},

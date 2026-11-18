@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useReducer, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
@@ -10,20 +10,26 @@ import { useWavRecorder } from '@/hooks/useWavRecorder'
 import { APIError } from '@/api/client'
 import { evaluateSpeaking } from '@/api/speaking'
 import { ScoreCard } from '@/pages/shadowing/ScoreCard'
-import type { EvaluationResult } from '@/types/shadowing'
+import { initialEvaluationState, speakingEvaluationReducer } from './speakingEvaluation'
 import { toFuriganaTokens } from '@/util/furigana'
-import { speakExample } from '@/util/exampleAudio'
+import { speakExample, playReferenceAudio, stopCurrent } from '@/util/exampleAudio'
 import type { SpeakingRecord, SpeakingMaterial, FuriganaToken, JLPTLevel } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './SpeakingPage.module.css'
 
 type PracticeType = 'shadow' | 'free'
+type PracticeStatus = 'all' | 'unpracticed' | 'practiced'
 
 const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
 const FILTER_OPTIONS: { key: PracticeType | ''; labelKey: string }[] = [
   { key: '', labelKey: 'speaking.filter.all' },
   { key: 'shadow', labelKey: 'speaking.filter.shadow' },
   { key: 'free', labelKey: 'speaking.filter.free' },
+]
+const STATUS_FILTER_OPTIONS: { key: PracticeStatus; labelKey: string }[] = [
+  { key: 'all', labelKey: 'speaking.filter.all' },
+  { key: 'unpracticed', labelKey: 'speaking.filter.unpracticed' },
+  { key: 'practiced', labelKey: 'speaking.practiced' },
 ]
 
 const SPEAKER_COLORS = ['#228be6', '#2f9e44', '#e8590c', '#7950f2']
@@ -54,10 +60,12 @@ export function SpeakingPage() {
   // material list state
   const [activeType, setActiveType] = useState<PracticeType | ''>('')
   const [activeLevel, setActiveLevel] = useState<JLPTLevel>('N5')
+  const [activeStatus, setActiveStatus] = useState<PracticeStatus>('all')
   const [materials, setMaterials] = useState<SpeakingMaterial[]>([])
   const [materialsLoading, setMaterialsLoading] = useState(false)
   const [materialsError, setMaterialsError] = useState('')
   const [selectedMaterial, setSelectedMaterial] = useState<SpeakingMaterial | null>(null)
+  const [practiceMaterials, setPracticeMaterials] = useState<SpeakingMaterial[]>([])
 
   // practice state
   const [furiganaTokens, setFuriganaTokens] = useState<FuriganaToken[]>([])
@@ -71,11 +79,25 @@ export function SpeakingPage() {
   const [recordsError, setRecordsError] = useState(false)
   const [submissionError, setSubmissionError] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
-  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
-  const [evaluating, setEvaluating] = useState(false)
-  const [evaluationError, setEvaluationError] = useState('')
-
+  const [evaluationState, dispatchEvaluation] = useReducer(speakingEvaluationReducer, initialEvaluationState)
+  const { result: evaluation, evaluating, error: evaluationError } = evaluationState
+  const evaluationRequest = useRef<AbortController | null>(null)
+  const requestID = useRef(0)
+  const activeMaterialID = useRef<number | null>(null)
   const recorder = useWavRecorder()
+
+  function resetEvaluation(materialID: number | null) {
+    evaluationRequest.current?.abort()
+    evaluationRequest.current = null
+    activeMaterialID.current = materialID
+    dispatchEvaluation({ type: 'reset', materialID, requestID: ++requestID.current })
+  }
+
+  useEffect(() => () => {
+    ++requestID.current
+    evaluationRequest.current?.abort()
+    stopCurrent()
+  }, [])
 
   // fetch materials on filter change
   useEffect(() => {
@@ -122,83 +144,101 @@ export function SpeakingPage() {
   }, [])
 
   const practicedMaterials = new Set(records.map((record) => record.material_id))
+  const filteredMaterials = materials.filter((material) =>
+    activeStatus === 'all' || practicedMaterials.has(material.id) === (activeStatus === 'practiced'),
+  )
+  // Keep this session's order when saving removes the current item from "unpracticed".
+  const selectedMaterialIndex = practiceMaterials.findIndex((material) => material.id === selectedMaterial?.id)
+  const nextMaterial = selectedMaterialIndex >= 0 ? practiceMaterials[selectedMaterialIndex + 1] : undefined
+
+  function handleNextMaterial() {
+    if (!nextMaterial || submitting) return
+    void handleSelectMaterial(nextMaterial)
+  }
 
   // select material and enter practice mode
   async function handleSelectMaterial(m: SpeakingMaterial) {
+    resetEvaluation(m.id)
+    recorder.reset()
+    stopCurrent()
     setSelectedMaterial(m)
     setSubmitted(false)
     setSelfRating(0)
     setSubmissionError(false)
     setHistoryExpanded(false)
     setFuriganaError(false)
-    setEvaluation(null)
-    setEvaluating(false)
-    setEvaluationError('')
+    const selectionID = requestID.current
+    setFuriganaTokens([])
     const sentences = splitSentences(m.text)
     setRawSentences(sentences)
     try {
       const tokens = await toFuriganaTokens(m.text)
-      setFuriganaTokens(tokens)
+      if (requestID.current === selectionID) setFuriganaTokens(tokens)
     } catch {
+      if (requestID.current !== selectionID) return
       setFuriganaError(true)
       setFuriganaTokens([])
     }
   }
 
   function handleBackToList() {
+    resetEvaluation(null)
+    recorder.reset()
+    stopCurrent()
     setSelectedMaterial(null)
+    setPracticeMaterials([])
     setFuriganaTokens([])
     setFuriganaError(false)
     setRawSentences([])
     setSubmitted(false)
-    setEvaluation(null)
-    setEvaluating(false)
-    setEvaluationError('')
   }
 
-  function handlePlayTTS() {
+  async function handlePlayTTS() {
     if (!selectedMaterial) return
-    speakExample(selectedMaterial.text)
+    const materialID = selectedMaterial.id
+    const id = requestID.current
+    try {
+      const url = selectedMaterial.audio_url?.trim()
+      if (url) await playReferenceAudio(url)
+      else await speakExample(selectedMaterial.text)
+    } catch {
+      dispatchEvaluation({ type: 'failure', materialID, requestID: id, error: t('speaking.practice.noReference') })
+    }
   }
 
-  // recording
   async function handleStartRecording() {
-    setEvaluation(null)
-    setEvaluationError('')
-    try {
-      await recorder.start()
-    } catch {
-      // permission denied handled by hook
-    }
+    if (!selectedMaterial || submitting) return
+    resetEvaluation(selectedMaterial.id)
+    stopCurrent()
+    setSubmitted(false)
+    setSubmissionError(false)
+    setSelfRating(0)
+    try { await recorder.start() } catch { /* Recorder displays capture errors. */ }
   }
 
   async function handleStopRecording() {
+    const materialID = activeMaterialID.current
+    const id = requestID.current
+    if (materialID === null) return
+    // Includes the asynchronous decoding phase, during which navigation can occur.
+    dispatchEvaluation({ type: 'start', materialID, requestID: id })
+    const controller = new AbortController()
+    evaluationRequest.current = controller
     try {
       const recording = await recorder.stop()
-      await scoreRecording(recording.blob)
-    } catch {
-      // decoding / upload errors are surfaced by the hook or scoreRecording
-    }
-  }
-
-  // Automatic scoring is best-effort: keep self rating usable when the
-  // material has no reference audio or the scorer rejects the recording.
-  async function scoreRecording(audio: Blob) {
-    if (!selectedMaterial) return
-    setEvaluating(true)
-    setEvaluation(null)
-    setEvaluationError('')
-    try {
-      const result = await evaluateSpeaking({ audio, material_id: selectedMaterial.id })
-      setEvaluation(result)
+      if (controller.signal.aborted || id !== requestID.current) return
+      const result = await evaluateSpeaking({ audio: recording.blob, material_id: materialID }, controller.signal)
+      dispatchEvaluation({ type: 'success', materialID, requestID: id, result })
     } catch (err) {
-      setEvaluationError(
-        err instanceof APIError && err.code === 'ERR_SPEAKING_REFERENCE_MISSING'
-          ? t('speaking.practice.noReference')
-          : t('speaking.practice.evalError'),
-      )
+      if (controller.signal.aborted || id !== requestID.current) return
+      dispatchEvaluation({
+        type: 'failure', materialID, requestID: id,
+        error: err instanceof APIError && err.code === 'ERR_SPEAKING_REFERENCE_MISSING'
+          ? t('speaking.practice.noReference') : t('speaking.practice.evalError'),
+      })
     } finally {
-      setEvaluating(false)
+      dispatchEvaluation({ type: 'finish', materialID, requestID: id })
+      if (evaluationRequest.current === controller) evaluationRequest.current = null
     }
   }
 
@@ -209,7 +249,7 @@ export function SpeakingPage() {
 
   // submit practice with the automatic score, falling back to self rating
   async function handleSubmit() {
-    if (!selectedMaterial || effectiveScore === 0 || submitting) return
+    if (!selectedMaterial || (autoScore === null && selfRating === 0) || submitting || evaluating || recorder.isRecording) return
     setSubmitting(true)
     setSubmissionError(false)
     try {
@@ -281,6 +321,21 @@ export function SpeakingPage() {
           ))}
         </div>
 
+        <div className={styles.filterBar} role="group" aria-label={t('speaking.filter.status')}>
+          {STATUS_FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              className={`${styles.filterBtn} ${activeStatus === opt.key ? styles.filterBtnActive : ''}`}
+              aria-pressed={activeStatus === opt.key}
+              disabled={opt.key !== 'all' && (recordsLoading || recordsError)}
+              onClick={() => setActiveStatus(opt.key)}
+            >
+              {t(opt.labelKey)}
+            </button>
+          ))}
+        </div>
+
         {/* level tabs */}
         <div className={styles.levelTabs}>
           {LEVELS.map((lvl) => (
@@ -302,16 +357,19 @@ export function SpeakingPage() {
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '40px' }}>
             <Spinner size="lg" />
           </div>
-        ) : materials.length === 0 ? (
-          <EmptyState icon="📚" title="No materials found" description="" />
+        ) : filteredMaterials.length === 0 ? (
+          <EmptyState icon="📚" title={t('speaking.materials.empty')} description="" />
         ) : (
           <div className={styles.materialList}>
-            {materials.map((m) => (
+            {filteredMaterials.map((m) => (
               <button
                 key={m.id}
                 type="button"
                 className={styles.materialCard}
-                onClick={() => handleSelectMaterial(m)}
+                onClick={() => {
+                  setPracticeMaterials(filteredMaterials)
+                  void handleSelectMaterial(m)
+                }}
               >
                 <span className={styles.cardHeader}>
                   <span className={styles.cardTitle}>{m.title}</span>
@@ -337,10 +395,19 @@ export function SpeakingPage() {
 
   return (
     <div className={styles.page}>
-      {/* back button */}
-      <button className={styles.backBtn} onClick={handleBackToList} disabled={submitting}>
-        {t('speaking.practice.back')}
-      </button>
+      <div className={styles.practiceNav}>
+        <button type="button" className={styles.backBtn} onClick={handleBackToList} disabled={submitting}>
+          {t('speaking.practice.back')}
+        </button>
+        {selectedMaterialIndex >= 0 && (
+          <span className={styles.materialPosition} aria-live="polite">
+            {t('speaking.practice.position', { current: selectedMaterialIndex + 1, total: practiceMaterials.length })}
+          </span>
+        )}
+        <button type="button" className={styles.nextBtn} onClick={handleNextMaterial} disabled={!nextMaterial || submitting}>
+          {t(nextMaterial ? 'speaking.practice.next' : 'speaking.practice.lastMaterial')}
+        </button>
+      </div>
 
       {/* practice header */}
       <div className={styles.practiceHeader}>
@@ -421,7 +488,7 @@ export function SpeakingPage() {
           <button
             className={styles.toolBtn}
             onClick={handleStartRecording}
-            disabled={!!recorder.error || evaluating}
+            disabled={submitting || (evaluating && !recorder.recording)}
           >
             {recorder.recording ? t('speaking.practice.reRecord') : t('speaking.practice.startRecord')}
           </button>
@@ -470,7 +537,7 @@ export function SpeakingPage() {
       <button
         className={styles.submitBtn}
         onClick={handleSubmit}
-        disabled={effectiveScore === 0 || submitting || submitted}
+        disabled={(autoScore === null && selfRating === 0) || submitting || submitted || evaluating || recorder.isRecording}
       >
         {submitting ? <Spinner size="sm" /> : t('speaking.practice.submit')}
       </button>

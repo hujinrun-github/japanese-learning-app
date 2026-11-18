@@ -2,40 +2,21 @@ package studyplan
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"japanese-learning-app/internal/module/user"
-	_ "modernc.org/sqlite"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestPlanHTTP(t *testing.T) {
-	for _, driver := range []string{"sqlite", "pgx"} {
-		t.Run(driver, func(t *testing.T) { testPlanHTTP(t, driver) })
-	}
-}
-func testPlanHTTP(t *testing.T, driver string) {
-	dsn := ":memory:"
-	if driver == "pgx" {
-		dsn = os.Getenv("STUDY_PLAN_TEST_DATABASE_URL")
-		if dsn == "" {
-			t.Skip("STUDY_PLAN_TEST_DATABASE_URL not set")
-		}
-	}
-	db, err := sql.Open(driver, dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+	db := testdb.Open(t, nil)
 	db.SetMaxOpenConns(1)
-	_, err = db.Exec(`CREATE TEMP TABLE study_plans(user_id BIGINT PRIMARY KEY, plan_json TEXT NOT NULL, calendar_token TEXT NOT NULL UNIQUE,revision INTEGER NOT NULL DEFAULT 1)`)
+	_, err := db.Exec(`CREATE TEMP TABLE study_plans(user_id BIGINT PRIMARY KEY, plan_json TEXT NOT NULL, calendar_token TEXT NOT NULL UNIQUE,revision INTEGER NOT NULL DEFAULT 1)`)
 	if err != nil {
 		t.Fatal(err)
 	}

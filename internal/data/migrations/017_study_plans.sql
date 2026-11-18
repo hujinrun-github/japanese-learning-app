@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS study_plans (
-    user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    plan_json TEXT NOT NULL,
-    revision INTEGER NOT NULL DEFAULT 1,
-    calendar_token TEXT NOT NULL UNIQUE
-);

@@ -1,5 +1,10 @@
 .page { padding: var(--space-4); max-width: 700px; margin: 0 auto; }
 .header { margin-bottom: var(--space-6); }
+.headerRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.headerRow > button { min-height: 44px; }
+.answerActions { display: flex; gap: var(--space-2); }
+.draftHint { color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: var(--space-3); }
+.draftStatus { color: var(--color-success); font-size: var(--font-size-sm); margin-top: var(--space-2); }
 .title { font-size: var(--font-size-2xl); font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: var(--letter-spacing-tight); }
 .intro { color: var(--color-text-secondary); margin-top: var(--space-2); }
 .progress { font-size: var(--font-size-sm); color: var(--color-text-muted); margin-top: var(--space-1); }
@@ -60,6 +65,8 @@
   .scoreRow { align-items: flex-start; gap: var(--space-3); }
   .scoreCircle { width: 64px; height: 64px; }
   .submitRow { flex-direction: column; align-items: stretch; }
+  .answerActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .answerActions > button { min-height: 48px; }
   .nextRow { display: block; }
   .submitRow > button,
   .nextRow > button { width: 100%; min-height: 48px; }

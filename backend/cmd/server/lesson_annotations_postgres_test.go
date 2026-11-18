@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"japanese-learning-app/internal/config"
 	"japanese-learning-app/internal/module/user"
+	"japanese-learning-app/internal/testdb"
 )
 
 func TestPostgresLessonAnnotations(t *testing.T) {
@@ -38,7 +38,7 @@ func TestPostgresLessonAnnotations(t *testing.T) {
 	}
 
 	cfg := &config.Config{
-		DatabaseURL:       os.Getenv("DATABASE_URL_TEST"),
+		DatabaseURL:       testdb.URL(t, db),
 		DBMaxOpenConns:    4,
 		DBMaxIdleConns:    2,
 		DBConnMaxLifetime: time.Minute,

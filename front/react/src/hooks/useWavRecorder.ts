@@ -26,6 +26,7 @@ interface WavRecorderState {
 export interface UseWavRecorderResult extends WavRecorderState {
   start: () => Promise<void>
   stop: () => Promise<WavRecording>
+  reset: () => void
 }
 
 // Records via MediaRecorder, then decodes through an AudioContext pinned to
@@ -38,6 +39,8 @@ export function useWavRecorder(): UseWavRecorderResult {
     error: null,
   })
 
+  const cancelStopRef = useRef<(() => void) | null>(null)
+  const generationRef = useRef(0)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -57,13 +60,39 @@ export function useWavRecorder(): UseWavRecorderResult {
 
   useEffect(() => {
     return () => {
+      ++generationRef.current
+      cancelStopRef.current?.()
+      const recorder = recorderRef.current
+      if (recorder) {
+        recorder.ondataavailable = null
+        recorder.onstop = null
+        recorder.onerror = null
+        if (recorder.state !== 'inactive') recorder.stop()
+      }
       revokeURL()
       releaseStream()
     }
   }, [revokeURL, releaseStream])
 
-  const start = useCallback(async () => {
+  const reset = useCallback(() => {
+    ++generationRef.current
+    cancelStopRef.current?.()
+    cancelStopRef.current = null
+    const recorder = recorderRef.current
+    if (recorder) {
+      recorder.ondataavailable = null
+      recorder.onstop = null
+      recorder.onerror = null
+    }
+    recorderRef.current = null
+    if (recorder && recorder.state !== 'inactive') recorder.stop()
+    releaseStream()
     revokeURL()
+    setState({ isRecording: false, recording: null, error: null })
+  }, [releaseStream, revokeURL])
+
+  const start = useCallback(async () => {
+    const generation = ++generationRef.current
     releaseStream()
     try {
       // Keep the raw envelope: browser AGC / noise suppression / echo
@@ -71,6 +100,7 @@ export function useWavRecorder(): UseWavRecorderResult {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: scoringAudioConstraints(),
       })
+      if (generation !== generationRef.current) { stream.getTracks().forEach(track => track.stop()); return }
       streamRef.current = stream
 
       const mimeType = pickRecorderMimeType((type) => MediaRecorder.isTypeSupported(type))
@@ -80,28 +110,35 @@ export function useWavRecorder(): UseWavRecorderResult {
       const recorder = new MediaRecorder(stream, { mimeType })
       chunksRef.current = []
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data)
+        if (generation === generationRef.current && event.data.size > 0) chunksRef.current.push(event.data)
       }
-      recorderRef.current = recorder
       recorder.start(100)
+      recorderRef.current = recorder
+      // Keep the previous playback usable if acquiring the microphone fails.
+      revokeURL()
       setState({ isRecording: true, recording: null, error: null })
     } catch (err) {
+      if (generation !== generationRef.current) throw err
       releaseStream()
       const message = err instanceof Error ? err.message : '无法访问麦克风'
-      setState({ isRecording: false, recording: null, error: message })
+      setState(current => ({ ...current, isRecording: false, error: message }))
       throw err
     }
   }, [revokeURL, releaseStream])
 
   const stop = useCallback((): Promise<WavRecording> => {
     return new Promise((resolve, reject) => {
+      const generation = generationRef.current
       const recorder = recorderRef.current
       if (!recorder) {
         reject(new Error('没有正在进行的录音'))
         return
       }
 
+      cancelStopRef.current = () => reject(new Error('Recording cancelled'))
       recorder.onstop = () => {
+        if (generation !== generationRef.current) { reject(new Error('Recording cancelled')); return }
+        cancelStopRef.current = null
         void (async () => {
           const mimeType = recorder.mimeType || 'audio/webm'
           const raw = new Blob(chunksRef.current, { type: mimeType })
@@ -122,6 +159,7 @@ export function useWavRecorder(): UseWavRecorderResult {
               throw new Error('录音里没有有效音频数据')
             }
 
+            if (generation !== generationRef.current) throw new Error('Recording cancelled')
             const wav = encodeWAVBlob(mono, WAV_SAMPLE_RATE)
             const url = URL.createObjectURL(wav)
             urlRef.current = url
@@ -135,10 +173,12 @@ export function useWavRecorder(): UseWavRecorderResult {
             resolve(recording)
           } catch (err) {
             const message = err instanceof Error ? `无法解码录音：${err.message}` : '无法解码录音'
-            setState({ isRecording: false, recording: null, error: message })
+            if (generation === generationRef.current) setState({ isRecording: false, recording: null, error: message })
             reject(err instanceof Error ? err : new Error(message))
           } finally {
-            if (context) await context.close()
+            if (context) {
+              try { await context.close() } catch (err) { console.error('[recorder] failed to close audio context', err) }
+            }
           }
         })()
       }
@@ -155,5 +195,5 @@ export function useWavRecorder(): UseWavRecorderResult {
     })
   }, [releaseStream])
 
-  return { ...state, start, stop }
+  return { ...state, start, stop, reset }
 }

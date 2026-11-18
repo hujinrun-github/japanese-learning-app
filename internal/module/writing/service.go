@@ -12,6 +12,8 @@ type WritingStoreInterface interface {
 	GetQuestionByID(id int64) (*WritingQuestion, error)
 	SaveRecord(r WritingRecord) error
 	ListRecords(userID int64) ([]WritingRecord, error)
+	ListDrafts(userID int64) ([]WritingDraft, error)
+	SaveDraft(draft WritingDraft) (WritingDraft, error)
 }
 
 // WritingService handles business logic for writing practice.
@@ -97,7 +99,7 @@ func (s *WritingService) SubmitSentence(userID int64, question, userAnswer strin
 		// The legacy sentence endpoint has always returned a feedback object.
 		reviewer = &StubReviewer{}
 	}
-	return s.saveOpenWriting(userID, WritingTypeSentence, question, userAnswer, question, reviewer)
+	return s.saveOpenWriting(userID, WritingTypeSentence, "", question, userAnswer, question, reviewer)
 }
 
 func (s *WritingService) submitTopic(userID int64, topic WritingTopic, mode WritingType, userAnswer string) (WritingRecord, error) {
@@ -109,12 +111,13 @@ func (s *WritingService) submitTopic(userID int64, topic WritingTopic, mode Writ
 	}
 	question := topic.Title + "\n" + prompt
 	reviewTask := fmt.Sprintf("Level: %s\nTask: %s\nReview criteria: %s", topic.JLPTLevel, question, criteria)
-	return s.saveOpenWriting(userID, mode, question, userAnswer, reviewTask, s.reviewer)
+	return s.saveOpenWriting(userID, mode, topic.ID, question, userAnswer, reviewTask, s.reviewer)
 }
 
-func (s *WritingService) saveOpenWriting(userID int64, mode WritingType, question, userAnswer, reviewTask string, reviewer AIReviewer) (WritingRecord, error) {
+func (s *WritingService) saveOpenWriting(userID int64, mode WritingType, topicID, question, userAnswer, reviewTask string, reviewer AIReviewer) (WritingRecord, error) {
 	slog.Debug("WritingService.saveOpenWriting called", "user_id", userID, "type", mode)
 	rec := WritingRecord{
+		TopicID:     topicID,
 		UserID:      userID,
 		Type:        mode,
 		Question:    question,

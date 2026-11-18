@@ -4,7 +4,8 @@
 /* Filter */
 .filterBar { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
 .filterBtn { flex: 1; padding: var(--space-2) var(--space-3); border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-surface); font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-secondary); cursor: pointer; transition: all var(--transition-fast); }
-.filterBtn:hover { border-color: var(--color-brand); }
+.filterBtn:hover:not(:disabled) { border-color: var(--color-brand); }
+.filterBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .filterBtnActive { background: var(--color-brand); border-color: var(--color-brand); color: #fff; }
 
 /* Level tabs */
@@ -36,6 +37,12 @@
 .typeFree { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
 
 /* Practice mode */
+.practiceNav { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-5); }
+.practiceNav .backBtn { margin-bottom: 0; }
+.materialPosition { margin-inline-start: auto; color: var(--color-text-secondary); font-size: var(--font-size-sm); white-space: nowrap; }
+.nextBtn { margin-inline-start: auto; padding: var(--space-2) var(--space-3); min-height: 44px; border: 1.5px solid var(--color-brand); border-radius: var(--radius-sm); background: var(--color-brand); color: #fff; font-size: var(--font-size-sm); font-weight: 600; white-space: nowrap; cursor: pointer; }
+.nextBtn:hover:not(:disabled) { background: var(--color-brand-hover); }
+.nextBtn:disabled { background: var(--color-bg-surface); color: var(--color-text-muted); border-color: var(--color-border); cursor: not-allowed; }
 .backBtn { background: none; border: none; padding: 0; font-size: var(--font-size-md); color: var(--color-brand); cursor: pointer; margin-bottom: var(--space-5); font-weight: 600; display: flex; align-items: center; gap: var(--space-1); }
 .backBtn:hover { opacity: 0.7; }
 .practiceHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); flex-wrap: wrap; gap: var(--space-2); }

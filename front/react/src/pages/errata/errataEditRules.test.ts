@@ -81,4 +81,9 @@ describe('buildEditPayload 只提交允许且确实变化的字段', () => {
     const audio = { ...base, category: 'audio' }
     expect(buildEditPayload(draft({ category: 'audio', description: '重新描述' }), audio)).toEqual({ description: '重新描述' })
   })
+  it('音视频报告不能通过改类别绕过撤回限制', () => {
+    const audio = { ...base, category: 'audio' }
+    expect(buildEditPayload(draft({ category: 'other', itemLabel: '改写', description: '补充' }), audio))
+      .toEqual({ description: '补充' })
+  })
 })
