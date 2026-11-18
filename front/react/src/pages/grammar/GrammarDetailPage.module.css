@@ -52,6 +52,8 @@
 .labelCorrect { color: var(--color-success); }
 .labelWrong { color: var(--color-error); }
 .explanation { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: var(--space-2); padding: var(--space-3); background: var(--color-brand-subtle); border-radius: var(--radius-sm); border-left: 3px solid var(--color-brand); line-height: var(--line-height-base); }
+.correctAnswer { font-size: var(--font-size-sm); color: var(--color-text); margin-top: var(--space-2); padding: var(--space-3); background: var(--color-success-light); border-radius: var(--radius-sm); border-left: 3px solid var(--color-success); line-height: var(--line-height-japanese); word-break: break-word; }
+.correctAnswer strong { color: var(--color-success); font-weight: 700; }
 
 .submitRow { display: flex; justify-content: flex-end; margin-top: var(--space-4); }
 

@@ -99,6 +99,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	lessonH := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	speakingH.SetStreakRecorder(userSvc)
+	speakingEvaluationH := speaking.NewEvaluationHandler(speakingSvc, cfg.AudioStorePath, newLessonAudioObjectLoader(db, cfg))
 	writingH := writing.NewWritingHandler(writingSvc)
 	writingH.SetStreakRecorder(userSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)
@@ -123,6 +124,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	lesson.RegisterCatalogRoute(protectedMux, data.NewLessonCatalog(db, true))
 	lesson.NewAnnotationHandler(db, lessonSvc, runtime.Admin.Words, runtime.Admin.Grammar).RegisterRoutes(protectedMux)
 	speakingH.RegisterRoutes(protectedMux)
+	speakingEvaluationH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)
 	translationH.RegisterRoutes(protectedMux)
 	noteH.RegisterRoutes(protectedMux)
@@ -155,6 +157,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	mux.Handle("/api/v1/users/", authenticated)
 	mux.Handle("/api/v1/daily-plan", authenticated)
 	mux.Handle("/api/v1/errata", authenticated)
+	mux.Handle("/api/v1/errata/", authenticated)
 	mux.Handle("/api/v1/mistakes", authenticated)
 	mux.Handle("/api/v1/mistakes/", authenticated)
 

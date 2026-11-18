@@ -320,6 +320,8 @@ go run ./scripts/generate_tts_examples/ \
 
 语音文件存储在 `data/audio/words/` 和 `data/audio/examples/`，数据库 `words.audio_url` 记录文件路径。
 
+**口语自动评分：** `POST /api/v1/speaking/evaluate` 复用课文影子跟读的本地评分引擎（无 ASR、无外部服务），需要参考音频：优先用材料的 `audio_url`，为空时按 `sha256(text)[:16].wav` 取 `data/audio/examples/` 下由上面命令生成的 TTS 文件。缺参考音频时返回 `ERR_SPEAKING_REFERENCE_MISSING`，页面回退到自评。
+
 ## 功能模块
 
 | 模块 | 说明 |
@@ -327,7 +329,7 @@ go run ./scripts/generate_tts_examples/ \
 | **单词记忆** | SM-2 间隔重复算法，闪卡翻转复习，按 JLPT 等级筛选 |
 | **语法学习** | N5-N1 语法点 + 即时测验（填空/选择），学习状态追踪 |
 | **课文阅读** | 振り仮名（ruby）标注，中日翻译切换，已读标记 |
-| **口语练习** | 影子跟读 + 自由朗读，波形评分 0-100 |
+| **口语练习** | 影子跟读 + 自由朗读，录音后本地韵律评分（维度分 + 改进建议），无参考音频时自评兜底 |
 | **写作练习** | 输入练习 + AI 造句批改（语法/词汇/修正建议） |
 | **学习总结** | 会话记录与聚合分析（强项/弱项/建议） |
 

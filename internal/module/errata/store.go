@@ -3,6 +3,7 @@ package errata
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -86,6 +87,56 @@ func (s *Store) SetStatus(ctx context.Context, id int64, status string) (bool, e
 	count, err := result.RowsAffected()
 	if err != nil {
 		return false, fmt.Errorf("errata.Store.SetStatus rows affected: %w", err)
+	}
+	return count > 0, nil
+}
+
+// GetByIDForUser 读取指定用户自己的勘误。查不到时返回 found=false，
+// 让调用方把「不存在」与「属于他人」统一按 404 处理，避免泄露他人记录。
+func (s *Store) GetByIDForUser(ctx context.Context, id, userID int64) (Report, bool, error) {
+	var report Report
+	err := s.db.QueryRowContext(ctx, `SELECT id, user_id, module, item_key, item_label, category, description, status, created_at
+		FROM errata_reports WHERE id = $1 AND user_id = $2`, id, userID).Scan(
+		&report.ID, &report.UserID, &report.Module, &report.ItemKey, &report.ItemLabel,
+		&report.Category, &report.Description, &report.Status, &report.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Report{}, false, nil
+	}
+	if err != nil {
+		return Report{}, false, fmt.Errorf("errata.Store.GetByIDForUser: %w", err)
+	}
+	return report, true, nil
+}
+
+// UpdateForUser 只更新内容字段，并在 WHERE 中带上归属与 pending 状态，
+// 防止并发情况下改到已被管理员处理或已被删除的报告。
+func (s *Store) UpdateForUser(ctx context.Context, report Report) (bool, error) {
+	result, err := s.db.ExecContext(ctx, `UPDATE errata_reports
+		SET item_label = $1, item_key = $2, category = $3, description = $4
+		WHERE id = $5 AND user_id = $6 AND status = $7`,
+		report.ItemLabel, report.ItemKey, report.Category, report.Description,
+		report.ID, report.UserID, Pending)
+	if err != nil {
+		return false, fmt.Errorf("errata.Store.UpdateForUser update: %w", err)
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("errata.Store.UpdateForUser rows affected: %w", err)
+	}
+	return count > 0, nil
+}
+
+// DeleteForUser 物理删除本人且仍待处理的勘误。
+func (s *Store) DeleteForUser(ctx context.Context, id, userID int64) (bool, error) {
+	result, err := s.db.ExecContext(ctx,
+		`DELETE FROM errata_reports WHERE id = $1 AND user_id = $2 AND status = $3`,
+		id, userID, Pending)
+	if err != nil {
+		return false, fmt.Errorf("errata.Store.DeleteForUser delete: %w", err)
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("errata.Store.DeleteForUser rows affected: %w", err)
 	}
 	return count > 0, nil
 }

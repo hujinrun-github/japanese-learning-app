@@ -34,6 +34,14 @@ func NewReferenceAudioReader(audioStorePath string, loader ObjectLoader) Referen
 	return &fsReferenceAudioReader{audioStorePath: audioStorePath, loader: loader}
 }
 
+// ReadAudioURL resolves a full audio URL (local /audio/ path or object-storage
+// stream URL) to WAV bytes. Speaking practice reuses the same resolver so its
+// materials can point at either storage backend.
+func ReadAudioURL(ctx context.Context, audioStorePath string, loader ObjectLoader, audioURL string) ([]byte, error) {
+	r := &fsReferenceAudioReader{audioStorePath: audioStorePath, loader: loader}
+	return r.readSource(ctx, audioURL)
+}
+
 func (r *fsReferenceAudioReader) ReadSentence(ctx context.Context, l *lesson.Lesson, s lesson.Sentence) ([]byte, error) {
 	if l == nil {
 		return nil, fmt.Errorf("shadowing.ReferenceAudioReader.ReadSentence: nil lesson")

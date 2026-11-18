@@ -159,6 +159,7 @@ func main() {
 	lessonH := lesson.NewLessonHandler(lessonSvc)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	speakingH.SetStreakRecorder(userSvc)
+	speakingEvaluationH := speaking.NewEvaluationHandler(speakingSvc, cfg.AudioStorePath, nil)
 	writingH := writing.NewWritingHandler(writingSvc)
 	writingH.SetStreakRecorder(userSvc)
 	userH := user.NewUserHandler(userSvc)
@@ -188,6 +189,7 @@ func main() {
 	lesson.RegisterCatalogRoute(protectedMux, data.NewLessonCatalog(db, false))
 	lesson.NewAnnotationHandler(db, lessonSvc, wordStore, grammarStore).RegisterRoutes(protectedMux)
 	speakingH.RegisterRoutes(protectedMux)
+	speakingEvaluationH.RegisterRoutes(protectedMux)
 	writingH.RegisterRoutes(protectedMux)
 	summaryH.RegisterRoutes(protectedMux)
 	noteH.RegisterRoutes(protectedMux)
@@ -219,6 +221,7 @@ func main() {
 	mux.Handle("/api/v1/translation/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/daily-plan", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/errata", user.AuthMiddleware(jwtSecret, protectedMux))
+	mux.Handle("/api/v1/errata/", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/mistakes", user.AuthMiddleware(jwtSecret, protectedMux))
 	mux.Handle("/api/v1/mistakes/", user.AuthMiddleware(jwtSecret, protectedMux))
 

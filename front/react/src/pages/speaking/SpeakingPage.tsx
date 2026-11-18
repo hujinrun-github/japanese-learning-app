@@ -6,7 +6,11 @@ import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { useWavRecorder } from '@/hooks/useWavRecorder'
+import { APIError } from '@/api/client'
+import { evaluateSpeaking } from '@/api/speaking'
+import { ScoreCard } from '@/pages/shadowing/ScoreCard'
+import type { EvaluationResult } from '@/types/shadowing'
 import { toFuriganaTokens } from '@/util/furigana'
 import { speakExample } from '@/util/exampleAudio'
 import type { SpeakingRecord, SpeakingMaterial, FuriganaToken, JLPTLevel } from '@/types/api'
@@ -67,8 +71,11 @@ export function SpeakingPage() {
   const [recordsError, setRecordsError] = useState(false)
   const [submissionError, setSubmissionError] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
+  const [evaluating, setEvaluating] = useState(false)
+  const [evaluationError, setEvaluationError] = useState('')
 
-  const recorder = useAudioRecorder()
+  const recorder = useWavRecorder()
 
   // fetch materials on filter change
   useEffect(() => {
@@ -124,9 +131,9 @@ export function SpeakingPage() {
     setSubmissionError(false)
     setHistoryExpanded(false)
     setFuriganaError(false)
-    if (recorder.audioURL) {
-      URL.revokeObjectURL(recorder.audioURL)
-    }
+    setEvaluation(null)
+    setEvaluating(false)
+    setEvaluationError('')
     const sentences = splitSentences(m.text)
     setRawSentences(sentences)
     try {
@@ -144,6 +151,9 @@ export function SpeakingPage() {
     setFuriganaError(false)
     setRawSentences([])
     setSubmitted(false)
+    setEvaluation(null)
+    setEvaluating(false)
+    setEvaluationError('')
   }
 
   function handlePlayTTS() {
@@ -153,6 +163,8 @@ export function SpeakingPage() {
 
   // recording
   async function handleStartRecording() {
+    setEvaluation(null)
+    setEvaluationError('')
     try {
       await recorder.start()
     } catch {
@@ -162,22 +174,49 @@ export function SpeakingPage() {
 
   async function handleStopRecording() {
     try {
-      await recorder.stop()
+      const recording = await recorder.stop()
+      await scoreRecording(recording.blob)
     } catch {
-      // error handled by hook
+      // decoding / upload errors are surfaced by the hook or scoreRecording
     }
   }
 
-  // submit self-rated practice
+  // Automatic scoring is best-effort: keep self rating usable when the
+  // material has no reference audio or the scorer rejects the recording.
+  async function scoreRecording(audio: Blob) {
+    if (!selectedMaterial) return
+    setEvaluating(true)
+    setEvaluation(null)
+    setEvaluationError('')
+    try {
+      const result = await evaluateSpeaking({ audio, material_id: selectedMaterial.id })
+      setEvaluation(result)
+    } catch (err) {
+      setEvaluationError(
+        err instanceof APIError && err.code === 'ERR_SPEAKING_REFERENCE_MISSING'
+          ? t('speaking.practice.noReference')
+          : t('speaking.practice.evalError'),
+      )
+    } finally {
+      setEvaluating(false)
+    }
+  }
+
+  const autoScore = evaluation?.status === 'scoreable' && typeof evaluation.overall_score === 'number'
+    ? evaluation.overall_score
+    : null
+  const effectiveScore = autoScore ?? selfRating * 20
+
+  // submit practice with the automatic score, falling back to self rating
   async function handleSubmit() {
-    if (!selectedMaterial || selfRating === 0 || submitting) return
+    if (!selectedMaterial || effectiveScore === 0 || submitting) return
     setSubmitting(true)
     setSubmissionError(false)
     try {
       const record = await apiFetch<SpeakingRecord>('POST', '/api/v1/speaking/practice', {
         type: selectedMaterial.type,
         material_id: selectedMaterial.id,
-        score: selfRating * 20,
+        score: effectiveScore,
       })
       setRecords((current) => [record, ...current.filter((item) => item.id !== record.id)])
       setSubmitted(true)
@@ -375,27 +414,27 @@ export function SpeakingPage() {
 
         {/* recording */}
         {recorder.isRecording ? (
-          <button className={`${styles.toolBtn} ${styles.toolBtnDanger}`} onClick={handleStopRecording}>
+          <button className={`${styles.toolBtn} ${styles.toolBtnDanger}`} onClick={handleStopRecording} disabled={evaluating}>
             <span className={styles.recordingIndicator} />{t('speaking.practice.stopRecord')}
           </button>
         ) : (
           <button
             className={styles.toolBtn}
-            onClick={recorder.audioURL ? undefined : handleStartRecording}
-            disabled={!!recorder.error}
+            onClick={handleStartRecording}
+            disabled={!!recorder.error || evaluating}
           >
-            {recorder.audioURL ? t('speaking.practice.reRecord') : t('speaking.practice.startRecord')}
+            {recorder.recording ? t('speaking.practice.reRecord') : t('speaking.practice.startRecord')}
           </button>
         )}
       </div>
 
       {/* playback */}
-      {recorder.audioURL && (
+      {recorder.recording && (
         <div style={{ marginTop: 'var(--space-4)' }}>
           <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--space-2)' }}>
             {t('speaking.practice.playback')}
           </p>
-          <audio controls src={recorder.audioURL} style={{ width: '100%' }} />
+          <audio controls src={recorder.recording.url} style={{ width: '100%' }} />
         </div>
       )}
 
@@ -405,9 +444,15 @@ export function SpeakingPage() {
         </p>
       )}
 
+      <p className={styles.scoringHint}>{t('speaking.practice.scoringHint')}</p>
+      {evaluating && <p className={styles.errorMsg} role="status">{t('speaking.practice.scoring')}</p>}
+      {evaluationError && <p className={styles.errorMsg} role="alert">{evaluationError}</p>}
+      <ScoreCard result={evaluation} />
+
       {/* self rating */}
       <div className={styles.ratingSection}>
         <p className={styles.ratingLabel}>{t('speaking.practice.selfRate')}</p>
+        {autoScore !== null && <p className={styles.autoScoreNote}>{t('speaking.practice.autoScoreUsed')}</p>}
         <div className={styles.stars}>
           {[1, 2, 3, 4, 5].map((i) => (
             <button
@@ -425,7 +470,7 @@ export function SpeakingPage() {
       <button
         className={styles.submitBtn}
         onClick={handleSubmit}
-        disabled={selfRating === 0 || submitting || submitted}
+        disabled={effectiveScore === 0 || submitting || submitted}
       >
         {submitting ? <Spinner size="sm" /> : t('speaking.practice.submit')}
       </button>

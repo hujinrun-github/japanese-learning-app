@@ -7,6 +7,7 @@ import { apiFetch } from '@/api/client'
 import { Spinner } from '@/components/ui/Spinner'
 import type { TranslationSentence, TranslationRecord } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { grammarSearchPath } from './grammarLink'
 import styles from './TranslationPracticePage.module.css'
 
 const grammarSourceLabels = { bank: '题库标注', ai: 'AI 分析', local: '本地规则' }
@@ -222,11 +223,18 @@ export function TranslationPracticePage() {
                     {sentence.direction === 'jp2cn' ? '日语原文' : '日语参考译文'} · {grammarSourceLabels[grammarSource]}
                   </p>
                   {grammar.map(point => (
-                    <div key={point.grammar_point} className={styles.grammarTag}>
+                    <button
+                      key={point.grammar_point}
+                      type="button"
+                      className={styles.grammarTag}
+                      onClick={() => navigate(grammarSearchPath(point.grammar_point))}
+                      title="查看语法详情"
+                    >
                       <span className={styles.grammarPoint}>{point.grammar_point}</span>
                       {point.explanation && <span className={styles.grammarExplanation}>{point.explanation}</span>}
                       {point.evidence && <q className={styles.grammarEvidence} lang="ja">{point.evidence}</q>}
-                    </div>
+                      <span className={styles.grammarLinkArrow} aria-hidden="true">›</span>
+                    </button>
                   ))}
                 </>
               ) : (
