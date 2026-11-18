@@ -13,6 +13,7 @@ import type { GrammarPointWithStatus, QuizSubmission, QuizResult } from '@/types
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import { createMistake } from '@/api/mistakes'
 import { buildGrammarMistakes } from '@/pages/mistakes/mistakeInput'
+import { answerPartsFor, hasFullAnswer } from './quizAnswer'
 import styles from './GrammarDetailPage.module.css'
 
 export function GrammarDetailPage() {
@@ -193,6 +194,7 @@ export function GrammarDetailPage() {
 
               {point.quiz_questions.map((q) => {
                 const itemResult = result?.results.find((r) => r.question_id === q.id)
+                const answerParts = itemResult ? answerPartsFor(q.type, q.prompt) : null
                 return (
                   <div key={q.id} className={styles.question}>
                     <div className={styles.questionPrompt}>{q.prompt}</div>
@@ -240,6 +242,14 @@ export function GrammarDetailPage() {
                         <div className={`${styles.resultLabel} ${itemResult.correct ? styles.labelCorrect : styles.labelWrong}`}>
                           {itemResult.correct ? t('grammar.detail.quiz.correct') : t('grammar.detail.quiz.wrong')}
                         </div>
+                        {!itemResult.correct && itemResult.expected && !hasFullAnswer(itemResult.explanation ?? '') && (
+                          <div className={styles.correctAnswer}>
+                            {t('grammar.detail.quiz.correctAnswer')}：
+                            {answerParts?.before}
+                            <strong>{itemResult.expected}</strong>
+                            {answerParts?.after}
+                          </div>
+                        )}
                         {itemResult.explanation && (
                           <div className={styles.explanation}>
                             {t('grammar.detail.quiz.explanation')}：{itemResult.explanation}

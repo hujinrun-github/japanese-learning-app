@@ -59,6 +59,9 @@
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
 /* Rating */
+.scoringHint { text-align: center; font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: var(--space-4); }
+.autoScoreNote { font-size: var(--font-size-xs); font-weight: 600; color: var(--color-brand); margin-bottom: var(--space-2); }
+
 .ratingSection { margin: var(--space-6) 0; text-align: center; }
 .ratingLabel { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-text-secondary); margin-bottom: var(--space-3); }
 .stars { display: flex; justify-content: center; gap: var(--space-2); }

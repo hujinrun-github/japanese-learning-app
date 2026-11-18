@@ -1,6 +1,7 @@
 package data
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -179,4 +180,103 @@ func TestGrammarStore_ListDueRecords(t *testing.T) {
 	if !found {
 		t.Error("ListDueRecords did not return the due record")
 	}
+}
+
+// The translation → grammar jump depends on ListAll's fuzzy search. Exercise it
+// against a real SQLite database so SQL/ORDER BY/column issues are not hidden
+// by the in-memory fake used in the grammar module tests.
+func TestGrammarStore_ListAll_Search(t *testing.T) {
+	store := &GrammarStore{db: testDB}
+
+	fixtures := []struct{ name, meaning, level string }{
+		{"ZZSEARCH-から", "检索甲", "N5"},
+		{"ZZSEARCH-ことから", "检索乙", "N4"},
+		{"ZZSEARCH-ばかり", "检索丙", "N3"},
+	}
+	for _, f := range fixtures {
+		_, err := testDB.Exec(`
+			INSERT INTO grammar_points (name, meaning, conjunction_rule, usage_note, examples_json, quiz_questions_json, jlpt_level)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			f.name, f.meaning, "", "", "[]", "[]", f.level,
+		)
+		if err != nil {
+			t.Fatalf("insert fixture %q: %v", f.name, err)
+		}
+	}
+	t.Cleanup(func() {
+		if _, err := testDB.Exec(`DELETE FROM grammar_points WHERE name LIKE 'ZZSEARCH-%'`); err != nil {
+			t.Errorf("cleanup fixtures: %v", err)
+		}
+	})
+
+	for _, tc := range []struct {
+		name      string
+		level     string
+		search    string
+		offset    int
+		limit     int
+		wantTotal int
+		wantLen   int
+		wantNames []string // nil skips the name assertion
+	}{
+		{"cross-level name search", "", "ZZSEARCH", 0, 50, 3, 3,
+			[]string{"ZZSEARCH-から", "ZZSEARCH-ことから", "ZZSEARCH-ばかり"}},
+		{"meaning search", "", "检索乙", 0, 50, 1, 1, []string{"ZZSEARCH-ことから"}},
+		{"level filter", "N4", "ZZSEARCH", 0, 50, 1, 1, []string{"ZZSEARCH-ことから"}},
+		{"pagination", "", "ZZSEARCH", 1, 1, 3, 1, nil},
+		{"no match", "", "ZZSEARCH-存在しない", 0, 50, 0, 0, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			points, total, err := store.ListAll(tc.level, tc.search, tc.offset, tc.limit)
+			if err != nil {
+				t.Fatalf("ListAll error: %v", err)
+			}
+			if total != tc.wantTotal {
+				t.Errorf("total = %d, want %d", total, tc.wantTotal)
+			}
+			if len(points) != tc.wantLen {
+				t.Errorf("len(points) = %d, want %d", len(points), tc.wantLen)
+			}
+			if tc.wantNames == nil {
+				return
+			}
+			var got []string
+			for _, p := range points {
+				got = append(got, p.Name)
+			}
+			slices.Sort(got)
+			slices.Sort(tc.wantNames)
+			if !slices.Equal(got, tc.wantNames) {
+				t.Errorf("names = %v, want %v", got, tc.wantNames)
+			}
+		})
+	}
+
+	// End-to-end: service + real store, no fakes. Mirrors the two outcomes of
+	// clicking a grammar tag in translation practice.
+	svc := grammar.NewGrammarService(store)
+	t.Run("service resolves an exact annotation to a detail page id", func(t *testing.T) {
+		result, err := svc.SearchByName("ZZSEARCH-から")
+		if err != nil {
+			t.Fatalf("SearchByName error: %v", err)
+		}
+		if result.ExactMatchID <= 0 {
+			t.Errorf("exact_match_id = %d, want a real grammar_points id", result.ExactMatchID)
+		}
+		if len(result.Points) != 1 || result.Points[0].Name != "ZZSEARCH-から" {
+			t.Errorf("points = %+v, want only ZZSEARCH-から", result.Points)
+		}
+	})
+	t.Run("service leaves an unknown annotation on the result list", func(t *testing.T) {
+		result, err := svc.SearchByName("ZZSEARCH")
+		if err != nil {
+			t.Fatalf("SearchByName error: %v", err)
+		}
+		if result.ExactMatchID != 0 {
+			t.Errorf("exact_match_id = %d, want 0", result.ExactMatchID)
+		}
+		if len(result.Points) != 3 {
+			t.Errorf("points len = %d, want 3 related hits", len(result.Points))
+		}
+	})
 }

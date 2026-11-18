@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"japanese-learning-app/internal/httputil"
 	"japanese-learning-app/internal/module/user"
@@ -42,12 +43,6 @@ func NewGrammarHandlerWithNotes(svc *GrammarService, noteSvc NoteDigestProvider)
 	return &GrammarHandler{svc: svc, noteSvc: noteSvc}
 }
 
-// RegisterRoutes registers grammar routes onto the provided mux.
-// Routes:
-//   GET  /api/v1/grammar?level=N5              → ListByLevel
-//   GET  /api/v1/grammar/{id}                  → GetPoint
-//   POST /api/v1/grammar/{id}/quiz             → ScoreQuiz
-
 // SetStreakRecorder sets an optional recorder used to keep the study streak
 // current after a quiz is scored. Nil disables check-ins.
 func (h *GrammarHandler) SetStreakRecorder(r user.StreakRecorder) {
@@ -56,13 +51,41 @@ func (h *GrammarHandler) SetStreakRecorder(r user.StreakRecorder) {
 
 // RegisterRoutes registers grammar routes onto the provided mux.
 // Routes:
-//   GET  /api/v1/grammar?level=N5              → ListByLevel
-//   GET  /api/v1/grammar/{id}                  → GetPoint
-//   POST /api/v1/grammar/{id}/quiz             → ScoreQuiz
+//
+//	GET  /api/v1/grammar?level=N5              → ListByLevel
+//	GET  /api/v1/grammar/search?q=xxx          → Search (across all levels)
+//	GET  /api/v1/grammar/{id}                  → GetPoint
+//	POST /api/v1/grammar/{id}/quiz             → ScoreQuiz
 func (h *GrammarHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/grammar", h.handleListByLevel)
+	mux.HandleFunc("GET /api/v1/grammar/search", h.handleSearch)
 	mux.HandleFunc("GET /api/v1/grammar/{id}", h.handleGetPoint)
 	mux.HandleFunc("POST /api/v1/grammar/{id}/quiz", h.handleScoreQuiz)
+}
+
+// handleSearch resolves a grammar annotation (from the translation question
+// bank or AI feedback) to grammar library entries. The literal /search path
+// is more specific than /{id} and therefore wins in ServeMux.
+func (h *GrammarHandler) handleSearch(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	userID, _ := user.UserIDFromContext(r.Context())
+	slog.Debug("handleSearch called", "q", q, "user_id", userID)
+
+	if q == "" {
+		slog.Warn("handleSearch rejected empty query", "user_id", userID)
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "q is required", "")
+		return
+	}
+
+	result, err := h.svc.SearchByName(q)
+	if err != nil {
+		slog.Error("handleSearch failed", "err", err, "q", q, "user_id", userID)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to search grammar points", "")
+		return
+	}
+
+	slog.Debug("handleSearch done", "q", q, "count", len(result.Points), "exact_match_id", result.ExactMatchID)
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: result})
 }
 
 func (h *GrammarHandler) handleListByLevel(w http.ResponseWriter, r *http.Request) {

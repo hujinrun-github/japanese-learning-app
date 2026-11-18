@@ -140,6 +140,20 @@ export interface GrammarPointWithStatus extends GrammarPoint {
   last_quiz_score: number // -1 = never quizzed, 0-100 = last quiz score
 }
 
+// Grammar library search (GET /api/v1/grammar/search?q=...)
+export interface GrammarSearchHit {
+  id: number
+  name: string
+  meaning: string
+  jlpt_level: JLPTLevel
+}
+
+export interface GrammarSearchResult {
+  query: string
+  exact_match_id: number // 0 = the library has no full entry for this annotation
+  points: GrammarSearchHit[]
+}
+
 export interface QuizSubmission {
   question_id: number
   answer: string

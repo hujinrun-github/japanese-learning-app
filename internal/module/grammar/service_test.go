@@ -3,6 +3,8 @@ package grammar_test
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,8 +14,9 @@ import (
 // --- fakes ---
 
 type fakeGrammarStore struct {
-	points  map[int64]*grammar.GrammarPoint
-	records map[string]*grammar.GrammarRecord // key: "userID:grammarPointID"
+	points     map[int64]*grammar.GrammarPoint
+	records    map[string]*grammar.GrammarRecord // key: "userID:grammarPointID"
+	listAllErr error
 }
 
 func newFakeGrammarStore() *fakeGrammarStore {
@@ -66,6 +69,32 @@ func (f *fakeGrammarStore) ListDueRecords(userID int64) ([]grammar.GrammarRecord
 		}
 	}
 	return result, nil
+}
+
+func (f *fakeGrammarStore) ListAll(level, search string, offset, limit int) ([]grammar.GrammarPoint, int, error) {
+	if f.listAllErr != nil {
+		return nil, 0, f.listAllErr
+	}
+	var all []grammar.GrammarPoint
+	for _, p := range f.points {
+		if level != "" && string(p.JLPTLevel) != level {
+			continue
+		}
+		if search != "" && !strings.Contains(p.Name, search) && !strings.Contains(p.Meaning, search) {
+			continue
+		}
+		all = append(all, *p)
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].ID < all[j].ID })
+	total := len(all)
+	if offset >= len(all) {
+		return []grammar.GrammarPoint{}, total, nil
+	}
+	all = all[offset:]
+	if limit > 0 && len(all) > limit {
+		all = all[:limit]
+	}
+	return all, total, nil
 }
 
 func recordKey(userID, pointID int64) string {
@@ -130,10 +159,10 @@ func TestGrammarService_ScoreQuiz(t *testing.T) {
 	svc := grammar.NewGrammarService(store)
 
 	tests := []struct {
-		name          string
-		submissions   []grammar.QuizSubmission
-		wantScore     int
-		wantCorrect   []bool
+		name        string
+		submissions []grammar.QuizSubmission
+		wantScore   int
+		wantCorrect []bool
 	}{
 		{
 			name: "all correct",
