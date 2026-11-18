@@ -7,24 +7,32 @@ import (
 	"japanese-learning-app/internal/audio"
 )
 
-func TestEvaluateWAVRejectsLongAudio(t *testing.T) {
+func TestEvaluateWAVDurationLimit(t *testing.T) {
 	short, err := audio.EncodeWAV(make([]float64, 8000), 8000)
 	if err != nil {
 		t.Fatal(err)
 	}
-	long, err := audio.EncodeWAV(make([]float64, 8000*61), 8000)
+	long, err := audio.EncodeWAV(make([]float64, 8000*300), 8000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tooLong, err := audio.EncodeWAV(make([]float64, 8000*300+1), 8000)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
 		name      string
 		ref, user []byte
+		wantError bool
 	}{
-		{"reference", long, short}, {"recording", short, long},
+		{"five-minute reference", long, short, false},
+		{"five-minute recording", short, long, false},
+		{"reference over five minutes", tooLong, short, true},
+		{"recording over five minutes", short, tooLong, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := EvaluateWAV(tc.ref, tc.user, EvaluationModeRepeat); err == nil {
-				t.Fatal("audio longer than 60 seconds must be rejected before feature extraction")
+			if _, err := EvaluateWAV(tc.ref, tc.user, EvaluationModeRepeat); (err != nil) != tc.wantError {
+				t.Fatalf("error = %v, wantError = %v", err, tc.wantError)
 			}
 		})
 	}

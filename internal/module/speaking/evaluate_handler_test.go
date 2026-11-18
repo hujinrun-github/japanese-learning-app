@@ -63,7 +63,7 @@ func writeEvaluationFile(t *testing.T, path string, content []byte) {
 func TestSpeakingEvaluationHandler(t *testing.T) {
 	ref := evaluationSpeechWAV(16000, 3)
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(evaluationRefText)))[:16]
-	tooLarge := bytes.Repeat([]byte{1}, 2<<20+1)
+	tooLarge := bytes.Repeat([]byte{1}, 10<<20+1)
 
 	tests := []struct {
 		name          string
@@ -265,6 +265,68 @@ func TestSpeakingEvaluationHandler(t *testing.T) {
 					t.Errorf("status = %q, overall_score = %v, want a scoreable result",
 						payload.Data.Status, payload.Data.OverallScore)
 				}
+			}
+		})
+	}
+}
+
+func TestSpeakingLongRecording(t *testing.T) {
+	// The longest textbook reference is 99.3 seconds. Also exercise the full
+	// five-minute allowance so slower learners have room for pauses and repeats.
+	for _, seconds := range []int{100, 300} {
+		t.Run(fmt.Sprintf("%d seconds", seconds), func(t *testing.T) {
+			ref := evaluationSpeechWAV(8000, seconds)
+			recording := evaluationSpeechWAV(16000, seconds)
+			dir := t.TempDir()
+			writeEvaluationFile(t, filepath.Join(dir, "speaking", "ref.wav"), ref)
+			db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
+			if _, err := db.Exec(`INSERT INTO speaking_materials
+				(id,type,title,text,audio_url_legacy,jlpt_level)
+				VALUES (1,'shadow','長い課文',$1,$2,'N4')`, evaluationRefText, evaluationExplicitURL); err != nil {
+				t.Fatal(err)
+			}
+			svc := speaking.NewSpeakingService(pgdata.NewSpeakingStore(db, store.StoreDeps{}), speaking.NewWaveformScorer())
+			mux := http.NewServeMux()
+			speaking.NewEvaluationHandler(svc, dir, nil, shadowing.NewEvaluator(1)).RegisterRoutes(mux)
+			var body bytes.Buffer
+			form := multipart.NewWriter(&body)
+			part, err := form.CreateFormFile("audio", "attempt.wav")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := part.Write(recording); err != nil {
+				t.Fatal(err)
+			}
+			if err := form.WriteField("material_id", "1"); err != nil {
+				t.Fatal(err)
+			}
+			// Use repeat mode to exercise all scoring dimensions, rather than the
+			// shadow-mode reference-bleed guard for these matching test signals.
+			if err := form.WriteField("mode", "repeat"); err != nil {
+				t.Fatal(err)
+			}
+			if err := form.Close(); err != nil {
+				t.Fatal(err)
+			}
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/speaking/evaluate", &body)
+			req.Header.Set("Content-Type", form.FormDataContentType())
+			response := httptest.NewRecorder()
+			mux.ServeHTTP(response, req)
+			if response.Code != http.StatusOK {
+				t.Fatalf("status=%d: %s", response.Code, response.Body.String())
+			}
+			var payload struct {
+				Data struct {
+					Status       string `json:"status"`
+					OverallScore *int   `json:"overall_score"`
+					ScoreSource  string `json:"score_source"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload.Data.Status != "scoreable" || payload.Data.OverallScore == nil || payload.Data.ScoreSource != "local_prosody_v1" {
+				t.Fatalf("long recording was not scored: %s", response.Body.String())
 			}
 		})
 	}

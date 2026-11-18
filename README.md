@@ -326,6 +326,8 @@ go run ./scripts/generate_tts_examples/ \
 
 **口语自动评分：** `POST /api/v1/speaking/evaluate` 复用课文影子跟读的本地评分引擎（无 ASR、无外部服务），需要参考音频：优先用材料的 `audio_url`，为空时按 `sha256(text)[:16].wav` 取 `data/audio/examples/` 下由上面命令生成的 TTS 文件。缺参考音频时返回 `ERR_SPEAKING_REFERENCE_MISSING`，页面回退到自评。
 
+口语整段录音最多 **5 分钟 / 10 MiB**；前端使用 16 kHz 单声道 PCM16 WAV，5 分钟约占 9.2 MiB。参考音频和录音均支持最长 5 分钟的自动评分。
+
 ## 功能模块
 
 | 模块 | 说明 |
