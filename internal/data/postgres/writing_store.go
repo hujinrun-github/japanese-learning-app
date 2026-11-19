@@ -24,6 +24,26 @@ func NewWritingStore(db queryer, deps store.StoreDeps) *WritingStore {
 	}
 }
 
+func (s *WritingStore) ListTopics() ([]writing.WritingTopic, error) {
+	rows, err := s.db.QueryContext(context.Background(), `SELECT id,title,jlpt_level,essay_prompt,sentence_prompt FROM writing_topics ORDER BY position,id`)
+	if err != nil {
+		return nil, fmt.Errorf("postgres.WritingStore.ListTopics query: %w", err)
+	}
+	defer rows.Close()
+	topics := make([]writing.WritingTopic, 0)
+	for rows.Next() {
+		var topic writing.WritingTopic
+		if err := rows.Scan(&topic.ID, &topic.Title, &topic.JLPTLevel, &topic.EssayPrompt, &topic.SentencePrompt); err != nil {
+			return nil, fmt.Errorf("postgres.WritingStore.ListTopics scan: %w", err)
+		}
+		topics = append(topics, topic)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres.WritingStore.ListTopics rows: %w", err)
+	}
+	return topics, nil
+}
+
 func (s *WritingStore) ListAllQuestions(level, qtype string, offset, limit int) ([]writing.WritingQuestion, int, error) {
 	where, args := buildWritingQuestionFilter(level, qtype)
 

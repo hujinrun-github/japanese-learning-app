@@ -82,8 +82,10 @@ export function WordReviewPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const mode: ReviewMode = searchParams.get('mode') === 'dictation' ? 'dictation' : 'recognition'
   const targetWord = searchParams.get('word_id')
-  const [level, setLevel] = useState<JLPTLevel>('N5')
+  const queueScope = searchParams.get('queue') === 'new' ? 'new' : 'review'
+  const requestedLevel = LEVELS.find(item => item === searchParams.get('level')) ?? 'N5'
   const [queue, setQueue] = useState<ReviewCard[]>([])
+  const [round, setRound] = useState(0)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -95,7 +97,9 @@ export function WordReviewPage() {
   const [dictationReadingInput, setDictationReadingInput] = useState('')
   const [dictationResult, setDictationResult] = useState<DictationAnswerResult | null>(null)
   const submitLock = useRef(false)
-  const queueLevel = targetWord === null ? level : null
+  const level = targetWord !== null ? queue[0]?.word.jlpt_level ?? requestedLevel : requestedLevel
+  const allLevels = targetWord === null && queueScope === 'review' && searchParams.get('level') === 'all'
+  const queueLevel = targetWord === null ? allLevels ? 'all' : level : null
 
   const done = queue.length === 0 || currentIndex >= queue.length
   const card = done ? null : queue[currentIndex]
@@ -120,7 +124,7 @@ export function WordReviewPage() {
     const controller = new AbortController()
     void loadQueue(queueLevel, targetWord, controller.signal)
     return () => controller.abort()
-  }, [queueLevel, targetWord])
+  }, [queueLevel, targetWord, queueScope, round])
 
   useEffect(() => {
     resetCardState()
@@ -155,15 +159,24 @@ export function WordReviewPage() {
     setSearchParams(nextParams, { replace: true })
   }
 
-  function returnToQueue(lv = level) {
+  function returnToQueue(lv: JLPTLevel | 'all' = level) {
     if (submitting || submitLock.current) return
-    setLevel(lv)
     const nextParams = new URLSearchParams(searchParams)
     nextParams.delete('word_id')
-    setSearchParams(nextParams, { replace: true })
+    nextParams.set('level', lv)
+    setSearchParams(nextParams)
   }
 
-  async function loadQueue(lv: JLPTLevel | null, target: string | null, signal: AbortSignal) {
+  function handleQueueChange(nextScope: 'review' | 'new') {
+    if (submitting || submitLock.current) return
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('word_id')
+    nextParams.set('queue', nextScope)
+    if (nextScope === 'new' && allLevels) nextParams.set('level', level)
+    setSearchParams(nextParams)
+  }
+
+  async function loadQueue(lv: JLPTLevel | 'all' | null, target: string | null, signal: AbortSignal) {
     setLoading(true)
     setError('')
     setQueue([])
@@ -177,9 +190,8 @@ export function WordReviewPage() {
         if (signal.aborted) return
         if (!word || word.id !== id) throw new Error(t('word.queue.invalidTarget'))
         setQueue([{ word, is_new: false }])
-        if (LEVELS.includes(word.jlpt_level)) setLevel(word.jlpt_level)
       } else {
-        const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}`, undefined, signal)
+        const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}&queue=${queueScope}`, undefined, signal)
         if (!signal.aborted) setQueue(cards ?? [])
       }
     } catch (err) {
@@ -300,18 +312,10 @@ export function WordReviewPage() {
     && (!requiresKanji || normalizeDictationAnswer(dictationReadingInput)),
   )
 
-  if (loading) {
-    return (
-      <div className={styles.page} style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
-        <Spinner size="lg" />
-      </div>
-    )
-  }
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>{t('word.queue.title')}</h1>
+        <h1 className={styles.title}>{t(queueScope === 'new' && targetWord === null ? 'word.queue.learnTitle' : 'word.queue.title')}</h1>
         {targetWord !== null && (
           <button className={styles.returnToQueue} onClick={() => returnToQueue()} disabled={submitting}>
             {t('word.queue.backToQueue')}
@@ -319,6 +323,21 @@ export function WordReviewPage() {
         )}
       </div>
       <DailyPracticeProgress progress={progress} />
+
+      <div className={styles.modeSwitch} role="group" aria-label={t('word.queue.scope.label')}>
+        {(['review', 'new'] as const).map(scope => (
+          <button
+            key={scope}
+            className={`${styles.modeButton} ${queueScope === scope ? styles.modeButtonActive : ''}`}
+            onClick={() => handleQueueChange(scope)}
+            disabled={submitting}
+            aria-pressed={queueScope === scope}
+          >
+            {t(`word.queue.scope.${scope}`)}
+          </button>
+        ))}
+      </div>
+      <p className={styles.progress}>{t(queueScope === 'new' ? 'word.queue.newHint' : 'word.queue.reviewHint')}</p>
 
       <div className={styles.modeSwitch} role="group" aria-label={t('word.queue.mode.label')}>
         <button
@@ -340,13 +359,24 @@ export function WordReviewPage() {
       </div>
 
       <div className={styles.tabs}>
+        {queueScope === 'review' && (
+          <button
+            className={`${styles.tab} ${allLevels ? styles.tabActive : ''}`}
+            onClick={() => returnToQueue('all')}
+            disabled={submitting}
+            aria-pressed={allLevels}
+          >
+            {t('word.queue.allLevels')}
+          </button>
+        )}
         {LEVELS.map(lv => (
           <button
             key={lv}
-            className={`${styles.tab} ${level === lv ? styles.tabActive : ''}`}
-            onClick={() => targetWord !== null ? returnToQueue(lv) : setLevel(lv)}
+            data-level={lv}
+            className={`${styles.tab} ${!allLevels && level === lv ? styles.tabActive : ''}`}
+            onClick={() => returnToQueue(lv)}
             disabled={submitting}
-            aria-pressed={level === lv}
+            aria-pressed={!allLevels && level === lv}
           >
             {lv}
           </button>
@@ -355,8 +385,19 @@ export function WordReviewPage() {
 
       {error && <p className={styles.error} role="alert">{error}</p>}
 
-      {done ? (
-        !error && <EmptyState icon="🎉" title={t(targetWord !== null ? 'word.queue.targetDone' : 'word.queue.done')} description={t(targetWord !== null ? 'word.queue.targetDoneDesc' : 'word.queue.doneDesc')} />
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '40px' }}><Spinner size="lg" /></div>
+      ) : done ? (
+        !error && <EmptyState
+          icon="🎉"
+          title={t(targetWord !== null ? 'word.queue.targetDone' : queue.length > 0 ? 'word.queue.roundDone' : queueScope === 'new' ? 'word.queue.noNew' : 'word.queue.noDue')}
+          description={t(targetWord !== null ? 'word.queue.targetDoneDesc' : queue.length > 0 ? 'word.queue.roundDoneDesc' : queueScope === 'new' ? 'word.queue.noNewDesc' : 'word.queue.noDueDesc')}
+          action={targetWord === null && queue.length > 0 && (
+            <button className={styles.returnToQueue} onClick={() => setRound(value => value + 1)}>
+              {t(queueScope === 'new' ? 'word.queue.continueNew' : 'word.queue.continueReview')}
+            </button>
+          )}
+        />
       ) : (
         <>
           <p className={styles.progress}>

@@ -16,10 +16,10 @@
 .tab { padding: var(--space-1) var(--space-4); border-radius: var(--radius-full); border: 1.5px solid var(--color-border); background: var(--color-bg-surface); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 600; cursor: pointer; white-space: nowrap; transition: all var(--transition-fast); }
 .tab:hover { border-color: var(--color-brand); color: var(--color-brand); }
 .tabActive { background: var(--color-n5); border-color: var(--color-n5); color: #fff; }
-.tabs .tab:nth-child(2).tabActive { background: var(--color-n4); border-color: var(--color-n4); }
-.tabs .tab:nth-child(3).tabActive { background: var(--color-n3); border-color: var(--color-n3); color: #713f12; }
-.tabs .tab:nth-child(4).tabActive { background: var(--color-n2); border-color: var(--color-n2); }
-.tabs .tab:nth-child(5).tabActive { background: var(--color-n1); border-color: var(--color-n1); }
+.tabs .tab[data-level='N4'].tabActive { background: var(--color-n4); border-color: var(--color-n4); }
+.tabs .tab[data-level='N3'].tabActive { background: var(--color-n3); border-color: var(--color-n3); color: #713f12; }
+.tabs .tab[data-level='N2'].tabActive { background: var(--color-n2); border-color: var(--color-n2); }
+.tabs .tab[data-level='N1'].tabActive { background: var(--color-n1); border-color: var(--color-n1); }
 
 .progress { text-align: center; font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: var(--space-4); }
 

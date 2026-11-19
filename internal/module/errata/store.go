@@ -54,6 +54,22 @@ func (s *Store) ListByUser(ctx context.Context, userID int64, limit, offset int)
 	return s.list(ctx, "user_id = $1", userID, limit, offset)
 }
 
+// GetByID is reserved for authenticated administration, independent of reporter ownership.
+func (s *Store) GetByID(ctx context.Context, id int64) (Report, bool, error) {
+	var report Report
+	err := s.db.QueryRowContext(ctx, `SELECT id, user_id, module, item_key, item_label, category, description, status, created_at
+		FROM errata_reports WHERE id = $1`, id).Scan(
+		&report.ID, &report.UserID, &report.Module, &report.ItemKey, &report.ItemLabel,
+		&report.Category, &report.Description, &report.Status, &report.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Report{}, false, nil
+	}
+	if err != nil {
+		return Report{}, false, fmt.Errorf("errata.Store.GetByID: %w", err)
+	}
+	return report, true, nil
+}
+
 func (s *Store) list(ctx context.Context, predicate string, scope any, limit, offset int) ([]Report, error) {
 	// The predicate is fixed by the caller. User-supplied values are bound separately.
 	rows, err := s.db.QueryContext(ctx, `SELECT id, user_id, module, item_key, item_label, category, description, status, created_at

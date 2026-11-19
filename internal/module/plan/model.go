@@ -41,7 +41,7 @@ type moduleDescriptor struct {
 // moduleDescriptors defines the canonical daily-plan module set and ordering.
 // Only modules that have a daily goal configured are emitted.
 var moduleDescriptors = []moduleDescriptor{
-	{Key: ModuleWord, Path: "/words/review"},
+	{Key: ModuleWord, Path: "/words/review?level=all"},
 	{Key: ModuleGrammar, Path: "/grammar"},
 	{Key: ModuleSpeaking, Path: "/speaking"},
 	{Key: ModuleWriting, Path: "/writing"},

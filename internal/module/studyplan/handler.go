@@ -17,11 +17,16 @@ import (
 	"japanese-learning-app/internal/module/user"
 )
 
-type Handler struct{ db *sql.DB }
+type Handler struct {
+	db  *sql.DB
+	now func() time.Time
+}
 
-func NewHandler(db *sql.DB) *Handler { return &Handler{db: db} }
+func NewHandler(db *sql.DB) *Handler { return &Handler{db: db, now: time.Now} }
 func (h *Handler) RegisterRoutes(protected, public *http.ServeMux) {
 	protected.HandleFunc("GET /api/v1/study-plan", h.get)
+	protected.HandleFunc("GET /api/v1/study-plan/today", h.today)
+	protected.HandleFunc("PUT /api/v1/study-plan/tasks/{slotID}/{taskID}", h.completeTask)
 	protected.HandleFunc("PUT /api/v1/study-plan", h.save)
 	protected.HandleFunc("DELETE /api/v1/study-plan", h.remove)
 	protected.HandleFunc("POST /api/v1/study-plan/calendar-token", h.rotate)
@@ -71,7 +76,7 @@ func (h *Handler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var p Plan
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192))
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 65536))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&p); err != nil {
 		httputil.WriteError(w, 400, "ERR_BAD_REQUEST", "计划格式无效", "")
@@ -87,7 +92,7 @@ func (h *Handler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.Title = strings.TrimSpace(p.Title)
-	p.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	p.UpdatedAt = h.now().UTC().Format(time.RFC3339)
 	p.Revision = 0
 	raw, err := json.Marshal(p)
 	if err != nil {
@@ -174,7 +179,7 @@ func calendarText(s string) string {
 	return strings.NewReplacer("\\", "\\\\", "\r\n", "\\n", "\n", "\\n", "\r", "\\n", ";", "\\;", ",", "\\,").Replace(s)
 }
 func Calendar(p Plan, uid int64) (string, error) {
-	sessions, err := p.Sessions()
+	sessions, err := p.calendarSessions()
 	if err != nil {
 		return "", fmt.Errorf("generate study calendar: %w", err)
 	}
@@ -193,10 +198,27 @@ func Calendar(p Plan, uid int64) (string, error) {
 			goals = append(goals, fmt.Sprintf("%s %d %s", goal.name, goal.count, goal.unit))
 		}
 	}
-	description := calendarText(fmt.Sprintf("今日目标：%s。学习 %d 分钟。", strings.Join(goals, "、"), p.Duration))
-	for _, start := range sessions {
-		lines = append(lines, "BEGIN:VEVENT", fmt.Sprintf("UID:%d-%s@japanese-learning-app", uid, start.Format("2006-01-02")), "DTSTAMP:"+updated.UTC().Format("20060102T150405Z"), "LAST-MODIFIED:"+updated.UTC().Format("20060102T150405Z"), fmt.Sprintf("SEQUENCE:%d", revision), "DTSTART:"+start.UTC().Format("20060102T150405Z"), "DTEND:"+start.Add(time.Duration(p.Duration)*time.Minute).UTC().Format("20060102T150405Z"), "SUMMARY:"+calendarText(p.Title), "DESCRIPTION:"+description, "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:"+calendarText(p.Title), fmt.Sprintf("TRIGGER:-PT%dM", p.Reminder), "END:VALARM", "END:VEVENT")
+	for _, session := range sessions {
+		start := session.start
+		uidText := fmt.Sprintf("%d-%s", uid, start.Format("2006-01-02"))
+		summary := p.Title
+		description := fmt.Sprintf("今日目标：%s。学习 %d 分钟。", strings.Join(goals, "、"), session.duration)
+		if session.slotID != "" {
+			uidText += "-" + session.slotID
+			summary += " · " + session.title
+			tasks := make([]string, 0, len(session.tasks))
+			for _, task := range session.tasks {
+				text := fmt.Sprintf("%s（%d 分钟）：%s", task.Title, task.Minutes, task.Description)
+				if task.Path != "" {
+					text += " " + task.Path
+				}
+				tasks = append(tasks, text)
+			}
+			description = fmt.Sprintf("%s，学习 %d 分钟。\n%s", session.title, session.duration, strings.Join(tasks, "\n"))
+		}
+		lines = append(lines, "BEGIN:VEVENT", "UID:"+uidText+"@japanese-learning-app", "DTSTAMP:"+updated.UTC().Format("20060102T150405Z"), "LAST-MODIFIED:"+updated.UTC().Format("20060102T150405Z"), fmt.Sprintf("SEQUENCE:%d", revision), "DTSTART:"+start.UTC().Format("20060102T150405Z"), "DTEND:"+start.Add(time.Duration(session.duration)*time.Minute).UTC().Format("20060102T150405Z"), "SUMMARY:"+calendarText(summary), "DESCRIPTION:"+calendarText(description), "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:"+calendarText(summary), fmt.Sprintf("TRIGGER:-PT%dM", p.Reminder), "END:VALARM", "END:VEVENT")
 	}
+
 	lines = append(lines, "END:VCALENDAR")
 	var b strings.Builder
 	for _, line := range lines {

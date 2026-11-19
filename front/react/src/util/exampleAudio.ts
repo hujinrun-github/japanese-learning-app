@@ -2,6 +2,13 @@ import { getVolume } from './audioVolume'
 
 let audioEl: HTMLAudioElement | null = null
 
+// Local files can be replaced after a correction while retaining their text hash.
+function freshAudioURL(url: string): string {
+  if (!url.startsWith('/audio/')) return url
+  const [path, fragment] = url.split('#', 2)
+  return `${path}${path.includes('?') ? '&' : '?'}t=${Date.now()}${fragment ? `#${fragment}` : ''}`
+}
+
 export function stopCurrent() {
   if (audioEl) {
     audioEl.pause()
@@ -15,7 +22,7 @@ export function stopCurrent() {
 export function playReferenceAudio(url: string): Promise<void> {
   stopCurrent()
   return new Promise((resolve, reject) => {
-    const audio = new Audio(url)
+    const audio = new Audio(freshAudioURL(url))
     audio.volume = getVolume()
     audioEl = audio
     audio.onended = () => { if (audioEl === audio) audioEl = null; resolve() }
@@ -79,7 +86,7 @@ export async function speakExample(text: string, opts?: SpeakOptions): Promise<v
   const vol = getVolume()
 
   return new Promise((resolve) => {
-    const audio = new Audio(url)
+    const audio = new Audio(freshAudioURL(url))
     audio.volume = vol
     audioEl = audio
 
@@ -110,7 +117,7 @@ export async function speakWord(audioURL: string | undefined | null, text: strin
     const vol = getVolume()
 
     return new Promise((resolve) => {
-      const audio = new Audio(url)
+      const audio = new Audio(freshAudioURL(url))
       audio.volume = vol
       audioEl = audio
 

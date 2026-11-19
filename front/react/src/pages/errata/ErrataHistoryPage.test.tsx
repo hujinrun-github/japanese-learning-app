@@ -50,4 +50,9 @@ describe('ErrataReportCard 按题型与状态展示操作按钮', () => {
     expect(html).toContain('原始描述')
     expect(html).toContain('待处理')
   })
+
+  it('明确编辑的是反馈报告', () => {
+    const html = render(base)
+    expect(html).toContain('编辑反馈')
+  })
 })

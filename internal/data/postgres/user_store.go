@@ -116,8 +116,8 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 		return nil, err
 	}
 	wordDue, err := s.countRows(
-		`SELECT COUNT(*) FROM word_records WHERE user_id = $1 AND next_review_at <= $2`,
-		userID, now.UTC(),
+		`SELECT COUNT(*) FROM word_records WHERE user_id = $1 AND next_review_at <= $2 AND updated_at < $3`,
+		userID, now.UTC(), start.UTC(),
 	)
 	if err != nil {
 		return nil, err

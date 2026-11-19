@@ -64,6 +64,7 @@ func newCandidate(id int64, due bool) word.ReviewCandidate {
 func TestWordService_GetReviewQueue_UsesSingleBatch(t *testing.T) {
 	tests := []struct {
 		name         string
+		newWords     bool
 		limit        int
 		candidates   []word.ReviewCandidate
 		wantIDs      []int64
@@ -72,58 +73,41 @@ func TestWordService_GetReviewQueue_UsesSingleBatch(t *testing.T) {
 		wantNewLimit int
 	}{
 		{
-			name:  "到期词与新词混合",
-			limit: 4,
-			candidates: []word.ReviewCandidate{
-				newCandidate(1, true), newCandidate(2, true),
-				newCandidate(3, false), newCandidate(4, false), newCandidate(5, false),
-			},
-			wantIDs:      []int64{1, 2, 3, 4},
-			wantNewFlags: []bool{false, false, true, true},
-			wantDueLimit: 2, wantNewLimit: 4,
+			name: "复习不混入新词", limit: 4,
+			candidates: []word.ReviewCandidate{newCandidate(1, true), newCandidate(2, true), newCandidate(3, false)},
+			wantIDs:    []int64{1, 2}, wantNewFlags: []bool{false, false}, wantDueLimit: 4, wantNewLimit: 0,
 		},
 		{
-			name:         "到期词超过半轮则截断",
-			limit:        4,
-			candidates:   []word.ReviewCandidate{newCandidate(1, true), newCandidate(2, true), newCandidate(3, true), newCandidate(4, false), newCandidate(5, false), newCandidate(6, false)},
-			wantIDs:      []int64{1, 2, 4, 5},
-			wantNewFlags: []bool{false, false, true, true},
-			wantDueLimit: 2, wantNewLimit: 4,
+			name: "到期词可以占满整轮", limit: 4,
+			candidates: []word.ReviewCandidate{newCandidate(1, true), newCandidate(2, true), newCandidate(3, true), newCandidate(4, true), newCandidate(5, false)},
+			wantIDs:    []int64{1, 2, 3, 4}, wantNewFlags: []bool{false, false, false, false}, wantDueLimit: 4, wantNewLimit: 0,
 		},
 		{
-			name:         "limit 1 仍保留一张到期词",
-			limit:        1,
-			candidates:   []word.ReviewCandidate{newCandidate(1, true), newCandidate(2, false)},
-			wantIDs:      []int64{1},
-			wantNewFlags: []bool{false},
-			wantDueLimit: 1, wantNewLimit: 1,
+			name: "limit 1", limit: 1,
+			candidates: []word.ReviewCandidate{newCandidate(1, true), newCandidate(2, false)},
+			wantIDs:    []int64{1}, wantNewFlags: []bool{false}, wantDueLimit: 1, wantNewLimit: 0,
 		},
 		{
-			name:         "没有到期词时全是新词",
-			limit:        2,
+			name: "没有到期词时不补新词", limit: 2,
 			candidates:   []word.ReviewCandidate{newCandidate(7, false), newCandidate(8, false)},
-			wantIDs:      []int64{7, 8},
-			wantNewFlags: []bool{true, true},
-			wantDueLimit: 1, wantNewLimit: 2,
+			wantDueLimit: 2, wantNewLimit: 0,
 		},
 		{
-			name:  "今天已复习的到期词跳过",
-			limit: 3,
-			candidates: func() []word.ReviewCandidate {
-				c := newCandidate(1, true)
-				c.Record.UpdatedAt = time.Now()
-				return []word.ReviewCandidate{c, newCandidate(2, false), newCandidate(3, false)}
-			}(),
-			wantIDs:      []int64{2, 3},
-			wantNewFlags: []bool{true, true},
-			wantDueLimit: 1, wantNewLimit: 3,
+			name: "显式学习新词不混入复习词", limit: 2, newWords: true,
+			candidates: []word.ReviewCandidate{newCandidate(1, true), newCandidate(7, false), newCandidate(8, false)},
+			wantIDs:    []int64{7, 8}, wantNewFlags: []bool{true, true}, wantDueLimit: 0, wantNewLimit: 2,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := &batchQueueStore{candidates: tt.candidates}
-			cards, err := word.NewWordService(store).GetReviewQueue(1, word.LevelN5, tt.limit)
+			svc := word.NewWordService(store)
+			getQueue := svc.GetReviewQueue
+			if tt.newWords {
+				getQueue = svc.GetNewWordQueue
+			}
+			cards, err := getQueue(1, word.LevelN5, tt.limit)
 			if err != nil {
 				t.Fatalf("GetReviewQueue error: %v", err)
 			}

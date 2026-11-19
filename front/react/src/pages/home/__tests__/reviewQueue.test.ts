@@ -7,7 +7,7 @@ import ja from '@/i18n/locales/ja'
 // Regression: the entry labeled 错题本 used to open /writing (写作练习).
 describe('home review queue', () => {
   for (const tc of [
-    { key: 'word', to: '/words/review', countFrom: 'module' },
+    { key: 'word', to: '/words/review?level=all', countFrom: 'module' },
     { key: 'grammar', to: '/grammar', countFrom: 'module' },
     { key: 'writing', to: '/mistakes', countFrom: 'mistakes' },
     { key: 'speaking', to: '/speaking', countFrom: 'module' },

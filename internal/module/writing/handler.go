@@ -162,7 +162,12 @@ func (h *WritingHandler) handleListTopics(w http.ResponseWriter, r *http.Request
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: writingTopics()})
+	topics, err := h.svc.ListTopics()
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing topics", "")
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: topics})
 }
 
 func (h *WritingHandler) handleSubmitTopic(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +194,12 @@ func (h *WritingHandler) handleSubmitTopic(w http.ResponseWriter, r *http.Reques
 	}
 
 	topicID := r.PathValue("id")
-	for _, topic := range writingTopics() {
+	topics, err := h.svc.ListTopics()
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing topics", "")
+		return
+	}
+	for _, topic := range topics {
 		if topic.ID != topicID {
 			continue
 		}

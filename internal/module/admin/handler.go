@@ -23,6 +23,7 @@ type HandlerConfig struct {
 	UserStore              store.AdminUserStoreInterface
 	ErrataStore            *errata.Store
 	DB                     *sql.DB
+	AudioStorePath         string
 	ShadowingMaterialsDB   *sql.DB
 	ShadowingVideoBasePath string
 	ShadowingVideoUploader ShadowingVideoUploader
@@ -84,6 +85,9 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	if h.cfg.ErrataStore != nil {
 		mux.HandleFunc("GET /api/admin/errata", h.auth(h.listErrata))
 		mux.HandleFunc("PATCH /api/admin/errata/{id}", h.auth(h.updateErrata))
+		mux.HandleFunc("GET /api/admin/errata/{id}/content", h.auth(h.getErrataContent))
+		mux.HandleFunc("PUT /api/admin/errata/{id}/content", h.auth(h.updateErrataContent))
+		mux.HandleFunc("POST /api/admin/errata/{id}/audio", h.auth(h.regenerateErrataAudio))
 	}
 	// Import
 	mux.HandleFunc("POST /api/admin/import/{module}", h.auth(h.bulkImport))

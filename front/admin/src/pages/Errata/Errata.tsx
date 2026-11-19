@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { adminFetch } from '@/api/client'
+import ErrataContentEditor from './ErrataContentEditor'
 import styles from './Errata.module.css'
 
 type Status = 'pending' | 'resolved'
@@ -46,6 +47,7 @@ export default function ErrataPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [editing, setEditing] = useState<Report | null>(null)
 
   useEffect(() => {
     let ignore = false
@@ -66,18 +68,21 @@ export default function ErrataPage() {
     return () => { ignore = true }
   }, [filter, page, refresh])
 
-  async function changeStatus(report: Report) {
+  function refreshReports() {
+    if (filter && data.items.length === 1 && page > 1) {
+      setPage(value => value - 1)
+    } else {
+      setRefresh(value => value + 1)
+    }
+  }
+
+  async function reopen(report: Report) {
     if (updating !== null) return
-    const status = report.status === 'pending' ? 'resolved' : 'pending'
     setUpdating(report.id)
     setError('')
     try {
-      await adminFetch('PATCH', `/errata/${report.id}`, { status })
-      if (filter && data.items.length === 1 && page > 1) {
-        setPage(page - 1)
-      } else {
-        setRefresh(value => value + 1)
-      }
+      await adminFetch('PATCH', `/errata/${report.id}`, { status: 'pending' })
+      refreshReports()
     } catch (err) {
       setError(err instanceof Error ? err.message : '更新勘误失败')
     } finally {
@@ -90,6 +95,7 @@ export default function ErrataPage() {
       <div className="adm-header">
         <h2 className="adm-title">练习勘误</h2>
       </div>
+      <p className={styles.intro}>从反馈定位原内容，修正并检查结果后，再确认问题已处理。</p>
       <div className="adm-toolbar">
         <label htmlFor="errata-status">处理状态</label>
         <select
@@ -127,9 +133,13 @@ export default function ErrataPage() {
                       <span>用户 #{report.user_id}</span>
                       <time dateTime={report.created_at}>{new Date(report.created_at).toLocaleString()}</time>
                     </div>
-                    <button className="adm-btn" disabled={updating !== null} onClick={() => { void changeStatus(report) }}>
-                      {updating === report.id ? '处理中…' : report.status === 'pending' ? '标记已处理' : '重新打开'}
-                    </button>
+                    {report.status === 'pending' ? (
+                      <button type="button" className="adm-btn" disabled={updating !== null} onClick={() => setEditing(report)}>✏️ 修正原内容</button>
+                    ) : (
+                      <button type="button" className="adm-btn" disabled={updating !== null} onClick={() => { void reopen(report) }}>
+                        {updating === report.id ? '处理中…' : '重新打开'}
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
@@ -143,6 +153,14 @@ export default function ErrataPage() {
             </div>
           )}
         </>
+      )}
+      {editing && (
+        <ErrataContentEditor
+          key={editing.id}
+          report={editing}
+          onClose={() => setEditing(null)}
+          onResolved={() => { setEditing(null); refreshReports() }}
+        />
       )}
     </div>
   )

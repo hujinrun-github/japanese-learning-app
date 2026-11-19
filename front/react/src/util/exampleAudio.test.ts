@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getWordAudioURL, playReferenceAudio, stopCurrent } from './exampleAudio'
+import { getWordAudioURL, playReferenceAudio, speakExample, speakWord, stopCurrent } from './exampleAudio'
 
-afterEach(() => { vi.unstubAllGlobals() })
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('configured reference playback', () => {
   it('plays the exact configured URL without synthesizing a replacement', async () => {
@@ -53,4 +53,29 @@ describe('getWordAudioURL', () => {
       expect(getWordAudioURL(tt.input)).toBe(tt.want)
     })
   }
+})
+
+describe('regenerated local audio bypasses stale cache', () => {
+  it.each([
+    { name: 'reference', play: () => playReferenceAudio('/audio/examples/ref.wav?version=2'), path: '/audio/examples/ref.wav?version=2&t=1234' },
+    { name: 'word', play: () => speakWord('/audio/words/word.wav', 'こうじょう'), path: '/audio/words/word.wav?t=1234' },
+    { name: 'example', play: () => speakExample('町に工場があります。'), path: '/audio/examples/' },
+  ])('$name', async ({ play, path, name }) => {
+    vi.spyOn(Date, 'now').mockReturnValue(1234)
+    vi.stubGlobal('speechSynthesis', { cancel: vi.fn() })
+    vi.stubGlobal('localStorage', { getItem: () => null })
+    const urls: string[] = []
+    class AudioStub {
+      volume = 1
+      onended: (() => void) | null = null
+      constructor(url: string) { urls.push(url) }
+      play() { queueMicrotask(() => this.onended?.()); return Promise.resolve() }
+      pause() {}
+    }
+    vi.stubGlobal('Audio', AudioStub)
+    await play()
+    if (name === 'example') expect(urls[0]).toMatch(/^\/audio\/examples\/[a-f0-9]{16}\.wav\?t=1234$/)
+    else expect(urls).toEqual([path])
+    vi.restoreAllMocks()
+  })
 })

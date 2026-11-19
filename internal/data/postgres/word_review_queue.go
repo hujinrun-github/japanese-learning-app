@@ -38,8 +38,8 @@ func (s *WordStore) ListReviewCandidates(userID int64, level word.JLPTLevel, due
 	now := s.now()
 	localNow := now.In(s.location)
 	todayStart := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), 0, 0, 0, 0, s.location).UTC()
-	if dueLimit < 1 {
-		dueLimit = 1
+	if dueLimit < 0 {
+		dueLimit = 0
 	}
 	if newLimit < 0 {
 		newLimit = 0
@@ -54,7 +54,7 @@ func (s *WordStore) ListReviewCandidates(userID int64, level word.JLPTLevel, due
 		   JOIN words w ON w.id = wr.word_id
 		   `+reviewAudioJoin+`
 		  WHERE wr.user_id = $1
-		    AND w.jlpt_level = $2
+		    AND ($2::text = '' OR w.jlpt_level = $2)
 		    AND wr.next_review_at <= $3
 		    AND wr.updated_at < $4
 		  ORDER BY wr.next_review_at ASC, w.id ASC

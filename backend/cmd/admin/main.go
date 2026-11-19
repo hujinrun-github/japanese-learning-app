@@ -57,6 +57,7 @@ func main() {
 		UserStore:              runtime.Admin.Users,
 		ErrataStore:            errata.NewStore(db),
 		DB:                     db,
+		AudioStorePath:         cfg.AudioStorePath,
 		ShadowingMaterialsDB:   db,
 		ShadowingVideoBasePath: envOrDefault("SHADOWING_VIDEO_BASE_PATH", "/api/v1/videos"),
 		ShadowingVideoBucket:   envOrDefault("MINIO_BUCKET_VIDEO", "lesson-videos"),

@@ -14,6 +14,7 @@ export default defineConfig({
     allowedHosts: ['tylerhu-1.tail5cec87.ts.net'],
     proxy: {
       '/api/admin': 'http://localhost:30082',
+      '/api/v1/audio': 'http://localhost:30081',
       '/audio': 'http://localhost:30081',
     },
   },

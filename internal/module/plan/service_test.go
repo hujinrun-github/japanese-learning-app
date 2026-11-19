@@ -146,8 +146,8 @@ func TestGetDailyPlanBuildsItemsFromGoals(t *testing.T) {
 	if word.Status != StatusInProgress || word.Remaining != 16 || word.DueCount != 12 {
 		t.Errorf("word item = %+v, want in_progress/16 remaining/12 due", word)
 	}
-	if word.Path != "/words/review" {
-		t.Errorf("word Path = %q, want /words/review", word.Path)
+	if word.Path != "/words/review?level=all" {
+		t.Errorf("word Path = %q, want /words/review?level=all", word.Path)
 	}
 	if got.Items[3].Status != StatusDone || got.Items[3].Percent != 100 {
 		t.Errorf("grammar item = %+v, want done/100%%", got.Items[3])

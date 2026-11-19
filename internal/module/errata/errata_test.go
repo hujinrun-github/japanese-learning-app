@@ -19,7 +19,9 @@ import (
 func TestErrataWorkflow(t *testing.T) {
 	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 	if _, err := db.Exec(`INSERT INTO users (id, email, password_hash)
-		VALUES (1, 'learner@example.com', 'unused')`); err != nil {
+		VALUES (1, 'learner@example.com', 'unused');
+		INSERT INTO translation_sources (id,title,source_type,raw_content) VALUES (1,'勘误测试','manual','明日は休みです。');
+		INSERT INTO translation_sentences (id,source_id,direction,source_text,reference_translation) VALUES (42,1,'jp2cn','明日は休みです。','今天休息。')`); err != nil {
 		t.Fatal(err)
 	}
 	store := errata.NewStore(db)
@@ -28,7 +30,7 @@ func TestErrataWorkflow(t *testing.T) {
 	mux := http.NewServeMux()
 	errata.RegisterRoutes(mux, store)
 	learner := user.AuthMiddleware(secret, mux)
-	adminAPI := admin.NewHandler(admin.HandlerConfig{AdminToken: adminToken, ErrataStore: store}).RegisterRoutes()
+	adminAPI := admin.NewHandler(admin.HandlerConfig{AdminToken: adminToken, ErrataStore: store, DB: db}).RegisterRoutes()
 	token, _, err := user.SignToken(1, secret, time.Hour)
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +78,17 @@ func TestErrataWorkflow(t *testing.T) {
 	if len(pending) != 1 || pending[0].ItemKey != "42" || pending[0].UserID != 1 || pending[0].Description != "译文里的时间写错了。" {
 		t.Fatalf("unexpected pending reports: %+v", pending)
 	}
-	request(adminAPI, "PATCH", "/api/admin/errata/1", adminToken, `{"status":"resolved"}`, http.StatusNoContent)
+	request(adminAPI, "PATCH", "/api/admin/errata/1", adminToken, `{"status":"resolved","confirmed":true}`, http.StatusBadRequest)
+	contentResponse := request(adminAPI, "GET", "/api/admin/errata/1/content", adminToken, "", http.StatusOK)
+	var content admin.ErrataContent
+	if err := json.Unmarshal(contentResponse.Body.Bytes(), &content); err != nil {
+		t.Fatal(err)
+	}
+	resolveBody, err := json.Marshal(map[string]any{"status": "resolved", "confirmed": true, "revision": content.Revision})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request(adminAPI, "PATCH", "/api/admin/errata/1", adminToken, string(resolveBody), http.StatusNoContent)
 	if len(list("pending")) != 0 || len(list("resolved")) != 1 {
 		t.Fatal("report did not move to resolved")
 	}
@@ -84,7 +96,7 @@ func TestErrataWorkflow(t *testing.T) {
 	if len(list("pending")) != 1 {
 		t.Fatal("report did not reopen")
 	}
-	request(adminAPI, "PATCH", "/api/admin/errata/99", adminToken, `{"status":"resolved"}`, http.StatusNotFound)
+	request(adminAPI, "PATCH", "/api/admin/errata/99", adminToken, `{"status":"resolved","confirmed":true,"revision":"missing-report"}`, http.StatusNotFound)
 }
 
 func TestLearnerErrataHistory(t *testing.T) {

@@ -154,8 +154,15 @@ func TestWordService_GetReviewQueue_NewUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if len(cards) != 0 {
+		t.Errorf("new user has no due words, got %d review cards", len(cards))
+	}
+	cards, err = svc.GetNewWordQueue(1, word.LevelN5, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(cards) != 2 {
-		t.Errorf("expected 2 cards, got %d", len(cards))
+		t.Fatalf("expected 2 explicitly requested new cards, got %d", len(cards))
 	}
 	for _, c := range cards {
 		if !c.IsNew {
@@ -185,7 +192,7 @@ func TestWordService_GetReviewQueue_DueRecords(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Should have 1 due card + 1 new card (word 2 has no record)
+	// Only the due card is returned; word 2 belongs in new-word learning.
 	dueCount, newCount := 0, 0
 	for _, c := range cards {
 		if c.IsNew {
@@ -197,8 +204,8 @@ func TestWordService_GetReviewQueue_DueRecords(t *testing.T) {
 	if dueCount != 1 {
 		t.Errorf("expected 1 due card, got %d", dueCount)
 	}
-	if newCount != 1 {
-		t.Errorf("expected 1 new card, got %d", newCount)
+	if newCount != 0 {
+		t.Errorf("expected no new cards, got %d", newCount)
 	}
 }
 
@@ -331,7 +338,7 @@ func TestWordService_MarkSeen(t *testing.T) {
 }
 
 // TestWordService_GetReviewQueue_NoRepeat 验证队列不会把「今天学过的词」
-// 又推回给用户，且到期词不会占满整轮、新词能排进来。
+// 又推回给用户，且不会用新词补满复习。
 func TestWordService_GetReviewQueue_NoRepeat(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -342,12 +349,12 @@ func TestWordService_GetReviewQueue_NoRepeat(t *testing.T) {
 		wantNewFlags []bool
 	}{
 		{
-			"到期词限量并用新词补足", word.LevelN5, 4, false,
-			[]int64{1, 4, 5, 6}, []bool{false, true, true, true},
+			"只返回到期词", word.LevelN5, 4, false,
+			[]int64{1}, []bool{false},
 		},
 		{
 			"小 limit 仍保留一张到期词", word.LevelN5, 2, false,
-			[]int64{1, 4}, []bool{false, true},
+			[]int64{1}, []bool{false},
 		},
 		{
 			"limit 1 只给到期词", word.LevelN5, 1, false,
@@ -355,7 +362,7 @@ func TestWordService_GetReviewQueue_NoRepeat(t *testing.T) {
 		},
 		{
 			"今天已复习的到期词全部跳过", word.LevelN5, 3, true,
-			[]int64{4, 5, 6}, []bool{true, true, true},
+			nil, nil,
 		},
 		{"其它等级无词", word.LevelN4, 4, false, nil, nil},
 	}
@@ -411,8 +418,8 @@ func TestWordService_GetReviewQueue_AvoidsPerWordLookups(t *testing.T) {
 		dueWordIDs []int64
 		wantIDs    []int64
 	}{
-		{"到期词与新词混合", word.LevelN5, 4, []int64{1, 2}, []int64{1, 2, 3, 4}},
-		{"没有到期词", word.LevelN5, 3, nil, []int64{1, 2, 3}},
+		{"只返回到期词", word.LevelN5, 4, []int64{1, 2}, []int64{1, 2}},
+		{"没有到期词", word.LevelN5, 3, nil, nil},
 		{"到期词属于其它等级", word.LevelN4, 3, []int64{1, 2}, nil},
 	}
 

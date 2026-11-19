@@ -1,15 +1,16 @@
-.page { max-width: 1050px; margin: 0 auto; padding: 24px 0 40px; }
+.page { max-width: 1120px; margin: 0 auto; padding: 24px 0 40px; display: grid; gap: 22px; }
 .page h1 { margin: 8px 0; font-size: 30px; }
 .page h2 { font-size: 20px; margin: 0 0 24px; }
 .page header { margin-bottom: 26px; }
 .page header p { color: #64748b; line-height: 1.7; }
 .eyebrow { font-size: 13px; letter-spacing: .05em; }
-.columns { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: start; }
+.columns { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; align-items: start; }
 .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 18px; padding: 28px; min-width: 0; }
 .card p { line-height: 1.7; }
 .fields { padding: 0; margin: 0; border: 0; display: grid; gap: 20px; min-width: 0; }
 .card label { display: grid; gap: 8px; font-size: 14px; color: #334155; }
-.card input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #cbd5e1; padding: 11px; border-radius: 8px; font: inherit; background: white; color: #0f172a; }
+.card input, .card textarea { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #cbd5e1; padding: 11px; border-radius: 8px; font: inherit; background: white; color: #0f172a; }
+.card textarea { resize: vertical; line-height: 1.6; }
 .card input:focus { outline: 2px solid #60a5fa; outline-offset: 2px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .days { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
@@ -35,3 +36,18 @@
 
 .fields legend { margin-bottom: 10px; }
 .practiceLinks { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; }
+.template { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 14px; }
+.template strong { color: #1e40af; font-size: 16px; }
+.template p { font-size: 13px; color: #475569; line-height: 1.7; margin: 8px 0 0; }
+.template button { flex-shrink: 0; border: 1px solid #93c5fd; background: white; color: #1d4ed8; font: inherit; font-size: 13px; padding: 11px 14px; border-radius: 8px; cursor: pointer; }
+.asideColumn { display: grid; gap: 24px; min-width: 0; }
+.slotEditor { display: grid; gap: 14px; padding: 16px; border: 1px solid #dbeafe; border-radius: 12px; background: #f8fbff; }
+.taskDetails summary { cursor: pointer; color: #2563eb; font-size: 13px; line-height: 1.7; }
+.taskEditor { display: grid; gap: 12px; border-top: 1px solid #dbeafe; padding-top: 16px; margin-top: 16px; }
+.taskEditor .days { background: white; }
+.savedSlots { list-style: none; padding: 0; display: grid; gap: 12px; margin: 18px 0; }
+.savedSlots li { display: grid; gap: 5px; font-size: 14px; }
+.savedSlots span { color: #64748b; font-size: 13px; }
+.phases { padding-left: 20px; margin: 0; display: grid; gap: 16px; font-size: 14px; }
+.phases li span { display: block; margin-top: 5px; color: #64748b; line-height: 1.7; }
+@media (max-width: 760px) { .template { align-items: stretch; flex-direction: column; gap: 14px; } .template button { width: 100%; } .slotEditor { padding: 13px; } }

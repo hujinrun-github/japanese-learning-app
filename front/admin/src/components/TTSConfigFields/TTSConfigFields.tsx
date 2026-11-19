@@ -179,11 +179,11 @@ export function TTSConfigFields({ config, onChange, showForce }: Props) {
               onChange={(v) => onChange({ ...config, tts_model: v })}
               datalist={MODEL_SUGGESTIONS}
             />
-            <SelectField
+            <TextField
               label="🎤 Voice"
               value={config.voice}
               onChange={(v) => onChange({ ...config, voice: v })}
-              options={VOICE_SUGGESTIONS.map(v => ({ value: v, label: v }))}
+              datalist={VOICE_SUGGESTIONS}
             />
           </div>
           <TextField
@@ -236,11 +236,11 @@ export function TTSConfigFields({ config, onChange, showForce }: Props) {
             onChange={(v) => onChange({ ...config, tts_url: v })}
             placeholder={GRADIO_URL_DEFAULT}
           />
-          <SelectField
+          <TextField
             label="🎤 Speaker"
             value={config.voice}
             onChange={(v) => onChange({ ...config, voice: v })}
-            options={GRADIO_SPEAKER_SUGGESTIONS.map(v => ({ value: v, label: v }))}
+            datalist={GRADIO_SPEAKER_SUGGESTIONS}
           />
           <TextField
             label="📝 Instructions"

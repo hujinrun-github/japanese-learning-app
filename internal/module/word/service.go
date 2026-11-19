@@ -14,7 +14,8 @@ type WordStoreInterface interface {
 	GetRecord(userID, wordID int64) (*WordRecord, error)
 	// ListReviewCandidates returns at most dueLimit overdue words (oldest
 	// first, excluding ones reviewed today) followed by at most newLimit new
-	// words (by id), both scoped to level. Both limits must be pushed down to
+	// words (by id), scoped to level (empty means all levels for reviews).
+	// A zero limit excludes that group. Both limits must be pushed down to
 	// SQL: loading a whole JLPT level costs thousands of rows on PostgreSQL.
 	ListReviewCandidates(userID int64, level JLPTLevel, dueLimit, newLimit int) ([]ReviewCandidate, error)
 	UpsertRecord(r WordRecord) error
@@ -37,53 +38,41 @@ func (s *WordService) GetByID(id int64) (*Word, error) {
 	return s.store.GetByID(id)
 }
 
-// GetReviewQueue returns at most limit review cards for a user at the given
-// JLPT level. Due words come first (most overdue first), then new words fill
-// the rest of the round.
-//
-// Two rules keep learned words from showing up over and over:
-//   - a due word already reviewed today is skipped (a page refresh must not
-//     replay the same batch);
-//   - due words take at most half of the round, so a backlog of overdue words
-//     cannot crowd out new words for days.
-//
-// Both candidate groups are read in a single batched store call with the
-// limits pushed down to SQL. Loading a whole JLPT level or calling GetRecord
-// once per word costs thousands of serial round trips on PostgreSQL.
+// GetReviewQueue returns only learned, due words, oldest first. An empty
+// level covers all JLPT levels, matching the dashboard's due count.
 func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel, limit int) ([]WordCard, error) {
-	slog.Debug("WordService.GetReviewQueue called", "user_id", userID, "level", level, "limit", limit)
+	return s.getQueue(userID, level, limit, false)
+}
 
+// GetNewWordQueue returns unseen words only, after an explicit learner choice.
+func (s *WordService) GetNewWordQueue(userID int64, level JLPTLevel, limit int) ([]WordCard, error) {
+	return s.getQueue(userID, level, limit, true)
+}
+
+func (s *WordService) getQueue(userID int64, level JLPTLevel, limit int, newWords bool) ([]WordCard, error) {
+	slog.Debug("WordService.getQueue called", "user_id", userID, "level", level, "limit", limit, "new_words", newWords)
 	if limit <= 0 {
 		return []WordCard{}, nil
 	}
-
-	dueLimit := limit / 2
-	if dueLimit < 1 {
-		dueLimit = 1
+	dueLimit, newLimit := limit, 0
+	if newWords {
+		dueLimit, newLimit = 0, limit
 	}
-
-	candidates, err := s.store.ListReviewCandidates(userID, level, dueLimit, limit)
+	candidates, err := s.store.ListReviewCandidates(userID, level, dueLimit, newLimit)
 	if err != nil {
-		slog.Error("WordService.GetReviewQueue: ListReviewCandidates failed", "err", err, "user_id", userID, "level", level)
-		return nil, fmt.Errorf("word.WordService.GetReviewQueue ListReviewCandidates: %w", err)
+		slog.Error("WordService.getQueue: ListReviewCandidates failed", "err", err, "user_id", userID, "level", level, "new_words", newWords)
+		return nil, fmt.Errorf("word.WordService.getQueue ListReviewCandidates: %w", err)
 	}
 
-	now := time.Now()
 	cards := make([]WordCard, 0, limit)
-	dueCount := 0
 	for _, c := range candidates {
 		if len(cards) >= limit {
 			break
 		}
+		if (c.Record == nil) != newWords {
+			continue
+		}
 		if c.Record != nil {
-			if dueCount >= dueLimit {
-				continue
-			}
-			if sameDay(c.Record.UpdatedAt, now) {
-				slog.Debug("WordService.GetReviewQueue: skip word already reviewed today", "word_id", c.Word.ID)
-				continue
-			}
-			dueCount++
 			cards = append(cards, WordCard{Word: c.Word, Record: *c.Record, IsNew: false})
 			continue
 		}
@@ -94,7 +83,7 @@ func (s *WordService) GetReviewQueue(userID int64, level JLPTLevel, limit int) (
 		})
 	}
 
-	slog.Debug("WordService.GetReviewQueue done", "user_id", userID, "level", level, "count", len(cards), "due_count", dueCount)
+	slog.Debug("WordService.getQueue done", "user_id", userID, "level", level, "count", len(cards), "new_words", newWords)
 	return cards, nil
 }
 
@@ -137,14 +126,6 @@ func (s *WordService) MarkSeen(userID, wordID int64) error {
 
 	slog.Debug("WordService.MarkSeen done", "word_id", wordID, "next_review_at", record.NextReviewAt)
 	return nil
-}
-
-// sameDay reports whether t falls on the same calendar day as now.
-func sameDay(t, now time.Time) bool {
-	if t.IsZero() {
-		return false
-	}
-	return t.Year() == now.Year() && t.YearDay() == now.YearDay()
 }
 
 // SubmitRating records a word review. Normal means familiar (daily practice),

@@ -77,6 +77,10 @@ jobs:
         working-directory: front/react
         run: npm test
 
+      - name: Test admin frontend
+        working-directory: front/admin
+        run: npm test
+
       - name: Download kuromoji dictionary
         working-directory: front/react
         run: npm run prepare:dict
@@ -377,6 +381,7 @@ jobs:
             echo "Start admin API binary"
             nohup env \
               LISTEN_ADDR=:30082 \
+              AUDIO_STORE_PATH="$DATA_DIR/audio" \
               RELATIONAL_STORE="$RELATIONAL_STORE" \
               DATABASE_URL="${DATABASE_URL:-}" \
               DB_PATH="$DATA_DIR/app.db" \

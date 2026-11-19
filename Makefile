@@ -41,6 +41,10 @@ seed-lessons: ## Import seed lessons
 	go run ./backend/cmd/appctl import-lessons --file ./data/seed/lessons_n4.json
 	go run ./backend/cmd/appctl import-lessons --file ./data/seed/lessons_n3.json
 
+.PHONY: seed-listening
+seed-listening: ## Add reviewed listening questions to existing exact-match lessons
+	go run ./backend/cmd/appctl seed-listening
+
 seed-speaking: ## Import seed speaking materials
 	go run ./backend/cmd/appctl import-speaking --file ./data/seed/speaking_materials.json
 

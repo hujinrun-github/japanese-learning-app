@@ -23,6 +23,8 @@ import { StudyPlanPage } from '@/pages/studyplan/StudyPlanPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import { ErrataHistoryPage } from '@/pages/errata/ErrataHistoryPage'
 import { MistakesPage } from '@/pages/mistakes/MistakesPage'
+import { ListeningPage } from '@/pages/listening/ListeningPage'
+import { ListeningTrainingPage } from '@/pages/listening/ListeningTrainingPage'
 
 export default function App() {
   return (
@@ -42,6 +44,8 @@ export default function App() {
             <Route path="/grammar" element={<GrammarListPage />} />
             <Route path="/grammar/:id" element={<GrammarDetailPage />} />
             <Route path="/speaking" element={<SpeakingPage />} />
+            <Route path="/listening" element={<ListeningPage />} />
+            <Route path="/listening/:id" element={<ListeningTrainingPage />} />
             <Route path="/writing" element={<WritingQueuePage />} />
             <Route path="/lesson" element={<LessonListPage />} />
             <Route path="/lesson/:id" element={<LessonDetailPage />} />

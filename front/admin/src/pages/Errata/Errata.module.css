@@ -5,3 +5,51 @@
 .footer { justify-content: space-between; }
 .item { margin: 10px 0; overflow-wrap: anywhere; }
 .description { margin: 0 0 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.intro { margin: 0 0 20px; color: #605b56; line-height: 1.7; }
+.editorDialog { width: min(1000px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; padding: 0; border: 1px solid #e8e4e0; border-radius: 14px; color: #3d3833; box-shadow: 0 20px 80px #17120e40; }
+.editorDialog::backdrop { background: #231d195c; }
+.editorDialog button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.editorHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid #e8e4e0; }
+.editorHeader h2 { margin: 0 0 6px; font-size: 20px; }
+.editorHeader p { margin: 0; color: #70685f; font-size: 13px; overflow-wrap: anywhere; }
+.editorBody { padding: 24px; }
+.editorBody h3 { margin: 0 0 10px; font-size: 16px; }
+.feedbackDescription { margin: 0 0 22px; padding: 14px; border-radius: 8px; background: #faf6ec; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hint { color: #70685f; font-size: 13px; line-height: 1.65; }
+.notice { color: #236140; background: #edf8f0; border: 1px solid #bfdfc9; border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.7; }
+.fields { display: grid; gap: 14px; margin: 18px 0; }
+.field { border: 1px solid #e8e4e0; border-radius: 9px; overflow: hidden; }
+.fieldTitle { display: block; padding: 10px 14px; background: #f8f7f3; font-size: 13px; font-weight: 600; border-bottom: 1px solid #eeeae4; }
+.comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 14px; }
+.comparison > div { min-width: 0; }
+.comparison pre { margin: 8px 0 0; min-height: 38px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.7; font-size: 13px; color: #605b56; }
+.columnLabel { display: block; font-size: 12px; color: #82796d; margin-bottom: 8px; }
+.comparison input, .comparison textarea, .control select, .control textarea { width: 100%; box-sizing: border-box; min-width: 0; padding: 10px 12px; border: 1px solid #d9d3cb; border-radius: 6px; background: #fff; color: #3d3833; font: inherit; font-size: 14px; line-height: 1.6; }
+.comparison textarea, .control textarea { resize: vertical; }
+.comparison input:focus-visible, .comparison textarea:focus-visible, .control select:focus-visible, .control textarea:focus-visible, .editorDialog button:focus-visible, .confirmation input:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+.editorActions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.audioSection { margin-top: 28px; padding: 16px; border: 1px solid #e8e4e0; border-radius: 9px; }
+.audioSection summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+.audioBody { display: grid; gap: 14px; padding-top: 18px; }
+.audioBody > p { margin: 0; }
+.audioBody > button { justify-self: start; }
+.control { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; }
+.sourceText { padding: 12px; background: #f8f7f3; border-radius: 8px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.audioPlayer { display: grid; gap: 10px; font-size: 13px; }
+.audioPlayer audio { width: 100%; max-width: 500px; }
+.savedMedia { display: block; width: 100%; margin-top: 12px; max-height: 280px; }
+.ttsSettings { padding: 0; border: 0; margin: 0; min-width: 0; }
+.ttsSettings legend { margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+.confirmSection { margin-top: 28px; padding-top: 22px; border-top: 1px solid #e8e4e0; }
+.confirmation { display: flex; align-items: flex-start; gap: 10px; margin: 16px 0; font-size: 14px; line-height: 1.7; }
+.confirmation input { margin: 4px 0 0; width: 18px; height: 18px; flex-shrink: 0; accent-color: #4f46e5; }
+.confirmSection .editorActions { margin-top: 18px; justify-content: flex-end; }
+@media (max-width: 640px) {
+  .editorDialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 12px; }
+  .editorHeader, .editorBody { padding: 16px; }
+  .comparison { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 12px; }
+  .editorActions > button { min-height: 44px; }
+  .confirmSection .editorActions { align-items: stretch; }
+  .confirmSection .editorActions > button { flex: 1 1 auto; }
+  .audioSection { padding: 12px; }
+}

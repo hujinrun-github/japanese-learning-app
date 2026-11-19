@@ -63,7 +63,12 @@ func (h *WritingHandler) handleSaveDraft(w http.ResponseWriter, r *http.Request)
 	}
 	draft.UserID = userID
 	draft.TopicID = r.PathValue("id")
-	for _, topic := range writingTopics() {
+	topics, err := h.svc.ListTopics()
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing topics", "")
+		return
+	}
+	for _, topic := range topics {
 		if topic.ID != draft.TopicID {
 			continue
 		}

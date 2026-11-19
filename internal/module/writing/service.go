@@ -8,12 +8,22 @@ import (
 
 // WritingStoreInterface defines data access methods required by WritingService.
 type WritingStoreInterface interface {
+	ListTopics() ([]WritingTopic, error)
 	GetDailyQueue(userID int64) ([]WritingQuestion, error)
 	GetQuestionByID(id int64) (*WritingQuestion, error)
 	SaveRecord(r WritingRecord) error
 	ListRecords(userID int64) ([]WritingRecord, error)
 	ListDrafts(userID int64) ([]WritingDraft, error)
 	SaveDraft(draft WritingDraft) (WritingDraft, error)
+}
+
+func (s *WritingService) ListTopics() ([]WritingTopic, error) {
+	topics, err := s.store.ListTopics()
+	if err != nil {
+		slog.Error("WritingService.ListTopics failed", "err", err)
+		return nil, fmt.Errorf("writing.WritingService.ListTopics: %w", err)
+	}
+	return topics, nil
 }
 
 // WritingService handles business logic for writing practice.

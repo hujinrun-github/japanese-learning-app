@@ -116,3 +116,37 @@ func TestWritingTopicPractice(t *testing.T) {
 		t.Fatalf("got %d saved records, want 3", len(records))
 	}
 }
+
+func TestWritingTopicCorrectionsReachLearner(t *testing.T) {
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
+	if _, err := db.Exec(`INSERT INTO users (id,email,password_hash) VALUES (1,'topic-editor@example.com','unused')`); err != nil {
+		t.Fatal(err)
+	}
+	const corrected = "用日语介绍你这周末的学习安排。"
+	if _, err := db.Exec(`UPDATE writing_topics SET title='修正后的周末',essay_prompt=$1 WHERE id='weekend'`, corrected); err != nil {
+		t.Fatal(err)
+	}
+	const secret = "topic-correction-test"
+	token, _, err := user.SignToken(1, secret, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := pgdata.NewWritingStore(db, store.StoreDeps{})
+	mux := http.NewServeMux()
+	writing.NewWritingHandler(writing.NewWritingService(st, nil)).RegisterRoutes(mux)
+	handler := user.AuthMiddleware(secret, mux)
+	for _, tc := range []struct{ name, method, path, body string }{
+		{"list", http.MethodGet, "/api/v1/writing/topics", ""},
+		{"submit", http.MethodPost, "/api/v1/writing/topics/weekend", `{"type":"essay","user_answer":"日本語を勉強します。"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+			req.Header.Set("Authorization", "Bearer "+token)
+			res := httptest.NewRecorder()
+			handler.ServeHTTP(res, req)
+			if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), corrected) || !strings.Contains(res.Body.String(), "修正后的周末") {
+				t.Fatalf("corrected topic unavailable: status=%d body=%s", res.Code, res.Body)
+			}
+		})
+	}
+}

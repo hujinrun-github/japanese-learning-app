@@ -203,6 +203,7 @@ function EditDialog({ report, onClose, onSaved }: {
       onCancel={(event) => { if (busy) event.preventDefault() }}
     >
       <h2 id={titleId} className={dialogStyles.title}>{t('errata.history.editTitle')}</h2>
+      <p>{t('errata.history.editHint')}</p>
       <p className={dialogStyles.item}>{t('errata.history.reportNumber', { id: report.id })} · {report.item_key}</p>
       <form className={dialogStyles.form} onSubmit={save}>
         <label>

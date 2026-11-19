@@ -59,10 +59,11 @@ func (h *WordHandler) SetStreakRecorder(r user.StreakRecorder) {
 
 // RegisterRoutes registers routes onto the provided mux.
 // Routes:
-//   GET  /api/v1/words/queue?level=N5   → GetReviewQueue
-//   POST /api/v1/words/{id}/seen        → MarkSeen
-//   POST /api/v1/words/{id}/rate        → SubmitRating
-//   POST /api/v1/words/{id}/bookmark    → Bookmark
+//
+//	GET  /api/v1/words/queue?level=N5   → GetReviewQueue
+//	POST /api/v1/words/{id}/seen        → MarkSeen
+//	POST /api/v1/words/{id}/rate        → SubmitRating
+//	POST /api/v1/words/{id}/bookmark    → Bookmark
 func (h *WordHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/words/{id}", h.handleGetWord)
 	mux.HandleFunc("GET /api/v1/words/queue", h.handleGetReviewQueue)
@@ -79,9 +80,26 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	queue := r.URL.Query().Get("queue")
+	if queue != "" && queue != "review" && queue != "new" {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_INVALID_QUEUE", "queue must be review or new", "")
+		return
+	}
 	level := JLPTLevel(r.URL.Query().Get("level"))
 	if level == "" {
 		level = LevelN5
+	}
+	switch level {
+	case LevelN5, LevelN4, LevelN3, LevelN2, LevelN1:
+	case "all":
+		if queue == "new" {
+			httputil.WriteError(w, http.StatusBadRequest, "ERR_INVALID_LEVEL", "new words require a JLPT level", "")
+			return
+		}
+		level = ""
+	default:
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_INVALID_LEVEL", "invalid JLPT level", "")
+		return
 	}
 
 	fallbackLimit := 50
@@ -92,7 +110,13 @@ func (h *WordHandler) handleGetReviewQueue(w http.ResponseWriter, r *http.Reques
 	}
 	limit := parseLimitParam(r.URL.Query().Get("limit"), fallbackLimit)
 
-	cards, err := h.svc.GetReviewQueue(userID, level, limit)
+	var cards []WordCard
+	var err error
+	if queue == "new" {
+		cards, err = h.svc.GetNewWordQueue(userID, level, limit)
+	} else {
+		cards, err = h.svc.GetReviewQueue(userID, level, limit)
+	}
 	if err != nil {
 		slog.Error("handleGetReviewQueue failed", "err", err, "user_id", userID, "level", level, "limit", limit)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load review queue", "")

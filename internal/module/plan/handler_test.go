@@ -80,8 +80,8 @@ func TestHandlerReturnsPlan(t *testing.T) {
 	if got.Items[0].Key != ModuleWord {
 		t.Errorf("Items[0].Key = %q, want word (started modules lead)", got.Items[0].Key)
 	}
-	if got.Items[0].Path != "/words/review" {
-		t.Errorf("Items[0].Path = %q, want /words/review", got.Items[0].Path)
+	if got.Items[0].Path != "/words/review?level=all" {
+		t.Errorf("Items[0].Path = %q, want /words/review?level=all", got.Items[0].Path)
 	}
 	if got.Items[0].Status != StatusInProgress || got.Items[0].Remaining != 16 {
 		t.Errorf("Items[0] = %+v, want in_progress with 16 remaining", got.Items[0])
