@@ -15,7 +15,9 @@ import (
 	"japanese-learning-app/internal/module/shadowing"
 )
 
-const maxSpeakingAudioBytes = 2 << 20
+// Five minutes of the browser recorder's 16 kHz mono PCM16 WAV uses about
+// 9.2 MiB. Keep some headroom for WAV metadata; the evaluator also caps duration.
+const maxSpeakingAudioBytes = 10 << 20
 
 const (
 	ErrSpeakingEvalInvalid      = "ERR_SPEAKING_EVAL_INVALID"

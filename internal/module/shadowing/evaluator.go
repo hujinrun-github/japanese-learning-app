@@ -5,7 +5,9 @@ import (
 	"fmt"
 )
 
-const MaxEvaluationDurationMS int64 = 60_000
+// Allow whole textbook passages and slower learner recordings, while retaining
+// a finite bound on feature extraction and alignment work.
+const MaxEvaluationDurationMS int64 = 5 * 60 * 1000
 const ErrEvaluationBusy = "ERR_EVALUATION_BUSY"
 
 // Evaluator bounds CPU work shared by speaking and lesson shadowing. A busy
