@@ -13,6 +13,7 @@ import (
 	"japanese-learning-app/internal/data"
 	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/errata"
+	"japanese-learning-app/internal/module/flowspace"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
 	"japanese-learning-app/internal/module/listening"
@@ -56,6 +57,21 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 		cleanup()
 		return nil, nil, fmt.Errorf("buildPostgresServerMux store runtime: %w", err)
 	}
+	flowspaceOptions, err := flowspace.OptionsFromEnv()
+	if err != nil {
+		cleanup()
+		return nil, nil, fmt.Errorf("buildPostgresServerMux FlowSpace configuration: %w", err)
+	}
+	flowspaceService, err := flowspace.NewService(db, flowspaceOptions)
+	if err != nil {
+		cleanup()
+		return nil, nil, fmt.Errorf("buildPostgresServerMux FlowSpace integration: %w", err)
+	}
+	workerContext, stopWorker := context.WithCancel(ctx)
+	workerDone := make(chan struct{})
+	go func() { defer close(workerDone); flowspaceService.Run(workerContext) }()
+	closeDatabase := cleanup
+	cleanup = func() { stopWorker(); <-workerDone; closeDatabase() }
 
 	// ── AI reviewers ─────────────────────────────────────────────────────────
 	aiAPIKey := cfg.AIAPIKey
@@ -106,6 +122,21 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	speakingH.SetStreakRecorder(userSvc)
 	speakingEvaluationH := speaking.NewEvaluationHandler(speakingSvc, cfg.AudioStorePath, newLessonAudioObjectLoader(db, cfg), evaluator)
+	if cfg.SpeakingASRURL != "" {
+		asr := speaking.NewVLLMScorer(cfg.SpeakingASRURL, cfg.SpeakingASRModel, time.Duration(cfg.SpeakingASRTimeoutSec)*time.Second)
+		if cfg.SpeakingASRProvider == "whisper_cpp" {
+			asr = speaking.NewWhisperCPPScorer(cfg.SpeakingASRURL, cfg.SpeakingASRModel, time.Duration(cfg.SpeakingASRTimeoutSec)*time.Second)
+		}
+		pronunciation, err := speaking.NewPronunciationAnalyzer(asr)
+		if err != nil {
+			cleanup()
+			return nil, nil, fmt.Errorf("buildPostgresServerMux initialize speaking pronunciation: %w", err)
+		}
+		speakingEvaluationH.SetPronunciationAnalyzer(pronunciation)
+		slog.Info("speaking pronunciation recognition enabled", "provider", cfg.SpeakingASRProvider, "model", cfg.SpeakingASRModel)
+	} else {
+		slog.Info("SPEAKING_ASR_URL not set; speaking pronunciation recognition disabled")
+	}
 	writingH := writing.NewWritingHandler(writingSvc)
 	writingH.SetStreakRecorder(userSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)
@@ -123,6 +154,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 
 	protectedMux := http.NewServeMux()
 	studyplan.NewHandler(db).RegisterRoutes(protectedMux, mux)
+	flowspace.NewHandler(flowspaceService).RegisterRoutes(protectedMux)
 	userH.RegisterProtectedRoutes(protectedMux)
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
@@ -147,6 +179,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	authenticated := user.AuthMiddleware(cfg.JWTSecret, protectedMux)
 	mux.Handle("/api/v1/study-plan", authenticated)
 	mux.Handle("/api/v1/study-plan/", authenticated)
+	mux.Handle("/api/v1/integrations/", authenticated)
 	mux.Handle("/api/v1/words/", authenticated)
 	mux.Handle("/api/v1/grammar", authenticated)
 	mux.Handle("/api/v1/grammar/", authenticated)

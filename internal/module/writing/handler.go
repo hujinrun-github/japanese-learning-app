@@ -158,11 +158,12 @@ func (h *WritingHandler) handleListRecords(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *WritingHandler) handleListTopics(w http.ResponseWriter, r *http.Request) {
-	if _, ok := user.UserIDFromContext(r.Context()); !ok {
+	userID, ok := user.UserIDFromContext(r.Context())
+	if !ok {
 		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
 		return
 	}
-	topics, err := h.svc.ListTopics()
+	topics, err := h.svc.ListTopicsForUser(userID)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing topics", "")
 		return

@@ -43,22 +43,37 @@ func TestWritingTopicPractice(t *testing.T) {
 		t.Fatalf("GET topics status = %d, body = %s", resp.Code, resp.Body)
 	}
 	var topics struct {
-		Data []struct {
-			ID             string `json:"id"`
-			Title          string `json:"title"`
-			EssayPrompt    string `json:"essay_prompt"`
-			SentencePrompt string `json:"sentence_prompt"`
-		} `json:"data"`
+		Data []writing.WritingTopic `json:"data"`
 	}
 	if err := json.Unmarshal(resp.Body.Bytes(), &topics); err != nil {
 		t.Fatal(err)
 	}
-	if len(topics.Data) < 3 {
-		t.Fatalf("got %d topics, want at least 3", len(topics.Data))
+	counts := make(map[string]int)
+	seenTitles := make(map[string]bool)
+	var topic writing.WritingTopic
+	for _, item := range topics.Data {
+		if item.ID == "" || item.Title == "" || item.EssayPrompt == "" || item.SentencePrompt == "" || item.EssayPrompt == item.SentencePrompt {
+			t.Fatalf("incomplete topic: %+v", item)
+		}
+		if seenTitles[item.Title] {
+			t.Fatalf("duplicate topic title: %q", item.Title)
+		}
+		seenTitles[item.Title] = true
+		counts[item.JLPTLevel]++
+		if item.JLPTLevel == "N2" && topic.ID == "" {
+			topic = item
+		}
 	}
-	topic := topics.Data[0]
-	if topic.ID == "" || topic.Title == "" || topic.EssayPrompt == "" || topic.SentencePrompt == "" || topic.EssayPrompt == topic.SentencePrompt {
-		t.Fatalf("incomplete topic: %+v", topic)
+	for _, tc := range []struct {
+		level string
+		min   int
+	}{{"N5", 10}, {"N4", 12}, {"N3", 11}, {"N2", 24}, {"N1", 8}} {
+		if counts[tc.level] < tc.min {
+			t.Errorf("%s: got %d topics, want at least %d", tc.level, counts[tc.level], tc.min)
+		}
+	}
+	if topic.ID == "" {
+		t.Fatal("no N2 topic available to submit")
 	}
 
 	reviewer := &writing.StubReviewer{Feedback: writing.AIFeedback{Score: 86, IssueDescription: "注意时态"}}

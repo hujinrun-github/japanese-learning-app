@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/user"
 	"japanese-learning-app/internal/testdb"
 )
 
 func TestPlanHTTP(t *testing.T) {
-	db := testdb.Open(t, nil)
-	db.SetMaxOpenConns(1)
-	_, err := db.Exec(`CREATE TEMP TABLE study_plans(user_id BIGINT PRIMARY KEY, plan_json TEXT NOT NULL, calendar_token TEXT NOT NULL UNIQUE,revision INTEGER NOT NULL DEFAULT 1)`)
+	db := testdb.Open(t, (postgres.Adapter{}).RunMigrations)
+	_, err := db.Exec(`INSERT INTO users(id,email,password_hash) VALUES(1,'plan@example.test','test')`)
 	if err != nil {
 		t.Fatal(err)
 	}

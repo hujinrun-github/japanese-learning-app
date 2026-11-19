@@ -25,21 +25,28 @@ func NewWritingStore(db queryer, deps store.StoreDeps) *WritingStore {
 }
 
 func (s *WritingStore) ListTopics() ([]writing.WritingTopic, error) {
-	rows, err := s.db.QueryContext(context.Background(), `SELECT id,title,jlpt_level,essay_prompt,sentence_prompt FROM writing_topics ORDER BY position,id`)
+	return s.ListTopicsForUser(0)
+}
+
+func (s *WritingStore) ListTopicsForUser(userID int64) ([]writing.WritingTopic, error) {
+	rows, err := s.db.QueryContext(context.Background(), `SELECT topic.id,topic.title,topic.jlpt_level,topic.essay_prompt,topic.sentence_prompt,
+		EXISTS (SELECT 1 FROM writing_records AS record
+			WHERE record.user_id=$1 AND record.topic_id=topic.id AND record.type IN ('essay','sentence'))
+		FROM writing_topics AS topic ORDER BY topic.position,topic.id`, userID)
 	if err != nil {
-		return nil, fmt.Errorf("postgres.WritingStore.ListTopics query: %w", err)
+		return nil, fmt.Errorf("postgres.WritingStore.ListTopicsForUser query: %w", err)
 	}
 	defer rows.Close()
 	topics := make([]writing.WritingTopic, 0)
 	for rows.Next() {
 		var topic writing.WritingTopic
-		if err := rows.Scan(&topic.ID, &topic.Title, &topic.JLPTLevel, &topic.EssayPrompt, &topic.SentencePrompt); err != nil {
-			return nil, fmt.Errorf("postgres.WritingStore.ListTopics scan: %w", err)
+		if err := rows.Scan(&topic.ID, &topic.Title, &topic.JLPTLevel, &topic.EssayPrompt, &topic.SentencePrompt, &topic.Practiced); err != nil {
+			return nil, fmt.Errorf("postgres.WritingStore.ListTopicsForUser scan: %w", err)
 		}
 		topics = append(topics, topic)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres.WritingStore.ListTopics rows: %w", err)
+		return nil, fmt.Errorf("postgres.WritingStore.ListTopicsForUser rows: %w", err)
 	}
 	return topics, nil
 }
@@ -262,8 +269,8 @@ func (s *WritingStore) SaveRecord(r writing.WritingRecord) error {
 	_, err := s.db.ExecContext(
 		context.Background(),
 		`WITH saved AS (
-		 INSERT INTO writing_records (user_id, type, question, user_answer, ai_feedback_json, score, practiced_at)
-		 VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7) RETURNING id
+		 INSERT INTO writing_records (user_id, type, question, user_answer, ai_feedback_json, score, practiced_at, topic_id)
+		 VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, NULLIF($8, '')) RETURNING id
 		 ) DELETE FROM writing_drafts WHERE user_id = $1 AND topic_id = $8 AND type = $2 AND EXISTS (SELECT 1 FROM saved)`,
 		r.UserID,
 		r.Type,

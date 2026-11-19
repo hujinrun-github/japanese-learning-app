@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"time"
 )
 
 // WAV holds decoded mono samples in [-1, 1] and the sample rate in Hz.
@@ -19,48 +20,10 @@ const wavHeaderSize = 44
 // Only uncompressed PCM is supported; other formats return an explicit error.
 func ParseWAV(data []byte) (WAV, error) {
 	slog.Debug("audio.ParseWAV called", "bytes", len(data))
-	if len(data) < 12 || string(data[0:4]) != "RIFF" || string(data[8:12]) != "WAVE" {
-		err := fmt.Errorf("audio.ParseWAV: invalid RIFF/WAVE header (bytes=%d)", len(data))
-		slog.Error("audio.ParseWAV: invalid header", "err", err)
-		return WAV{}, err
-	}
-
-	var (
-		audioFormat   int
-		channels      int
-		sampleRate    int
-		bitsPerSample int
-		pcm           []byte
-	)
-
-	for off := 12; off+8 <= len(data); {
-		chunkID := string(data[off : off+4])
-		chunkSize := binary.LittleEndian.Uint32(data[off+4 : off+8])
-		body := off + 8
-		if uint64(chunkSize) > uint64(len(data)-body) {
-			return WAV{}, fmt.Errorf("audio.ParseWAV: chunk %q size %d exceeds file length", chunkID, chunkSize)
-		}
-		end := body + int(chunkSize)
-
-		switch chunkID {
-		case "fmt ":
-			if chunkSize < 16 {
-				return WAV{}, fmt.Errorf("audio.ParseWAV: fmt chunk too short (%d bytes)", chunkSize)
-			}
-			audioFormat = int(binary.LittleEndian.Uint16(data[body : body+2]))
-			channels = int(binary.LittleEndian.Uint16(data[body+2 : body+4]))
-			sampleRate = int(binary.LittleEndian.Uint32(data[body+4 : body+8]))
-			bitsPerSample = int(binary.LittleEndian.Uint16(data[body+14 : body+16]))
-		case "data":
-			pcm = data[body:end]
-		}
-
-		off = end + int(chunkSize&1) // chunks are word aligned
-	}
-
-	if err := validatePCMFormat(audioFormat, channels, sampleRate, bitsPerSample, len(pcm)); err != nil {
-		slog.Error("audio.ParseWAV: unsupported format", "err", err)
-		return WAV{}, err
+	pcm, channels, sampleRate, err := parsePCM16WAV(data)
+	if err != nil {
+		slog.Error("audio.ParseWAV: invalid audio", "err", err)
+		return WAV{}, fmt.Errorf("audio.ParseWAV: %w", err)
 	}
 
 	bytesPerFrame := channels * 2
@@ -81,21 +44,77 @@ func ParseWAV(data []byte) (WAV, error) {
 	return WAV{Samples: samples, SampleRate: sampleRate}, nil
 }
 
+// WAVDuration validates PCM16 WAV metadata and counts frames without decoding
+// or allocating samples. Chunk padding and metadata do not extend the duration.
+func WAVDuration(data []byte) (time.Duration, error) {
+	pcm, channels, sampleRate, err := parsePCM16WAV(data)
+	if err != nil {
+		slog.Error("audio.WAVDuration: invalid audio", "err", err)
+		return 0, fmt.Errorf("audio.WAVDuration: %w", err)
+	}
+	frames := len(pcm) / (channels * 2)
+	return time.Duration(int64(frames) * int64(time.Second) / int64(sampleRate)), nil
+}
+
+func parsePCM16WAV(data []byte) (pcm []byte, channels, sampleRate int, err error) {
+	if len(data) < 12 || string(data[0:4]) != "RIFF" || string(data[8:12]) != "WAVE" {
+		return nil, 0, 0, fmt.Errorf("invalid RIFF/WAVE header (bytes=%d)", len(data))
+	}
+
+	var (
+		audioFormat   int
+		bitsPerSample int
+	)
+
+	for off := 12; off+8 <= len(data); {
+		chunkID := string(data[off : off+4])
+		chunkSize := binary.LittleEndian.Uint32(data[off+4 : off+8])
+		body := off + 8
+		if uint64(chunkSize) > uint64(len(data)-body) {
+			return nil, 0, 0, fmt.Errorf("chunk %q size %d exceeds file length", chunkID, chunkSize)
+		}
+		end := body + int(chunkSize)
+
+		switch chunkID {
+		case "fmt ":
+			if chunkSize < 16 {
+				return nil, 0, 0, fmt.Errorf("fmt chunk too short (%d bytes)", chunkSize)
+			}
+			audioFormat = int(binary.LittleEndian.Uint16(data[body : body+2]))
+			channels = int(binary.LittleEndian.Uint16(data[body+2 : body+4]))
+			sampleRate = int(binary.LittleEndian.Uint32(data[body+4 : body+8]))
+			bitsPerSample = int(binary.LittleEndian.Uint16(data[body+14 : body+16]))
+		case "data":
+			pcm = data[body:end]
+		}
+
+		off = end + int(chunkSize&1) // chunks are word aligned
+	}
+
+	if err := validatePCMFormat(audioFormat, channels, sampleRate, bitsPerSample, len(pcm)); err != nil {
+		return nil, 0, 0, fmt.Errorf("validate WAV PCM format: %w", err)
+	}
+	return pcm, channels, sampleRate, nil
+}
+
 func validatePCMFormat(format, channels, rate, bits, pcmLen int) error {
 	if format != 1 {
-		return fmt.Errorf("audio.ParseWAV: unsupported audio format %d (only PCM=1)", format)
+		return fmt.Errorf("unsupported audio format %d (only PCM=1)", format)
 	}
 	if channels != 1 && channels != 2 {
-		return fmt.Errorf("audio.ParseWAV: unsupported channel count %d", channels)
+		return fmt.Errorf("unsupported channel count %d", channels)
 	}
 	if rate <= 0 {
-		return fmt.Errorf("audio.ParseWAV: invalid sample rate %d", rate)
+		return fmt.Errorf("invalid sample rate %d", rate)
 	}
 	if bits != 16 {
-		return fmt.Errorf("audio.ParseWAV: unsupported bits per sample %d (only 16)", bits)
+		return fmt.Errorf("unsupported bits per sample %d (only 16)", bits)
 	}
 	if pcmLen == 0 {
-		return fmt.Errorf("audio.ParseWAV: missing or empty data chunk")
+		return fmt.Errorf("missing or empty data chunk")
+	}
+	if pcmLen%(channels*2) != 0 {
+		return fmt.Errorf("incomplete PCM frame (bytes=%d channels=%d)", pcmLen, channels)
 	}
 	return nil
 }

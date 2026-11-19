@@ -29,10 +29,11 @@ const (
 // engine lesson shadowing uses. The reference audio is the material's audio_url,
 // or the content-addressed TTS file that "播放参考" plays for the same text.
 type EvaluationHandler struct {
-	svc       *SpeakingService
-	audioRoot string
-	loader    shadowing.ObjectLoader
-	evaluator *shadowing.Evaluator
+	svc           *SpeakingService
+	audioRoot     string
+	loader        shadowing.ObjectLoader
+	evaluator     *shadowing.Evaluator
+	pronunciation *PronunciationAnalyzer
 }
 
 // NewEvaluationHandler creates an EvaluationHandler. audioRoot is the directory
@@ -40,6 +41,12 @@ type EvaluationHandler struct {
 // audio URLs.
 func NewEvaluationHandler(svc *SpeakingService, audioRoot string, loader shadowing.ObjectLoader, evaluator *shadowing.Evaluator) *EvaluationHandler {
 	return &EvaluationHandler{svc: svc, audioRoot: audioRoot, loader: loader, evaluator: evaluator}
+}
+
+// SetPronunciationAnalyzer injects optional ASR word feedback without changing
+// the local prosody rubric or making it dependent on an external service.
+func (h *EvaluationHandler) SetPronunciationAnalyzer(analyzer *PronunciationAnalyzer) {
+	h.pronunciation = analyzer
 }
 
 // RegisterRoutes registers POST /api/v1/speaking/evaluate.
@@ -57,6 +64,11 @@ func (h *EvaluationHandler) handleEvaluate(w http.ResponseWriter, r *http.Reques
 		httputil.WriteError(w, http.StatusBadRequest, ErrSpeakingEvalInvalid, "invalid multipart form", "")
 		return
 	}
+	defer func() {
+		if err := r.MultipartForm.RemoveAll(); err != nil {
+			slog.Error("speaking.EvaluationHandler: remove multipart temporary files failed", "err", err)
+		}
+	}()
 
 	file, _, err := r.FormFile("audio")
 	if err != nil {
@@ -140,12 +152,21 @@ func (h *EvaluationHandler) handleEvaluate(w http.ResponseWriter, r *http.Reques
 			"failed to analyze the recording", "")
 		return
 	}
+	feedback := PronunciationFeedback{
+		Status: "unavailable", Reason: "insufficient_audio", Message: "本次录音不足以判断单词读音，请查看录音提示后重试。", Words: []WordPronunciation{},
+	}
+	if result.Status == "scoreable" {
+		feedback, result.RecognizedText = h.pronunciation.Analyze(r.Context(), userAudio, material.Text)
+	}
 	result.LatencyMS = time.Since(start).Milliseconds()
 
 	slog.Debug("speaking.EvaluationHandler done",
 		"material_id", materialID, "status", result.Status, "code", result.UnscorableCode,
 		"latency_ms", result.LatencyMS)
-	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: result})
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: struct {
+		shadowing.EvaluationResult
+		Pronunciation PronunciationFeedback `json:"pronunciation"`
+	}{EvaluationResult: result, Pronunciation: feedback}})
 }
 
 // referenceAudioURL returns the material's configured reference audio, or the

@@ -4,6 +4,66 @@ import { getWordAudioURL, playReferenceAudio, speakExample, speakWord, stopCurre
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('configured reference playback', () => {
+  it('seeks and stops at the estimated sentence clip using metadata', async () => {
+    vi.stubGlobal('speechSynthesis', { cancel: vi.fn() })
+    vi.stubGlobal('localStorage', { getItem: () => null })
+    let audio: ClipAudio
+    class ClipAudio {
+      duration = 20
+      currentTime = 0
+      volume = 1
+      onloadedmetadata: (() => void) | null = null
+      ontimeupdate: (() => void) | null = null
+      onended: (() => void) | null = null
+      onerror: (() => void) | null = null
+      pause = vi.fn()
+      play = vi.fn(() => Promise.resolve())
+      constructor() { audio = this }
+      load() { queueMicrotask(() => this.onloadedmetadata?.()) }
+    }
+    vi.stubGlobal('Audio', ClipAudio)
+    const progress = vi.fn()
+    const done = playReferenceAudio('/audio/original.wav', { startFraction: 0.25, endFraction: 0.5, onProgress: progress })
+    await Promise.resolve()
+    expect(audio!.currentTime).toBe(5)
+    expect(audio!.play).toHaveBeenCalledOnce()
+    audio!.currentTime = 10
+    audio!.ontimeupdate?.()
+    await done
+    expect(audio!.pause).toHaveBeenCalled()
+    expect(progress).toHaveBeenCalledWith(5, 20)
+    expect(progress).toHaveBeenCalledWith(10, 20)
+  })
+
+  it('settles a stopped reference and ignores late metadata from it', async () => {
+    vi.stubGlobal('speechSynthesis', { cancel: vi.fn() })
+    vi.stubGlobal('localStorage', { getItem: () => null })
+    const instances: DeferredAudio[] = []
+    class DeferredAudio {
+      duration = 10
+      currentTime = 0
+      volume = 1
+      onloadedmetadata: (() => void) | null = null
+      ontimeupdate: (() => void) | null = null
+      onended: (() => void) | null = null
+      onerror: (() => void) | null = null
+      play = vi.fn(() => Promise.resolve())
+      pause = vi.fn()
+      constructor() { instances.push(this) }
+      load() {}
+    }
+    vi.stubGlobal('Audio', DeferredAudio)
+    const old = playReferenceAudio('/audio/old.wav', { startFraction: 0.5 })
+    const lateMetadata = instances[0].onloadedmetadata
+    const next = playReferenceAudio('/audio/new.wav')
+    await old
+    lateMetadata?.()
+    expect(instances[0].play).not.toHaveBeenCalled()
+    expect(instances[1].play).toHaveBeenCalledOnce()
+    stopCurrent()
+    await next
+  })
+
   it('plays the exact configured URL without synthesizing a replacement', async () => {
     const speak = vi.fn()
     vi.stubGlobal('speechSynthesis', { cancel: vi.fn(), speak })

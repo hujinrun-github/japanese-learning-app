@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import i18next from 'i18next'
+import { initReactI18next } from 'react-i18next'
 import { SpeakingText, splitSpeakingTurns } from './SpeakingText'
 import { toFuriganaTokens } from '@/util/furigana'
+
+void i18next.use(initReactI18next).init({ lng: 'zh', resources: {} })
 
 describe('splitSpeakingTurns', () => {
   it.each([
@@ -49,7 +53,7 @@ describe('SpeakingText', () => {
     const lines = ['1. 部屋に机といすがあります。', '2. 机の上に猫がいます。', '甲：わたしは李です。小野さんですか。', '乙：はい、そうです。小野です。']
     const annotations = annotated ? await Promise.all(lines.map(toFuriganaTokens)) : []
     const html = renderToStaticMarkup(<SpeakingText lines={lines} annotations={annotations} />)
-    const rows = Array.from(html.matchAll(/<div class="[^"]*sentenceLine[^"]*">(.*?)<\/div>/g), (match) =>
+    const rows = Array.from(html.matchAll(/<div class="[^"]*sentenceLine[^"]*"[^>]*>(.*?)<\/div>/g), (match) =>
       match[1].replace(/<rt>.*?<\/rt>/g, '').replace(/<[^>]*>/g, ''),
     )
     expect(rows).toEqual(lines)

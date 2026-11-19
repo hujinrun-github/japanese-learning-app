@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { EvaluationResult } from '@/types/shadowing'
+import type { SpeakingEvaluationResult } from '@/types/speaking'
 
 export interface EvaluateSpeakingRequest {
   audio: Blob
@@ -16,7 +16,7 @@ export function buildSpeakingEvaluationFormData(req: EvaluateSpeakingRequest): F
 }
 
 export function evaluateSpeaking(req: EvaluateSpeakingRequest, signal?: AbortSignal) {
-  return apiFetch<EvaluationResult>(
+  return apiFetch<SpeakingEvaluationResult>(
     'POST',
     '/api/v1/speaking/evaluate',
     buildSpeakingEvaluationFormData(req),

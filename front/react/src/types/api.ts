@@ -272,6 +272,7 @@ export interface WritingTopic {
   jlpt_level: JLPTLevel
   essay_prompt: string
   sentence_prompt: string
+  practiced: boolean
 }
 
 export interface WritingRecord {

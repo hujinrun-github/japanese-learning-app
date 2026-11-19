@@ -1,10 +1,10 @@
-import type { EvaluationResult } from '@/types/shadowing'
+import type { SpeakingEvaluationResult } from '@/types/speaking'
 
 export interface SpeakingEvaluationState {
   materialID: number | null
   requestID: number
   evaluating: boolean
-  result: EvaluationResult | null
+  result: SpeakingEvaluationResult | null
   error: string
 }
 
@@ -16,7 +16,7 @@ type EvaluationAction = {
   type: 'reset' | 'start' | 'success' | 'failure' | 'finish'
   materialID: number | null
   requestID: number
-  result?: EvaluationResult
+  result?: SpeakingEvaluationResult
   error?: string
 }
 

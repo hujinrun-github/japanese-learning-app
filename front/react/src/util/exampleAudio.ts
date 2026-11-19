@@ -1,6 +1,7 @@
 import { getVolume } from './audioVolume'
 
 let audioEl: HTMLAudioElement | null = null
+let stopReference: (() => void) | null = null
 
 // Local files can be replaced after a correction while retaining their text hash.
 function freshAudioURL(url: string): string {
@@ -10,6 +11,8 @@ function freshAudioURL(url: string): string {
 }
 
 export function stopCurrent() {
+  stopReference?.()
+  stopReference = null
   if (audioEl) {
     audioEl.pause()
     audioEl = null
@@ -19,15 +22,68 @@ export function stopCurrent() {
 
 // Configured speaking references must be played verbatim. Falling back to a
 // different synthesizer would change the audio used as the scoring baseline.
-export function playReferenceAudio(url: string): Promise<void> {
+export interface ReferencePlaybackOptions {
+  /** Fractions refer to the same original audio, never a synthesized replacement. */
+  startFraction?: number
+  endFraction?: number
+  onProgress?: (currentTime: number, duration: number) => void
+}
+
+export function playReferenceAudio(url: string, opts?: ReferencePlaybackOptions): Promise<void> {
   stopCurrent()
   return new Promise((resolve, reject) => {
     const audio = new Audio(freshAudioURL(url))
     audio.volume = getVolume()
     audioEl = audio
-    audio.onended = () => { if (audioEl === audio) audioEl = null; resolve() }
-    audio.onerror = () => { if (audioEl === audio) audioEl = null; reject(new Error('Reference audio unavailable')) }
-    audio.play().catch(reject)
+    let settled = false
+    let endTime = Infinity
+    const finish = (err?: Error) => {
+      if (settled) return
+      settled = true
+      audio.onended = null
+      audio.onerror = null
+      audio.onloadedmetadata = null
+      audio.ontimeupdate = null
+      audio.pause()
+      if (audioEl === audio) audioEl = null
+      if (stopReference === cancel) stopReference = null
+      if (err) reject(err)
+      else resolve()
+    }
+    const cancel = () => finish()
+    stopReference = cancel
+    const reportProgress = () => {
+      if (settled) return
+      opts?.onProgress?.(audio.currentTime, audio.duration)
+      if (audio.currentTime >= endTime) finish()
+    }
+    const start = () => {
+      if (settled) return
+      audio.play().catch(err => finish(err instanceof Error ? err : new Error('Reference audio unavailable')))
+    }
+    const clipped = opts?.startFraction !== undefined || opts?.endFraction !== undefined
+    audio.onloadedmetadata = () => {
+      if (settled) return
+      if (clipped) {
+        if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+          finish(new Error('Reference audio duration unavailable'))
+          return
+        }
+        const startFraction = Math.max(0, Math.min(1, opts?.startFraction ?? 0))
+        const endFraction = Math.max(startFraction, Math.min(1, opts?.endFraction ?? 1))
+        audio.currentTime = startFraction * audio.duration
+        endTime = endFraction * audio.duration
+        reportProgress()
+        start()
+      } else reportProgress()
+    }
+    audio.ontimeupdate = reportProgress
+    audio.onended = () => finish()
+    audio.onerror = () => finish(new Error('Reference audio unavailable'))
+    if (clipped) {
+      audio.preload = 'auto'
+      audio.load()
+    } else start()
   })
 }
 
@@ -42,6 +98,10 @@ async function sha256Hex(text: string): Promise<string> {
 
 export function getExampleAudioURL(hash: string): string {
   return `/audio/examples/${hash}.wav`
+}
+
+export async function getSpeakingReferenceURL(text: string, audioURL?: string): Promise<string> {
+  return audioURL?.trim() || getExampleAudioURL(await sha256Hex(text))
 }
 
 export function getWordAudioURL(audioURL: string): string {
