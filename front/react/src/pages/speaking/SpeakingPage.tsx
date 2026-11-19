@@ -7,13 +7,16 @@ import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useWavRecorder } from '@/hooks/useWavRecorder'
+import { useSpeakingPlayback } from '@/hooks/useSpeakingPlayback'
 import { APIError } from '@/api/client'
 import { evaluateSpeaking } from '@/api/speaking'
 import { ScoreCard } from '@/pages/shadowing/ScoreCard'
 import { initialEvaluationState, speakingEvaluationReducer } from './speakingEvaluation'
-import { SpeakingText, splitSpeakingTurns } from './SpeakingText'
+import { SpeakingText } from './SpeakingText'
+import { PronunciationFeedback } from './PronunciationFeedback'
+import { splitSpeakingSentences, type SpeakingSentence } from '@/util/speakingPlayback'
 import { toFuriganaTokens } from '@/util/furigana'
-import { speakExample, playReferenceAudio, stopCurrent } from '@/util/exampleAudio'
+import { getSpeakingReferenceURL, stopCurrent } from '@/util/exampleAudio'
 import type { SpeakingRecord, SpeakingMaterial, FuriganaToken, JLPTLevel } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './SpeakingPage.module.css'
@@ -50,6 +53,8 @@ export function SpeakingPage() {
   // practice state
   const [furiganaLines, setFuriganaLines] = useState<FuriganaToken[][]>([])
   const [practiceLines, setPracticeLines] = useState<string[]>([])
+  const [practiceSentences, setPracticeSentences] = useState<SpeakingSentence[]>([])
+  const [referenceError, setReferenceError] = useState('')
   const [selfRating, setSelfRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -63,7 +68,14 @@ export function SpeakingPage() {
   const evaluationRequest = useRef<AbortController | null>(null)
   const requestID = useRef(0)
   const activeMaterialID = useRef<number | null>(null)
+  const referenceRequestID = useRef(0)
   const recorder = useWavRecorder()
+  const referencePlayback = useSpeakingPlayback()
+
+  function stopReferencePlayback() {
+    ++referenceRequestID.current
+    referencePlayback.stop()
+  }
 
   function resetEvaluation(materialID: number | null) {
     evaluationRequest.current?.abort()
@@ -139,7 +151,9 @@ export function SpeakingPage() {
   async function handleSelectMaterial(m: SpeakingMaterial) {
     resetEvaluation(m.id)
     recorder.reset()
+    stopReferencePlayback()
     stopCurrent()
+    setReferenceError('')
     setSelectedMaterial(m)
     setSubmitted(false)
     setSelfRating(0)
@@ -147,7 +161,9 @@ export function SpeakingPage() {
     setHistoryExpanded(false)
     const selectionID = requestID.current
     setFuriganaLines([])
-    const lines = splitSpeakingTurns(m.text)
+    const sentences = splitSpeakingSentences(m.text)
+    const lines = sentences.map((sentence) => sentence.text)
+    setPracticeSentences(sentences)
     setPracticeLines(lines)
     try {
       const tokens = await Promise.all(lines.map(toFuriganaTokens))
@@ -161,31 +177,38 @@ export function SpeakingPage() {
   function handleBackToList() {
     resetEvaluation(null)
     recorder.reset()
+    stopReferencePlayback()
     stopCurrent()
+    setReferenceError('')
     setSelectedMaterial(null)
     setPracticeMaterials([])
     setFuriganaLines([])
     setPracticeLines([])
+    setPracticeSentences([])
     setSubmitted(false)
   }
 
-  async function handlePlayTTS() {
-    if (!selectedMaterial) return
+  async function handlePlayTTS(sentenceIndex?: number) {
+    if (!selectedMaterial || recorder.isRecording) return
     const materialID = selectedMaterial.id
     const id = requestID.current
+    const playbackID = ++referenceRequestID.current
+    setReferenceError('')
     try {
-      const url = selectedMaterial.audio_url?.trim()
-      if (url) await playReferenceAudio(url)
-      else await speakExample(selectedMaterial.text)
+      const url = await getSpeakingReferenceURL(selectedMaterial.text, selectedMaterial.audio_url)
+      if (activeMaterialID.current !== materialID || requestID.current !== id || referenceRequestID.current !== playbackID) return
+      await referencePlayback.play(url, practiceLines, sentenceIndex)
     } catch {
-      dispatchEvaluation({ type: 'failure', materialID, requestID: id, error: t('speaking.practice.noReference') })
+      if (activeMaterialID.current === materialID && requestID.current === id && referenceRequestID.current === playbackID) setReferenceError(t('speaking.practice.noReference'))
     }
   }
 
   async function handleStartRecording() {
     if (!selectedMaterial || submitting) return
     resetEvaluation(selectedMaterial.id)
+    stopReferencePlayback()
     stopCurrent()
+    setReferenceError('')
     setSubmitted(false)
     setSubmissionError(false)
     setSelfRating(0)
@@ -368,17 +391,18 @@ export function SpeakingPage() {
 
       <DailyPracticeProgress progress={progress} />
 
-      {/* Keep annotations aligned with each complete speaker turn. */}
-      <SpeakingText lines={practiceLines} annotations={furiganaLines} />
+      <p className={styles.playbackHint}>{t('speaking.practice.sentenceHint')}</p>
+      <SpeakingText lines={practiceLines} annotations={furiganaLines}
+        offsets={practiceSentences.map((sentence) => sentence.start)} pronunciation={evaluation?.pronunciation}
+        activeSentenceIndex={referencePlayback.activeSentenceIndex}
+        onPlaySentence={(index) => { void handlePlayTTS(index) }} playDisabled={recorder.isRecording} />
 
       {/* toolbar */}
       <div className={styles.toolbar}>
-        {/* TTS (shadowing mode) */}
-        {selectedMaterial.type === 'shadow' && (
-          <button className={styles.toolBtn} onClick={handlePlayTTS}>
-            {t('speaking.practice.playRef')}
-          </button>
-        )}
+        <button type="button" className={styles.toolBtn} disabled={recorder.isRecording}
+          onClick={() => { if (referencePlayback.isPlaying) stopReferencePlayback(); else void handlePlayTTS() }}>
+          {t(referencePlayback.isPlaying ? 'speaking.practice.stopRef' : 'speaking.practice.playRef')}
+        </button>
 
         {/* recording */}
         {recorder.isRecording ? (
@@ -395,6 +419,8 @@ export function SpeakingPage() {
           </button>
         )}
       </div>
+
+      {referenceError && <p className={styles.errorMsg} role="alert">{referenceError}</p>}
 
       {/* playback */}
       {recorder.recording && (
@@ -415,6 +441,7 @@ export function SpeakingPage() {
       <p className={styles.scoringHint}>{t('speaking.practice.scoringHint')}</p>
       {evaluating && <p className={styles.errorMsg} role="status">{t('speaking.practice.scoring')}</p>}
       {evaluationError && <p className={styles.errorMsg} role="alert">{evaluationError}</p>}
+      <PronunciationFeedback result={evaluation?.pronunciation} recognizedText={evaluation?.recognized_text ?? ''} />
       <ScoreCard result={evaluation} />
 
       {/* self rating */}

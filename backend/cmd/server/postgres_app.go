@@ -122,6 +122,21 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	speakingH.SetStreakRecorder(userSvc)
 	speakingEvaluationH := speaking.NewEvaluationHandler(speakingSvc, cfg.AudioStorePath, newLessonAudioObjectLoader(db, cfg), evaluator)
+	if cfg.SpeakingASRURL != "" {
+		asr := speaking.NewVLLMScorer(cfg.SpeakingASRURL, cfg.SpeakingASRModel, time.Duration(cfg.SpeakingASRTimeoutSec)*time.Second)
+		if cfg.SpeakingASRProvider == "whisper_cpp" {
+			asr = speaking.NewWhisperCPPScorer(cfg.SpeakingASRURL, cfg.SpeakingASRModel, time.Duration(cfg.SpeakingASRTimeoutSec)*time.Second)
+		}
+		pronunciation, err := speaking.NewPronunciationAnalyzer(asr)
+		if err != nil {
+			cleanup()
+			return nil, nil, fmt.Errorf("buildPostgresServerMux initialize speaking pronunciation: %w", err)
+		}
+		speakingEvaluationH.SetPronunciationAnalyzer(pronunciation)
+		slog.Info("speaking pronunciation recognition enabled", "provider", cfg.SpeakingASRProvider, "model", cfg.SpeakingASRModel)
+	} else {
+		slog.Info("SPEAKING_ASR_URL not set; speaking pronunciation recognition disabled")
+	}
 	writingH := writing.NewWritingHandler(writingSvc)
 	writingH.SetStreakRecorder(userSvc)
 	translationH := translation.NewTranslationHandler(translationSvc)

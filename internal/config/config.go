@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -33,6 +35,11 @@ type Config struct {
 	AIAPIKey       string
 	AIAPIEndpoint  string
 	AITimeoutSec   int
+
+	SpeakingASRURL        string
+	SpeakingASRProvider   string
+	SpeakingASRModel      string
+	SpeakingASRTimeoutSec int
 
 	AudioStorePath string
 }
@@ -84,6 +91,35 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
+	speakingASRTimeoutSec, err := loadInt("SPEAKING_ASR_TIMEOUT_SEC", 120)
+	if err != nil {
+		return nil, err
+	}
+	if speakingASRTimeoutSec <= 0 || speakingASRTimeoutSec > int((1<<63-1)/int64(time.Second)) {
+		return nil, fmt.Errorf("SPEAKING_ASR_TIMEOUT_SEC must be positive and fit a time.Duration")
+	}
+	speakingASRURL := strings.TrimSpace(os.Getenv("SPEAKING_ASR_URL"))
+	if speakingASRURL != "" {
+		endpoint, err := url.Parse(speakingASRURL)
+		if err != nil {
+			return nil, fmt.Errorf("load SPEAKING_ASR_URL: %w", err)
+		}
+		if (endpoint.Scheme != "http" && endpoint.Scheme != "https") || endpoint.Hostname() == "" || endpoint.Fragment != "" {
+			return nil, fmt.Errorf("SPEAKING_ASR_URL must be an absolute HTTP or HTTPS transcription endpoint")
+		}
+	}
+	speakingASRModel := strings.TrimSpace(os.Getenv("SPEAKING_ASR_MODEL"))
+	if speakingASRModel == "" {
+		speakingASRModel = "whisper"
+	}
+	speakingASRProvider := strings.TrimSpace(os.Getenv("SPEAKING_ASR_PROVIDER"))
+	if speakingASRProvider == "" {
+		speakingASRProvider = "openai"
+	}
+	if speakingASRProvider != "openai" && speakingASRProvider != "whisper_cpp" {
+		return nil, fmt.Errorf("SPEAKING_ASR_PROVIDER must be openai or whisper_cpp, got %q", speakingASRProvider)
+	}
+
 	cfg := &Config{
 		ListenAddr: envOrDefault("LISTEN_ADDR", ":30081"),
 
@@ -110,6 +146,11 @@ func Load(path string) (*Config, error) {
 		AIAPIKey:       os.Getenv("AI_API_KEY"),
 		AIAPIEndpoint:  envOrDefault("AI_API_ENDPOINT", "https://api.anthropic.com/v1/messages"),
 		AITimeoutSec:   aiTimeoutSec,
+
+		SpeakingASRURL:        speakingASRURL,
+		SpeakingASRProvider:   speakingASRProvider,
+		SpeakingASRModel:      speakingASRModel,
+		SpeakingASRTimeoutSec: speakingASRTimeoutSec,
 
 		AudioStorePath: envOrDefault("AUDIO_STORE_PATH", "./data/audio"),
 	}

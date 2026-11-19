@@ -49,8 +49,25 @@
 .practiceTitle { font-size: var(--font-size-xl); font-weight: 700; color: var(--color-text); margin: 0; }
 
 .textDisplay { font-size: var(--font-size-lg); line-height: 2.4; padding: var(--space-6); background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: var(--space-5); min-height: 80px; }
-.sentenceLine { margin-bottom: var(--space-3); overflow-wrap: anywhere; }
+.sentenceLine { margin-bottom: var(--space-3); overflow-wrap: anywhere; border-inline-start: 3px solid transparent; border-radius: var(--radius-sm); padding: var(--space-2); }
 .sentenceLine:last-child { margin-bottom: 0; }
+.sentenceActive { background: var(--color-brand-subtle); border-inline-start-color: var(--color-brand); box-shadow: inset 0 0 0 1px var(--color-brand); }
+.sentencePlay { display: inline-flex; align-items: center; margin-inline-start: var(--space-2); min-height: 36px; padding: 2px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-surface); color: var(--color-brand); font: inherit; font-size: var(--font-size-xs); cursor: pointer; vertical-align: middle; }
+.sentencePlay:disabled { opacity: 0.4; cursor: not-allowed; }
+.sentencePlay:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.playbackHint { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-bottom: var(--space-2); line-height: 1.6; }
+.wordMismatch, .wordMissing { position: relative; background: var(--color-error-light, #fef2f2); color: var(--color-text); border-radius: 3px; border-bottom: 3px solid var(--color-error); cursor: help; }
+.wordMissing { border-bottom-style: dashed; }
+.wordTooltip { display: none; }
+.wordMismatch:focus, .wordMissing:focus { outline: 2px solid var(--color-error); outline-offset: 2px; }
+.wordMismatch:focus .wordTooltip, .wordMissing:focus .wordTooltip,
+.wordMismatch:hover .wordTooltip, .wordMissing:hover .wordTooltip { display: block; position: absolute; z-index: 2; bottom: 100%; inset-inline-start: 0; width: max-content; max-width: min(230px, 55vw); padding: var(--space-2); background: var(--color-bg-surface); color: var(--color-text); border: 1px solid var(--color-error); border-radius: var(--radius-sm); font-size: var(--font-size-sm); line-height: 1.5; box-shadow: var(--shadow-md); }
+.pronunciationFeedback { margin: var(--space-4) 0; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-surface); line-height: 1.6; }
+.pronunciationFeedback h2 { font-size: var(--font-size-md); margin: 0 0 var(--space-2); }
+.pronunciationFeedback p { margin: var(--space-2) 0; }
+.pronunciationHint { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.pronunciationFeedback summary { cursor: pointer; font-size: var(--font-size-sm); color: var(--color-brand); }
+.pronunciationFeedback details p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .token { padding: 2px 2px; border-radius: 3px; }
 .token rt { font-size: 0.55em; color: var(--color-text-muted); }
 

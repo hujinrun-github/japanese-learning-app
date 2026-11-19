@@ -7,4 +7,5 @@ type WritingTopic struct {
 	JLPTLevel      string `json:"jlpt_level"`
 	EssayPrompt    string `json:"essay_prompt"`
 	SentencePrompt string `json:"sentence_prompt"`
+	Practiced      bool   `json:"practiced"`
 }

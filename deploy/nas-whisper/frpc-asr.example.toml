@@ -1,0 +1,8 @@
+# Merge this proxy into the existing fnOS Frpc configuration.
+# Keep the current server address, authentication, and other proxies.
+[[proxies]]
+name = "faster-whisper"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 29010
+remotePort = 29000

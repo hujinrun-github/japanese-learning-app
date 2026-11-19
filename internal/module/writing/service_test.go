@@ -22,6 +22,10 @@ func (f *fakeWritingStore) GetDailyQueue(userID int64) ([]writing.WritingQuestio
 
 func (f *fakeWritingStore) ListTopics() ([]writing.WritingTopic, error) { return nil, nil }
 
+func (f *fakeWritingStore) ListTopicsForUser(int64) ([]writing.WritingTopic, error) {
+	return nil, nil
+}
+
 func (f *fakeWritingStore) GetQuestionByID(id int64) (*writing.WritingQuestion, error) {
 	for _, q := range f.questions {
 		if q.ID == id {

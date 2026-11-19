@@ -1,0 +1,116 @@
+name: whisper-blas
+services:
+  whisper-server-blas:
+    container_name: whisper-server-blas
+    image: local/whisper.cpp:j4025-blas-isolated
+    pull_policy: build
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM local/whisper.cpp:j4025
+        USER root
+        ARG DEBIAN_FRONTEND=noninteractive
+        RUN sed -i 's|http://archive.ubuntu.com/ubuntu|https://mirrors.tuna.tsinghua.edu.cn/ubuntu|g; s|http://security.ubuntu.com/ubuntu|https://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' /etc/apt/sources.list && apt-get -o Acquire::Retries=1 -o Acquire::https::Timeout=15 update && apt-get -o Acquire::Retries=1 -o Acquire::https::Timeout=15 install -y --no-install-recommends build-essential cmake pkg-config libopenblas-dev python3
+        RUN python3 - <<'PY_ISOLATE'
+        #!/usr/bin/env python3
+        """Patch the NAS whisper.cpp server to isolate changes in encoder context size.
+
+        Every anchor must match exactly once. A source mismatch or a second application
+        fails before writing, so an incompatible local base image cannot build silently.
+        """
+
+        from pathlib import Path
+        import sys
+
+
+        def patch(source: str) -> str:
+            marker = "japanese-learning-app: isolate changing audio context"
+            if marker in source:
+                raise ValueError("context isolation patch is already present")
+
+            default = "    whisper_params default_params = params;\n"
+            request = "        get_req_parameters(req, params);\n"
+            load = "        ctx = whisper_init_from_file_with_params(model.c_str(), cparams);"
+            ready = "        state.store(SERVER_STATE_READY);"
+            route = "svr->Post(sparams.request_path + sparams.inference_path"
+            load_route = 'svr->Post(sparams.request_path + "/load"'
+            for name, anchor in (("defaults", default), ("request", request),
+                                 ("model load", load), ("model ready", ready),
+                                 ("inference route", route), ("load route", load_route)):
+                if source.count(anchor) != 1:
+                    raise ValueError(f"{name} anchor must appear once; found {source.count(anchor)}")
+
+            inference_section = source[source.index(route):source.index(request)]
+            load_section = source[source.index(load_route):source.index(ready)]
+            mutex = "std::lock_guard<std::mutex> lock(whisper_mutex);"
+            if mutex not in inference_section or mutex not in load_section:
+                raise ValueError("both inference and model loading must hold whisper_mutex")
+            if not source.index(load_route) < source.index(load) < source.index(ready):
+                raise ValueError("model ready anchor must follow successful model loading")
+
+            declarations = r'''    // japanese-learning-app: isolate changing audio context
+            int last_effective_ctx = -1;
+            std::string active_model_path = default_params.model;
+        '''
+            isolation = r'''        // Rebuild only when the effective encoder window changes. The
+                // mutex above keeps model loading and inference on one valid context.
+                const int effective_ctx = params.audio_ctx > 0 ? params.audio_ctx : whisper_n_audio_ctx(ctx);
+                if (last_effective_ctx >= 0 && effective_ctx != last_effective_ctx) {
+                    fprintf(stderr, "audio_ctx changed %d -> %d; rebuilding model state\n",
+                            last_effective_ctx, effective_ctx);
+                    auto * new_ctx = whisper_init_from_file_with_params(active_model_path.c_str(), cparams);
+                    if (new_ctx == nullptr) {
+                        fprintf(stderr, "error: failed to reinitialize model; keeping previous context\n");
+                        res.status = 500;
+                        res.set_content("{\"error\":\"failed to reinitialize speech context\"}", "application/json");
+                        return;
+                    }
+                    // Match normal startup. In CPU-only builds this helper is a stub.
+                    whisper_ctx_init_openvino_encoder(new_ctx, nullptr, params.openvino_encode_device.c_str(), nullptr);
+                    whisper_free(ctx);
+                    ctx = new_ctx;
+                }
+                last_effective_ctx = effective_ctx;
+        '''
+            patched = source.replace(default, default + declarations, 1)
+            patched = patched.replace(request, request + isolation, 1)
+            patched = patched.replace(ready, "        active_model_path = model;\n"
+                                      "        last_effective_ctx = -1;\n" + ready, 1)
+            return patched
+
+
+        def main() -> None:
+            path = Path(sys.argv[1] if len(sys.argv) > 1 else "/app/examples/server/server.cpp")
+            try:
+                original = path.read_text(encoding="utf-8")
+                patched = patch(original)
+                path.write_text(patched, encoding="utf-8")
+            except (OSError, ValueError) as error:
+                raise SystemExit(f"whisper.cpp isolation patch failed: {error}") from error
+            print(f"Applied encoder-context isolation to {path}")
+
+
+        if __name__ == "__main__":
+            main()
+        PY_ISOLATE
+        RUN cmake -S /app -B /app/build-blas -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_AVX=OFF -DGGML_AVX2=OFF -DGGML_AVX512=OFF -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF -DGGML_AVX_VNNI=OFF -DGGML_FMA=OFF -DGGML_F16C=OFF -DGGML_BMI2=OFF -DGGML_SSE42=ON -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_OPENMP=ON -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON && cmake --build /app/build-blas --target whisper-server -j2
+    entrypoint: ["/app/build-blas/bin/whisper-server"]
+    command: ["--model", "/models/ggml-base.bin", "--host", "0.0.0.0", "--port", "8080", "--threads", "2", "--no-gpu", "--language", "ja"]
+    environment:
+      TZ: Asia/Shanghai
+      LD_LIBRARY_PATH: "/app/build-blas/bin:/app/build-blas/src:/app/build-blas/ggml/src:/app/build-blas/ggml/src/ggml-blas:/app/build-blas/ggml/src/ggml-cpu"
+      OMP_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+    ports:
+      - "127.0.0.1:29010:8080"
+    volumes:
+      - /vol1/1000/docker/whisper/models:/models:ro
+    mem_limit: 3072m
+    cpus: "2.0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

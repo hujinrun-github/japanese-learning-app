@@ -34,7 +34,7 @@ type AIFeedback struct {
 
 // WritingRecord 一次写作练习记录
 type WritingRecord struct {
-	TopicID     string      `json:"-"` // Internal association used to clear only the submitted draft.
+	TopicID     string      `json:"-"` // Stable topic association for progress and clearing the submitted draft.
 	ID          int64       `json:"id"`
 	UserID      int64       `json:"user_id"`
 	Type        WritingType `json:"type"`

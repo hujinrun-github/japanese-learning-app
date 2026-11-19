@@ -7,13 +7,21 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { WritingDraft, WritingMode, WritingRecord, WritingTopic } from '@/types/api'
+import type { JLPTLevel, WritingDraft, WritingMode, WritingRecord, WritingTopic } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import styles from './WritingQueuePage.module.css'
 
 const modes = ['essay', 'sentence'] as const
+const levels = ['N5', 'N4', 'N3', 'N2', 'N1'] as const
 const maxAnswerLength = 1000
 type TopicDrafts = Record<string, Partial<Record<WritingMode, string>>>
+type TopicLevel = JLPTLevel | 'all'
+type PracticeStatus = 'unpracticed' | 'practiced' | 'all'
+
+function filterTopics(topics: WritingTopic[], level: TopicLevel, status: PracticeStatus) {
+  return topics.filter(topic => (level === 'all' || topic.jlpt_level === level)
+    && (status === 'all' || Boolean(topic.practiced) === (status === 'practiced')))
+}
 
 function scoreColor(score: number) {
   if (score >= 80) return 'var(--color-success)'
@@ -25,6 +33,8 @@ export function WritingQueuePage() {
   const { t } = useTranslation()
   const { progress, refreshProgress } = useDailyPracticeProgress('writing')
   const [topics, setTopics] = useState<WritingTopic[]>([])
+  const [level, setLevel] = useState<TopicLevel>('all')
+  const [practiceStatus, setPracticeStatus] = useState<PracticeStatus>('unpracticed')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [mode, setMode] = useState<WritingMode>('essay')
   const [drafts, setDrafts] = useState<TopicDrafts>({})
@@ -34,13 +44,15 @@ export function WritingQueuePage() {
   const [draftError, setDraftError] = useState('')
   const requests = useRef<AbortController | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState<WritingRecord | null>(null)
   const [records, setRecords] = useState<WritingRecord[]>([])
   const [recordsLoading, setRecordsLoading] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
-  const topic = topics[currentIndex]
+  const filteredTopics = filterTopics(topics, level, practiceStatus)
+  const topic = filteredTopics[currentIndex]
   const answer = topic ? drafts[topic.id]?.[mode] ?? '' : ''
   const trimmedAnswer = answer.trim()
   const answerLength = Array.from(trimmedAnswer).length
@@ -65,6 +77,8 @@ export function WritingQueuePage() {
       ])
       if (signal?.aborted) return
       setTopics(data ?? [])
+      setHasLoaded(true)
+      const available = filterTopics(data ?? [], level, practiceStatus)
       const restored: TopicDrafts = {}
       const validDrafts = (saved ?? []).filter(draft => data?.some(item => item.id === draft.topic_id))
       for (const draft of validDrafts) {
@@ -72,8 +86,8 @@ export function WritingQueuePage() {
       }
       setDrafts(restored)
       setSavedDrafts(restored)
-      const resume = validDrafts[0]
-      setCurrentIndex(resume ? data.findIndex(item => item.id === resume.topic_id) : 0)
+      const resume = validDrafts.find(draft => available.some(item => item.id === draft.topic_id))
+      setCurrentIndex(resume ? available.findIndex(item => item.id === resume.topic_id) : 0)
       setMode(resume?.type ?? 'essay')
       setDraftMessage(resume ? t('writing.draftRestored') : '')
     } catch (err) {
@@ -149,13 +163,37 @@ export function WritingQueuePage() {
   }
 
   async function handleNext() {
-    if (!topic || busy || (currentIndex + 1 === topics.length && !feedback)) return
+    if (!topic || busy || (currentIndex + 1 === filteredTopics.length && !feedback)) return
     if (!(await saveCurrentDrafts())) return
+    const nextID = filteredTopics[currentIndex + 1]?.id
+    // Keep the submitted topic visible until its feedback has been read.
+    const updated = feedback ? topics.map(item => item.id === topic.id ? { ...item, practiced: true } : item) : topics
+    const nextQueue = filterTopics(updated, level, practiceStatus)
+    const nextIndex = nextQueue.findIndex(item => item.id === nextID)
+    setTopics(updated)
     setFeedback(null)
     setError('')
     setDraftError('')
     setDraftMessage('')
-    setCurrentIndex((i) => i + 1)
+    setCurrentIndex(nextIndex >= 0 ? nextIndex : nextQueue.length)
+  }
+
+  async function handleFilterChange(nextLevel: TopicLevel, nextStatus: PracticeStatus) {
+    if (busy || !(await saveCurrentDrafts())) return
+    const updated = feedback && topic ? topics.map(item => item.id === topic.id ? { ...item, practiced: true } : item) : topics
+    const available = filterTopics(updated, nextLevel, nextStatus)
+    const selected = available.find(item => modes.some(option => drafts[item.id]?.[option]?.trim()))
+      ?? available[0]
+    const resumeMode = selected && modes.find(option => drafts[selected.id]?.[option]?.trim())
+    setTopics(updated)
+    setLevel(nextLevel)
+    setPracticeStatus(nextStatus)
+    setCurrentIndex(selected ? available.findIndex(item => item.id === selected.id) : 0)
+    setMode(selected?.id === topic?.id && !feedback ? mode : resumeMode || 'essay')
+    setFeedback(null)
+    setError('')
+    setDraftError('')
+    setDraftMessage(resumeMode ? t('writing.draftRestored') : '')
   }
 
   function formatDate(iso: string) {
@@ -176,15 +214,33 @@ export function WritingQueuePage() {
         <div className={styles.headerRow}>
           <h1 className={styles.title}>{t('writing.title')}</h1>
           {topic && (
-            <Button variant="secondary" onClick={() => void handleNext()} disabled={busy || (currentIndex + 1 === topics.length && !feedback)}>
-              {t(currentIndex + 1 === topics.length ? (feedback ? 'writing.finish' : 'writing.last') : 'writing.next')}
+            <Button variant="secondary" onClick={() => void handleNext()} disabled={busy || (currentIndex + 1 === filteredTopics.length && !feedback)}>
+              {t(currentIndex + 1 === filteredTopics.length ? (feedback ? 'writing.finish' : 'writing.last') : 'writing.next')}
             </Button>
           )}
         </div>
         <p className={styles.intro}>{t('writing.intro')}</p>
+        <div className={styles.filters}>
+          <label className={styles.filter} htmlFor="writing-level">
+            {t('writing.levelFilter')}
+            <select id="writing-level" value={level} disabled={busy || !hasLoaded} onChange={event => void handleFilterChange(event.target.value as TopicLevel, practiceStatus)}>
+              <option value="all">{t('writing.allLevels')}</option>
+              {levels.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </label>
+          <label className={styles.filter} htmlFor="writing-practice-status">
+            {t('writing.statusFilter')}
+            <select id="writing-practice-status" value={practiceStatus} disabled={busy || !hasLoaded} onChange={event => void handleFilterChange(level, event.target.value as PracticeStatus)}>
+              <option value="unpracticed">{t('writing.unpracticed')}</option>
+              <option value="practiced">{t('writing.practiced')}</option>
+              <option value="all">{t('writing.allTopics')}</option>
+            </select>
+          </label>
+        </div>
+        <p className={styles.filterHint}>{t('writing.filterHint')}</p>
         {topic && (
           <p className={styles.progress}>
-            {t('writing.progress', { current: currentIndex + 1, total: topics.length })}
+            {t('writing.progress', { current: currentIndex + 1, total: filteredTopics.length })}
           </p>
         )}
       </div>
@@ -199,6 +255,7 @@ export function WritingQueuePage() {
             <div className={styles.questionHeader}>
               <span className={styles.topicLabel}>{t('writing.topic')}</span>
               <Badge level={topic.jlpt_level} size="sm" />
+              {(topic.practiced || feedback) && <span className={styles.practicedBadge}>{t('writing.practiced')}</span>}
             </div>
             <h2 id="writing-topic" className={styles.topicTitle}>{topic.title}</h2>
             {feedback ? (
@@ -329,13 +386,15 @@ export function WritingQueuePage() {
               )}
 
               <div className={styles.nextRow}>
-                <Button onClick={() => void handleNext()} disabled={busy}>{t(currentIndex + 1 === topics.length ? 'writing.finish' : 'writing.next')}</Button>
+                <Button onClick={() => void handleNext()} disabled={busy}>{t(currentIndex + 1 === filteredTopics.length ? 'writing.finish' : 'writing.next')}</Button>
               </div>
             </div>
           )}
         </>
       ) : error ? (
         <Button onClick={() => void loadTopics()} variant="secondary">{t('writing.retry')}</Button>
+      ) : filteredTopics.length === 0 ? (
+        <EmptyState icon="📝" title={t('writing.noMatchingTopics')} description={t('writing.noMatchingTopicsDesc')} />
       ) : (
         <EmptyState icon="🎉" title={t('writing.done')} description={t('writing.doneDesc')} />
       )}
