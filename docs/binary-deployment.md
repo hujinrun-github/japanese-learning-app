@@ -67,3 +67,13 @@ tail -f logs/server.log logs/admin.log logs/learner-front.log logs/admin-front.l
 ```
 
 如需回滚，可将 `current` 链接切换到 `releases/` 下的上一版 SHA，然后按同样的端口重启流程启动服务；`data/` 目录不需要回滚。
+
+## 仅更新学习端前端
+
+Go API 与当前线上版本兼容时，可以手动运行 **Deploy learner frontend** 工作流。
+它只上传学习端的 `index.html` 和构建后的 `assets`，保留现有词典、公开文件和旧版本资源。
+该工作流首次加入或修改时会自动运行，之后可通过 Actions 的 Run workflow 手动触发。
+
+安装前会校验发布文件，备份当前首页后原子替换，并检查正在运行的前端是否返回新首页；
+检查失败会恢复原首页。首页备份保存在 `${APP_DIR}/frontend-backups/<commit-sha>/`。
+此流程复用现有服务器配置，适用于完整发布包上传缓慢时的前端修复。

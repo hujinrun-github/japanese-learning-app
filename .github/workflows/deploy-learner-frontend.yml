@@ -1,0 +1,79 @@
+name: Deploy learner frontend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/deploy-learner-frontend.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-learner-frontend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish compatible learner frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            front/react/package-lock.json
+      - name: Check installer and rollback
+        run: python3 scripts/test_install_learner_frontend.py
+      - name: Install frontend dependencies
+        run: |
+          npm ci
+          npm ci --prefix front/react
+      - name: Test and build learner frontend
+        working-directory: front/react
+        run: |
+          npm test
+          npm run build
+      - name: Package frontend bundles
+        run: |
+          set -eu
+          mkdir -p frontend-release/assets
+          cp front/dist/index.html frontend-release/index.html
+          cp -R front/dist/assets/. frontend-release/assets/
+          cp scripts/install-learner-frontend.sh frontend-release/install-learner-frontend.sh
+          (cd frontend-release && sha256sum index.html assets/* install-learner-frontend.sh > manifest.sha256)
+          tar -czf "learner-frontend-${GITHUB_SHA}.tar.gz" -C frontend-release .
+          ls -lh "learner-frontend-${GITHUB_SHA}.tar.gz"
+      - name: Upload frontend bundles
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT || vars.SERVER_PORT || '22' }}
+          source: learner-frontend-${{ github.sha }}.tar.gz
+          target: /tmp
+          overwrite: true
+      - name: Activate frontend with rollback
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.APP_DIR || vars.APP_DIR }}
+          RELEASE_ID: ${{ github.sha }}
+        with:
+          host: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT || vars.SERVER_PORT || '22' }}
+          envs: APP_DIR,RELEASE_ID
+          script: |
+            set -eu
+            stage_path=$(mktemp -d)
+            trap 'rm -rf "$stage_path"' EXIT
+            tar -xzf "/tmp/learner-frontend-${RELEASE_ID}.tar.gz" -C "$stage_path"
+            bash "$stage_path/install-learner-frontend.sh" "$stage_path"
