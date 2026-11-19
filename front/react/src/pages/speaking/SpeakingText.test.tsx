@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { SpeakingText, splitSpeakingSentences } from './SpeakingText'
+import { SpeakingText, splitSpeakingTurns } from './SpeakingText'
 import { toFuriganaTokens } from '@/util/furigana'
 
-describe('splitSpeakingSentences', () => {
+describe('splitSpeakingTurns', () => {
   it.each([
     {
       name: 'preserves numbered textbook sentences and dialogue roles across newlines',
@@ -11,19 +11,24 @@ describe('splitSpeakingSentences', () => {
       expected: ['1. 部屋に机といすがあります。', '2. 机の上に猫がいます。', '甲：その箱の中に何がありますか。', '乙：時計と眼鏡があります。'],
     },
     {
-      name: 'splits consecutive sentences even before a number or Latin word',
-      text: '1. 森さんは学生です。 2. 李さんはJC企画の社員です。JRの駅はここです。',
-      expected: ['1. 森さんは学生です。', '2. 李さんはJC企画の社員です。', 'JRの駅はここです。'],
+      name: 'keeps a speaker turn together across several sentences',
+      text: '小野：ええ。JRと地下鉄の駅があります。JRの駅はここです。\n李：地下鉄の駅はここですね。',
+      expected: ['小野：ええ。JRと地下鉄の駅があります。JRの駅はここです。', '李：地下鉄の駅はここですね。'],
     },
     {
-      name: 'keeps a short reply on its own line',
-      text: '小野：ええ。JRと地下鉄の駅があります。李：そうですか。',
-      expected: ['小野：ええ。', 'JRと地下鉄の駅があります。', '李：そうですか。'],
+      name: 'keeps short replies and follow-up sentences in the same turn',
+      text: '甲：わたしは李です。小野さんですか。\n乙：はい、そうです。小野です。',
+      expected: ['甲：わたしは李です。小野さんですか。', '乙：はい、そうです。小野です。'],
     },
     {
-      name: 'keeps closing quotes and punctuation with the preceding sentence',
-      text: '「本当ですか？」「はい！」次は？ いいですか? はい!',
-      expected: ['「本当ですか？」', '「はい！」', '次は？', 'いいですか?', 'はい!'],
+      name: 'preserves quotes and punctuation inside a turn',
+      text: '甲：「本当ですか？」と聞きました。どうですか？\n乙：はい！いいですよ。',
+      expected: ['甲：「本当ですか？」と聞きました。どうですか？', '乙：はい！いいですよ。'],
+    },
+    {
+      name: 'preserves an unlabelled paragraph as one utterance',
+      text: 'すみません。駅はどこですか。',
+      expected: ['すみません。駅はどこですか。'],
     },
     {
       name: 'honors existing lines without punctuation and ignores empty lines',
@@ -32,22 +37,22 @@ describe('splitSpeakingSentences', () => {
     },
     { name: 'handles empty text', text: '\n　 ', expected: [] },
   ])('$name', ({ text, expected }) => {
-    const sentences = splitSpeakingSentences(text)
-    expect(sentences).toEqual(expected)
+    const lines = splitSpeakingTurns(text)
+    expect(lines).toEqual(expected)
     // Formatting must not drop spoken text, labels, numbers, or punctuation.
-    expect(sentences.join('').replace(/\s/g, '')).toBe(text.replace(/\s/g, ''))
+    expect(lines.join('').replace(/\s/g, '')).toBe(text.replace(/\s/g, ''))
   })
 })
 
 describe('SpeakingText', () => {
   it.each([false, true])('renders separate complete rows with annotations=%s', async (annotated) => {
-    const sentences = ['1. 部屋に机といすがあります。', '2. 机の上に猫がいます。', '甲：部屋にだれがいますか。', '乙：だれもいません。']
-    const annotations = annotated ? await Promise.all(sentences.map(toFuriganaTokens)) : []
-    const html = renderToStaticMarkup(<SpeakingText sentences={sentences} annotations={annotations} />)
+    const lines = ['1. 部屋に机といすがあります。', '2. 机の上に猫がいます。', '甲：わたしは李です。小野さんですか。', '乙：はい、そうです。小野です。']
+    const annotations = annotated ? await Promise.all(lines.map(toFuriganaTokens)) : []
+    const html = renderToStaticMarkup(<SpeakingText lines={lines} annotations={annotations} />)
     const rows = Array.from(html.matchAll(/<div class="[^"]*sentenceLine[^"]*">(.*?)<\/div>/g), (match) =>
       match[1].replace(/<rt>.*?<\/rt>/g, '').replace(/<[^>]*>/g, ''),
     )
-    expect(rows).toEqual(sentences)
+    expect(rows).toEqual(lines)
     expect(html.includes('<ruby')).toBe(annotated)
   })
 })

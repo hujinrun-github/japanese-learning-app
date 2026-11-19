@@ -11,7 +11,7 @@ import { APIError } from '@/api/client'
 import { evaluateSpeaking } from '@/api/speaking'
 import { ScoreCard } from '@/pages/shadowing/ScoreCard'
 import { initialEvaluationState, speakingEvaluationReducer } from './speakingEvaluation'
-import { SpeakingText, splitSpeakingSentences } from './SpeakingText'
+import { SpeakingText, splitSpeakingTurns } from './SpeakingText'
 import { toFuriganaTokens } from '@/util/furigana'
 import { speakExample, playReferenceAudio, stopCurrent } from '@/util/exampleAudio'
 import type { SpeakingRecord, SpeakingMaterial, FuriganaToken, JLPTLevel } from '@/types/api'
@@ -48,8 +48,8 @@ export function SpeakingPage() {
   const [practiceMaterials, setPracticeMaterials] = useState<SpeakingMaterial[]>([])
 
   // practice state
-  const [furiganaSentences, setFuriganaSentences] = useState<FuriganaToken[][]>([])
-  const [rawSentences, setRawSentences] = useState<string[]>([])
+  const [furiganaLines, setFuriganaLines] = useState<FuriganaToken[][]>([])
+  const [practiceLines, setPracticeLines] = useState<string[]>([])
   const [selfRating, setSelfRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -146,15 +146,15 @@ export function SpeakingPage() {
     setSubmissionError(false)
     setHistoryExpanded(false)
     const selectionID = requestID.current
-    setFuriganaSentences([])
-    const sentences = splitSpeakingSentences(m.text)
-    setRawSentences(sentences)
+    setFuriganaLines([])
+    const lines = splitSpeakingTurns(m.text)
+    setPracticeLines(lines)
     try {
-      const tokens = await Promise.all(sentences.map(toFuriganaTokens))
-      if (requestID.current === selectionID) setFuriganaSentences(tokens)
+      const tokens = await Promise.all(lines.map(toFuriganaTokens))
+      if (requestID.current === selectionID) setFuriganaLines(tokens)
     } catch {
       if (requestID.current !== selectionID) return
-      setFuriganaSentences([])
+      setFuriganaLines([])
     }
   }
 
@@ -164,8 +164,8 @@ export function SpeakingPage() {
     stopCurrent()
     setSelectedMaterial(null)
     setPracticeMaterials([])
-    setFuriganaSentences([])
-    setRawSentences([])
+    setFuriganaLines([])
+    setPracticeLines([])
     setSubmitted(false)
   }
 
@@ -368,9 +368,8 @@ export function SpeakingPage() {
 
       <DailyPracticeProgress progress={progress} />
 
-      {/* Tokenize each displayed sentence separately so annotations cannot
-          merge rows or shift the following sentence's tokens. */}
-      <SpeakingText sentences={rawSentences} annotations={furiganaSentences} />
+      {/* Keep annotations aligned with each complete speaker turn. */}
+      <SpeakingText lines={practiceLines} annotations={furiganaLines} />
 
       {/* toolbar */}
       <div className={styles.toolbar}>

@@ -1,23 +1,19 @@
 import type { FuriganaToken } from '@/types/api'
 import styles from './SpeakingPage.module.css'
 
-export function splitSpeakingSentences(text: string): string[] {
-  // Honor explicit dialogue turns, then split sentence endings independently
-  // of the next character (which may be a number, space, or Latin word).
-  return text.split(/[\r\n]+/).flatMap((line) =>
-    (line.match(/.+?(?:[。！？!?]+[」』）)\]”’"]*|$)/gu) ?? [])
-      .map((sentence) => sentence.trim())
-      .filter(Boolean),
-  )
+export function splitSpeakingTurns(text: string): string[] {
+  // Imported materials already separate numbered items and speaker turns.
+  // Keep all sentences in a turn together, including short replies.
+  return text.split(/[\r\n]+/).map((line) => line.trim()).filter(Boolean)
 }
 
-export function SpeakingText({ sentences, annotations }: {
-  sentences: string[]
+export function SpeakingText({ lines, annotations }: {
+  lines: string[]
   annotations: FuriganaToken[][]
 }) {
   return (
     <div className={styles.textDisplay}>
-      {sentences.map((sentence, i) => (
+      {lines.map((line, i) => (
         <div key={i} className={styles.sentenceLine}>
           {annotations[i]?.length ? (
             annotations[i].map((token, ti) => (
@@ -26,7 +22,7 @@ export function SpeakingText({ sentences, annotations }: {
                 <rt>{token.reading}</rt>
               </ruby>
             ))
-          ) : sentence}
+          ) : line}
         </div>
       ))}
     </div>
