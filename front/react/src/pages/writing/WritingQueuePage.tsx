@@ -1,27 +1,27 @@
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect, useRef } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { JLPTLevel, WritingDraft, WritingMode, WritingRecord, WritingTopic } from '@/types/api'
+import type { WritingDraft, WritingMode, WritingRecord, WritingTopic } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import {
+  filterWritingTopics,
+  findWritingTopicIndex,
+  type PracticeStatusFilter,
+  type TopicLevelFilter,
+} from './writingTopicList'
 import styles from './WritingQueuePage.module.css'
 
 const modes = ['essay', 'sentence'] as const
 const levels = ['N5', 'N4', 'N3', 'N2', 'N1'] as const
 const maxAnswerLength = 1000
 type TopicDrafts = Record<string, Partial<Record<WritingMode, string>>>
-type TopicLevel = JLPTLevel | 'all'
-type PracticeStatus = 'unpracticed' | 'practiced' | 'all'
-
-function filterTopics(topics: WritingTopic[], level: TopicLevel, status: PracticeStatus) {
-  return topics.filter(topic => (level === 'all' || topic.jlpt_level === level)
-    && (status === 'all' || Boolean(topic.practiced) === (status === 'practiced')))
-}
 
 function scoreColor(score: number) {
   if (score >= 80) return 'var(--color-success)'
@@ -32,9 +32,11 @@ function scoreColor(score: number) {
 export function WritingQueuePage() {
   const { t } = useTranslation()
   const { progress, refreshProgress } = useDailyPracticeProgress('writing')
+  const [searchParams] = useSearchParams()
+  const requestedTopicID = searchParams.get('topic_id')
   const [topics, setTopics] = useState<WritingTopic[]>([])
-  const [level, setLevel] = useState<TopicLevel>('all')
-  const [practiceStatus, setPracticeStatus] = useState<PracticeStatus>('unpracticed')
+  const [level, setLevel] = useState<TopicLevelFilter>('all')
+  const [practiceStatus, setPracticeStatus] = useState<PracticeStatusFilter>(requestedTopicID ? 'all' : 'unpracticed')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [mode, setMode] = useState<WritingMode>('essay')
   const [drafts, setDrafts] = useState<TopicDrafts>({})
@@ -51,7 +53,7 @@ export function WritingQueuePage() {
   const [records, setRecords] = useState<WritingRecord[]>([])
   const [recordsLoading, setRecordsLoading] = useState(false)
   const [historyExpanded, setHistoryExpanded] = useState(false)
-  const filteredTopics = filterTopics(topics, level, practiceStatus)
+  const filteredTopics = filterWritingTopics(topics, level, practiceStatus)
   const topic = filteredTopics[currentIndex]
   const answer = topic ? drafts[topic.id]?.[mode] ?? '' : ''
   const trimmedAnswer = answer.trim()
@@ -78,7 +80,7 @@ export function WritingQueuePage() {
       if (signal?.aborted) return
       setTopics(data ?? [])
       setHasLoaded(true)
-      const available = filterTopics(data ?? [], level, practiceStatus)
+      const available = filterWritingTopics(data ?? [], level, practiceStatus)
       const restored: TopicDrafts = {}
       const validDrafts = (saved ?? []).filter(draft => data?.some(item => item.id === draft.topic_id))
       for (const draft of validDrafts) {
@@ -87,7 +89,9 @@ export function WritingQueuePage() {
       setDrafts(restored)
       setSavedDrafts(restored)
       const resume = validDrafts.find(draft => available.some(item => item.id === draft.topic_id))
-      setCurrentIndex(resume ? available.findIndex(item => item.id === resume.topic_id) : 0)
+      const resumeIndex = resume ? available.findIndex(item => item.id === resume.topic_id) : -1
+      const requestedIndex = findWritingTopicIndex(available, requestedTopicID)
+      setCurrentIndex(requestedIndex >= 0 ? requestedIndex : (resumeIndex >= 0 ? resumeIndex : 0))
       setMode(resume?.type ?? 'essay')
       setDraftMessage(resume ? t('writing.draftRestored') : '')
     } catch (err) {
@@ -168,7 +172,7 @@ export function WritingQueuePage() {
     const nextID = filteredTopics[currentIndex + 1]?.id
     // Keep the submitted topic visible until its feedback has been read.
     const updated = feedback ? topics.map(item => item.id === topic.id ? { ...item, practiced: true } : item) : topics
-    const nextQueue = filterTopics(updated, level, practiceStatus)
+    const nextQueue = filterWritingTopics(updated, level, practiceStatus)
     const nextIndex = nextQueue.findIndex(item => item.id === nextID)
     setTopics(updated)
     setFeedback(null)
@@ -178,10 +182,10 @@ export function WritingQueuePage() {
     setCurrentIndex(nextIndex >= 0 ? nextIndex : nextQueue.length)
   }
 
-  async function handleFilterChange(nextLevel: TopicLevel, nextStatus: PracticeStatus) {
+  async function handleFilterChange(nextLevel: TopicLevelFilter, nextStatus: PracticeStatusFilter) {
     if (busy || !(await saveCurrentDrafts())) return
     const updated = feedback && topic ? topics.map(item => item.id === topic.id ? { ...item, practiced: true } : item) : topics
-    const available = filterTopics(updated, nextLevel, nextStatus)
+    const available = filterWritingTopics(updated, nextLevel, nextStatus)
     const selected = available.find(item => modes.some(option => drafts[item.id]?.[option]?.trim()))
       ?? available[0]
     const resumeMode = selected && modes.find(option => drafts[selected.id]?.[option]?.trim())
@@ -211,6 +215,7 @@ export function WritingQueuePage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
+        <Link className={styles.backLink} to="/writing">{t('writing.topicList.backToList')}</Link>
         <div className={styles.headerRow}>
           <h1 className={styles.title}>{t('writing.title')}</h1>
           {topic && (
@@ -223,14 +228,14 @@ export function WritingQueuePage() {
         <div className={styles.filters}>
           <label className={styles.filter} htmlFor="writing-level">
             {t('writing.levelFilter')}
-            <select id="writing-level" value={level} disabled={busy || !hasLoaded} onChange={event => void handleFilterChange(event.target.value as TopicLevel, practiceStatus)}>
+            <select id="writing-level" value={level} disabled={busy || !hasLoaded} onChange={event => void handleFilterChange(event.target.value as TopicLevelFilter, practiceStatus)}>
               <option value="all">{t('writing.allLevels')}</option>
               {levels.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
           </label>
           <label className={styles.filter} htmlFor="writing-practice-status">
             {t('writing.statusFilter')}
-            <select id="writing-practice-status" value={practiceStatus} disabled={busy || !hasLoaded} onChange={event => void handleFilterChange(level, event.target.value as PracticeStatus)}>
+            <select id="writing-practice-status" value={practiceStatus} disabled={busy || !hasLoaded} onChange={event => void handleFilterChange(level, event.target.value as PracticeStatusFilter)}>
               <option value="unpracticed">{t('writing.unpracticed')}</option>
               <option value="practiced">{t('writing.practiced')}</option>
               <option value="all">{t('writing.allTopics')}</option>

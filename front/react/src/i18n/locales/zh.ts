@@ -484,6 +484,15 @@ const zh = {
       empty: '还没有练习记录',
     },
     score: '得分',
+    topicList: {
+      title: '写作主题',
+      intro: '从主题列表挑一个题目开始练习，也可以直接继续上次的进度。',
+      startPractice: '✏️ 开始练习',
+      backToList: '📋 主题列表',
+      summary: '共 {{total}} 个主题 · 已练习 {{practiced}} 个',
+      cardAction: '开始练习 →',
+      loading: '正在加载主题',
+    },
   },
   lesson: {
     title: '课文阅读',

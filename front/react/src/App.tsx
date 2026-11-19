@@ -12,6 +12,7 @@ import { GrammarDetailPage } from '@/pages/grammar/GrammarDetailPage'
 import { SpeakingPage } from '@/pages/speaking/SpeakingPage'
 import { TranslationListPage } from '@/pages/translation/TranslationListPage'
 import { TranslationPracticePage } from '@/pages/translation/TranslationPracticePage'
+import { WritingTopicListPage } from '@/pages/writing/WritingTopicListPage'
 import { WritingQueuePage } from '@/pages/writing/WritingQueuePage'
 import { LessonListPage } from '@/pages/lesson/LessonListPage'
 import { LessonDetailPage } from '@/pages/lesson/LessonDetailPage'
@@ -46,7 +47,8 @@ export default function App() {
             <Route path="/speaking" element={<SpeakingPage />} />
             <Route path="/listening" element={<ListeningPage />} />
             <Route path="/listening/:id" element={<ListeningTrainingPage />} />
-            <Route path="/writing" element={<WritingQueuePage />} />
+            <Route path="/writing" element={<WritingTopicListPage />} />
+            <Route path="/writing/practice" element={<WritingQueuePage />} />
             <Route path="/lesson" element={<LessonListPage />} />
             <Route path="/lesson/:id" element={<LessonDetailPage />} />
             <Route path="/lesson/:id/shadowing" element={<ShadowingPage />} />
