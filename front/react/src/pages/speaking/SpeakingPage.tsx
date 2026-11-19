@@ -11,6 +11,7 @@ import { APIError } from '@/api/client'
 import { evaluateSpeaking } from '@/api/speaking'
 import { ScoreCard } from '@/pages/shadowing/ScoreCard'
 import { initialEvaluationState, speakingEvaluationReducer } from './speakingEvaluation'
+import { SpeakingText, splitSpeakingSentences } from './SpeakingText'
 import { toFuriganaTokens } from '@/util/furigana'
 import { speakExample, playReferenceAudio, stopCurrent } from '@/util/exampleAudio'
 import type { SpeakingRecord, SpeakingMaterial, FuriganaToken, JLPTLevel } from '@/types/api'
@@ -32,27 +33,6 @@ const STATUS_FILTER_OPTIONS: { key: PracticeStatus; labelKey: string }[] = [
   { key: 'practiced', labelKey: 'speaking.practiced' },
 ]
 
-const SPEAKER_COLORS = ['#228be6', '#2f9e44', '#e8590c', '#7950f2']
-
-/**
- * Split Japanese text into sentences for per-line display.
- * Splits on 。！？ followed by optional 」or ).
- */
-function splitSentences(text: string): string[] {
-  const parts = text.split(/(?<=[。！？」])(?=[　-〿一-鿿぀-ゟ゠-ヿ])/)
-  if (parts.length === 0) return [text]
-  // Merge short fragments into previous sentence
-  const result: string[] = []
-  for (const p of parts) {
-    if (result.length > 0 && p.length < 4 && result[result.length - 1].length + p.length < 40) {
-      result[result.length - 1] += p
-    } else {
-      result.push(p)
-    }
-  }
-  return result
-}
-
 export function SpeakingPage() {
   const { t } = useTranslation()
   const { progress, refreshProgress } = useDailyPracticeProgress('speaking')
@@ -68,8 +48,7 @@ export function SpeakingPage() {
   const [practiceMaterials, setPracticeMaterials] = useState<SpeakingMaterial[]>([])
 
   // practice state
-  const [furiganaTokens, setFuriganaTokens] = useState<FuriganaToken[]>([])
-  const [furiganaError, setFuriganaError] = useState(false)
+  const [furiganaSentences, setFuriganaSentences] = useState<FuriganaToken[][]>([])
   const [rawSentences, setRawSentences] = useState<string[]>([])
   const [selfRating, setSelfRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -166,18 +145,16 @@ export function SpeakingPage() {
     setSelfRating(0)
     setSubmissionError(false)
     setHistoryExpanded(false)
-    setFuriganaError(false)
     const selectionID = requestID.current
-    setFuriganaTokens([])
-    const sentences = splitSentences(m.text)
+    setFuriganaSentences([])
+    const sentences = splitSpeakingSentences(m.text)
     setRawSentences(sentences)
     try {
-      const tokens = await toFuriganaTokens(m.text)
-      if (requestID.current === selectionID) setFuriganaTokens(tokens)
+      const tokens = await Promise.all(sentences.map(toFuriganaTokens))
+      if (requestID.current === selectionID) setFuriganaSentences(tokens)
     } catch {
       if (requestID.current !== selectionID) return
-      setFuriganaError(true)
-      setFuriganaTokens([])
+      setFuriganaSentences([])
     }
   }
 
@@ -187,8 +164,7 @@ export function SpeakingPage() {
     stopCurrent()
     setSelectedMaterial(null)
     setPracticeMaterials([])
-    setFuriganaTokens([])
-    setFuriganaError(false)
+    setFuriganaSentences([])
     setRawSentences([])
     setSubmitted(false)
   }
@@ -270,34 +246,6 @@ export function SpeakingPage() {
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString()
-  }
-
-  // Group furigana tokens into sentence groups matching the raw sentence splits.
-  function groupTokensBySentence(
-    tokens: FuriganaToken[],
-    sentences: string[],
-  ): { tokens: FuriganaToken[]; raw: string }[] {
-    if (tokens.length === 0) {
-      return sentences.map((s) => ({ tokens: [], raw: s }))
-    }
-    const groups: { tokens: FuriganaToken[]; raw: string }[] = []
-    let ti = 0
-    let accum = ''
-    let currentTokens: FuriganaToken[] = []
-    for (let si = 0; si < sentences.length; si++) {
-      currentTokens = []
-      while (accum.length < sentences[si].length && ti < tokens.length) {
-        currentTokens.push(tokens[ti])
-        accum += tokens[ti].surface
-        ti++
-      }
-      groups.push({ tokens: currentTokens, raw: sentences[si] })
-    }
-    // Remaining tokens (punctuation etc.) go into last group
-    if (ti < tokens.length && groups.length > 0) {
-      groups[groups.length - 1].tokens.push(...tokens.slice(ti))
-    }
-    return groups
   }
 
   // ==== view: material list ====
@@ -420,55 +368,9 @@ export function SpeakingPage() {
 
       <DailyPracticeProgress progress={progress} />
 
-      {/* furigana text display — grouped by sentence */}
-      <div className={styles.textDisplay}>
-        {furiganaError || furiganaTokens.length === 0 ? (
-          rawSentences.length > 0 ? (
-            rawSentences.map((s, i) => {
-              const isDialog = selectedMaterial.type === 'shadow'
-              const speakerIdx = isDialog ? i % 2 : -1
-              return (
-                <div key={i} className={styles.sentenceLine}>
-                  {speakerIdx >= 0 && rawSentences.length > 1 && (
-                    <span
-                      className={styles.speakerLabel}
-                      style={{ background: SPEAKER_COLORS[speakerIdx % SPEAKER_COLORS.length] }}
-                    >
-                      {String.fromCharCode(65 + speakerIdx)}
-                    </span>
-                  )}
-                  <span>{s}</span>
-                </div>
-              )
-            })
-          ) : (
-            <span>{selectedMaterial.text}</span>
-          )
-        ) : (
-          groupTokensBySentence(furiganaTokens, rawSentences).map((group, gi) => {
-            const isDialog = selectedMaterial.type === 'shadow'
-            const speakerIdx = isDialog ? gi % 2 : -1
-            return (
-              <div key={gi} className={styles.sentenceLine}>
-                {speakerIdx >= 0 && rawSentences.length > 1 && (
-                  <span
-                    className={styles.speakerLabel}
-                    style={{ background: SPEAKER_COLORS[speakerIdx % SPEAKER_COLORS.length] }}
-                  >
-                    {String.fromCharCode(65 + speakerIdx)}
-                  </span>
-                )}
-                {group.tokens.map((tok, ti) => (
-                  <ruby key={ti} className={styles.token}>
-                    {tok.surface}
-                    <rt>{tok.reading}</rt>
-                  </ruby>
-                ))}
-              </div>
-            )
-          })
-        )}
-      </div>
+      {/* Tokenize each displayed sentence separately so annotations cannot
+          merge rows or shift the following sentence's tokens. */}
+      <SpeakingText sentences={rawSentences} annotations={furiganaSentences} />
 
       {/* toolbar */}
       <div className={styles.toolbar}>
