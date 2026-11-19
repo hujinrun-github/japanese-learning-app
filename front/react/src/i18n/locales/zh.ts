@@ -55,6 +55,7 @@ const zh = {
     words: '单词',
     grammar: '语法',
     speaking: '口语',
+    listening: '听力',
     writing: '写作',
     notes: '笔记',
     lesson: '课文',

@@ -9,22 +9,23 @@ import (
 )
 
 type Plan struct {
-	Title       string `json:"title"`
-	StartDate   string `json:"start_date"`
-	EndDate     string `json:"end_date"`
-	Time        string `json:"time"`
-	Timezone    string `json:"timezone"`
-	Duration    int    `json:"duration_minutes"`
-	Reminder    int    `json:"reminder_minutes"`
-	Weekdays    []int  `json:"weekdays"` // Sunday=0
-	Words       int    `json:"words"`
-	Grammar     int    `json:"grammar"`
-	Reading     int    `json:"reading"`
-	Speaking    int    `json:"speaking"`
-	Writing     int    `json:"writing"`
-	Translation int    `json:"translation"`
-	UpdatedAt   string `json:"updated_at"`
-	Revision    int    `json:"revision"`
+	Title       string     `json:"title"`
+	StartDate   string     `json:"start_date"`
+	EndDate     string     `json:"end_date"`
+	Time        string     `json:"time"`
+	Timezone    string     `json:"timezone"`
+	Duration    int        `json:"duration_minutes"`
+	Reminder    int        `json:"reminder_minutes"`
+	Weekdays    []int      `json:"weekdays"` // Sunday=0
+	Words       int        `json:"words"`
+	Grammar     int        `json:"grammar"`
+	Reading     int        `json:"reading"`
+	Speaking    int        `json:"speaking"`
+	Writing     int        `json:"writing"`
+	Translation int        `json:"translation"`
+	UpdatedAt   string     `json:"updated_at"`
+	Revision    int        `json:"revision"`
+	TimeSlots   []TimeSlot `json:"time_slots,omitempty"`
 }
 
 func (p Plan) Validate() error {
@@ -42,7 +43,7 @@ func (p Plan) Validate() error {
 	if end.Before(start) || end.Sub(start) > 366*24*time.Hour {
 		return fmt.Errorf("计划日期范围须在一年内且结束不早于开始")
 	}
-	if _, err := time.Parse("15:04", p.Time); err != nil {
+	if _, err := time.Parse("15:04", p.Time); len(p.TimeSlots) == 0 && err != nil {
 		return fmt.Errorf("学习时间无效: %w", err)
 	}
 	if _, err := time.LoadLocation(p.Timezone); err != nil {
@@ -58,7 +59,7 @@ func (p Plan) Validate() error {
 		}
 		seen[day] = true
 	}
-	if p.Duration < 5 || p.Duration > 480 || p.Reminder < 0 || p.Reminder > 10080 {
+	if (len(p.TimeSlots) == 0 && (p.Duration < 5 || p.Duration > 480)) || p.Reminder < 0 || p.Reminder > 10080 {
 		return fmt.Errorf("时长须为 5–480 分钟，提前提醒须为 0–10080 分钟")
 	}
 	total := 0
@@ -68,44 +69,22 @@ func (p Plan) Validate() error {
 		}
 		total += goal.count
 	}
-	if total == 0 {
+	if total == 0 && len(p.TimeSlots) == 0 {
 		return fmt.Errorf("至少设置一项学习目标")
 	}
-	return nil
+	return p.validateTimeSlots()
 }
 
 func (p Plan) Sessions() ([]time.Time, error) {
-	if err := p.Validate(); err != nil {
+	sessions, err := p.calendarSessions()
+	if err != nil {
 		return nil, err
 	}
-	loc, err := time.LoadLocation(p.Timezone)
-	if err != nil {
-		return nil, fmt.Errorf("load plan timezone: %w", err)
+	starts := make([]time.Time, 0, len(sessions))
+	for _, session := range sessions {
+		starts = append(starts, session.start)
 	}
-	start, err := time.Parse("2006-01-02", p.StartDate)
-	if err != nil {
-		return nil, fmt.Errorf("parse plan start: %w", err)
-	}
-	end, err := time.Parse("2006-01-02", p.EndDate)
-	if err != nil {
-		return nil, fmt.Errorf("parse plan end: %w", err)
-	}
-	clock, err := time.Parse("15:04", p.Time)
-	if err != nil {
-		return nil, fmt.Errorf("parse study time: %w", err)
-	}
-	days := map[time.Weekday]bool{}
-	for _, d := range p.Weekdays {
-		days[time.Weekday(d)] = true
-	}
-	sessions := []time.Time{}
-	// Construct each wall-clock time independently to preserve time through DST changes.
-	for date := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC); !date.After(end); date = date.AddDate(0, 0, 1) {
-		if days[date.Weekday()] {
-			sessions = append(sessions, time.Date(date.Year(), date.Month(), date.Day(), clock.Hour(), clock.Minute(), 0, 0, loc))
-		}
-	}
-	return sessions, nil
+	return starts, nil
 }
 
 type studyGoal struct {

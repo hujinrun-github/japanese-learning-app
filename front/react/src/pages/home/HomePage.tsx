@@ -7,9 +7,12 @@ import { getMistakes } from '@/api/mistakes'
 import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
+import { TodayStudyCard } from '@/components/studyplan/TodayStudyCard'
+import { useTodayStudyPlan } from '@/components/studyplan/useTodayStudyPlan'
 import type { DailyPlan, JLPTLevel, ModuleStat, UserStats } from '@/types/api'
 import { getDailyProgress, getMasteryProgress, hasDailyGoal, percent } from './progress'
 import { DailyPlanCard } from './DailyPlanCard'
+import { homeStudyPresentation } from './studyPresentation'
 import { REVIEW_ITEMS } from './reviewQueue'
 import { loadWeakGrammarRecommendation, loadWeakWordRecommendation, type WeakGrammarRecommendation, type WeakWordRecommendation } from './weakness'
 import styles from './HomePage.module.css'
@@ -51,6 +54,10 @@ function primaryJLPTLevel(levels: string[] | undefined): JLPTLevel {
 export function HomePage() {
   const { user } = useAuth()
   const { t } = useTranslation()
+  const scheduled = useTodayStudyPlan()
+  const studyView = homeStudyPresentation(scheduled.plan, scheduled.loading, scheduled.error)
+  const scheduledTasks = scheduled.plan?.slots.flatMap(slot => slot.tasks) ?? []
+  const scheduledPercent = scheduledTasks.length ? scheduledTasks.filter(task => task.completed).length * 100 / scheduledTasks.length : 0
   const [stats, setStats] = useState<UserStats>(EMPTY_STATS)
   const [plan, setPlan] = useState<DailyPlan | null>(null)
   const [mistakeCount, setMistakeCount] = useState(0)
@@ -142,30 +149,30 @@ export function HomePage() {
               <div className={styles.statTile}>
                 <span className={styles.statIcon}>🎯</span>
                 <span className={styles.statLabel}>{t('home.todayGoal')}</span>
-                <strong>{t('home.wordsCount', { count: totalGoal || wordStat.daily_goal || 0 })}</strong>
+                <strong>{studyView.goal ?? t('home.wordsCount', { count: totalGoal || wordStat.daily_goal || 0 })}</strong>
               </div>
             </div>
 
             <div className={styles.primaryAction}>
               <div>
-                <h2>{t('home.startReview')}</h2>
-                <p>{t('home.dueWords', { count: wordStat.due_count })}</p>
+                <h2>{studyView.heading ?? t('home.startReview')}</h2>
+                <p>{studyView.description ?? t('home.dueWords', { count: wordStat.due_count })}</p>
                 <div className={styles.heroProgress} aria-hidden="true">
-                  <span style={{ width: `${todayPercent}%` }} />
+                  <span style={{ width: `${studyView.useLegacyGoals ? todayPercent : studyView.mode === 'study_day' ? scheduledPercent : 0}%` }} />
                 </div>
               </div>
-              <Link to={nextModule.to} className={styles.primaryButton}>
-                {t('home.startNow')} <span>→</span>
+              <Link to={studyView.useLegacyGoals ? nextModule.to : '/study-plan'} className={styles.primaryButton}>
+                {studyView.useLegacyGoals ? t('home.startNow') : '查看学习安排'} <span>→</span>
               </Link>
             </div>
           </section>
 
-          <DailyPlanCard plan={plan} loading={loading} />
+          {studyView.useLegacyGoals ? <DailyPlanCard plan={plan} loading={loading} /> : <TodayStudyCard plan={scheduled.plan} loading={scheduled.loading} error={scheduled.error} pendingTask={scheduled.pendingTask} onToggle={scheduled.toggle} onRetry={scheduled.reload} />}
 
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <h2>{t('home.learningMap')}</h2>
-              <span>{t('home.todayProgress', { completed: totalCompleted, goal: totalGoal })}</span>
+              <span>{studyView.mapMessage ?? t('home.todayProgress', { completed: totalCompleted, goal: totalGoal })}</span>
             </div>
             {loading ? (
               <div className={styles.loading}>
@@ -177,7 +184,7 @@ export function HomePage() {
                   const s = getModuleStat(stats, mod.key)
                   const dailyProgress = getDailyProgress(s)
                   const masteryProgress = getMasteryProgress(s)
-                  const progress = hasDailyGoal(s) ? dailyProgress : masteryProgress
+                  const progress = studyView.useLegacyGoals && hasDailyGoal(s) ? dailyProgress : masteryProgress
                   const secondaryMeta = s.due_count > 0
                     ? t('home.dueShort', { count: s.due_count })
                     : s.total_count > 0
@@ -191,12 +198,12 @@ export function HomePage() {
                         <span>{t(mod.descKey)}</span>
                       </div>
                       <div className={styles.moduleMeta}>
-                        <strong>{t('home.todayProgress', { completed: s.today_completed, goal: s.daily_goal })}</strong>
+                        <strong>{studyView.useLegacyGoals ? t('home.todayProgress', { completed: s.today_completed, goal: s.daily_goal }) : `已掌握 ${s.mastered_count} / ${s.total_count}`}</strong>
                         {secondaryMeta ? <span>{secondaryMeta}</span> : null}
                       </div>
                       <div
                         className={styles.moduleProgress}
-                        aria-label={t('home.todayProgress', { completed: s.today_completed, goal: s.daily_goal })}
+                        aria-label={studyView.useLegacyGoals ? t('home.todayProgress', { completed: s.today_completed, goal: s.daily_goal }) : `已掌握 ${s.mastered_count} / ${s.total_count}`}
                       >
                         <span style={{ width: `${progress}%` }} />
                       </div>

@@ -39,6 +39,8 @@ func Run(args []string) int {
 		return runImportLessons(args[1:])
 	case "import-lessons-postgres":
 		return runImportLessonsPostgres(args[1:])
+	case "seed-listening":
+		return runSeedListening(args[1:])
 	case "import-speaking":
 		return runImportSpeaking(args[1:])
 	case "import-writing":
@@ -65,6 +67,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  import-words    --file <path> | --json <json>  import words")
 	fmt.Fprintln(os.Stderr, "  import-grammar  --file <path> | --json <json>  import grammar points")
 	fmt.Fprintln(os.Stderr, "  import-lessons  --file <path> | --json <json>  import lessons")
+	fmt.Fprintln(os.Stderr, "  seed-listening [--database-url <url>]  add reviewed listening questions to exact-match lessons")
 	fmt.Fprintln(os.Stderr, "  import-lessons-postgres --database-url <url> --file <path> | --json <json>  import lessons into PostgreSQL")
 	fmt.Fprintln(os.Stderr, "  import-speaking --file <path> | --json <json>  import speaking materials")
 	fmt.Fprintln(os.Stderr, "  import-writing            --file <path> | --json <json>  import writing questions")

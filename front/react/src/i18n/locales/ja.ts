@@ -55,6 +55,7 @@ const ja = {
     words: '単語',
     grammar: '文法',
     speaking: '口語',
+    listening: 'リスニング',
     writing: '作文',
     notes: 'ノート',
     lesson: 'テキスト',

@@ -82,7 +82,7 @@ export function WordReviewPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const mode: ReviewMode = searchParams.get('mode') === 'dictation' ? 'dictation' : 'recognition'
   const targetWord = searchParams.get('word_id')
-  const [level, setLevel] = useState<JLPTLevel>('N5')
+  const requestedLevel = LEVELS.find(item => item === searchParams.get('level')) ?? 'N5'
   const [queue, setQueue] = useState<ReviewCard[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -95,6 +95,7 @@ export function WordReviewPage() {
   const [dictationReadingInput, setDictationReadingInput] = useState('')
   const [dictationResult, setDictationResult] = useState<DictationAnswerResult | null>(null)
   const submitLock = useRef(false)
+  const level = targetWord !== null ? queue[0]?.word.jlpt_level ?? requestedLevel : requestedLevel
   const queueLevel = targetWord === null ? level : null
 
   const done = queue.length === 0 || currentIndex >= queue.length
@@ -157,10 +158,10 @@ export function WordReviewPage() {
 
   function returnToQueue(lv = level) {
     if (submitting || submitLock.current) return
-    setLevel(lv)
     const nextParams = new URLSearchParams(searchParams)
     nextParams.delete('word_id')
-    setSearchParams(nextParams, { replace: true })
+    nextParams.set('level', lv)
+    setSearchParams(nextParams)
   }
 
   async function loadQueue(lv: JLPTLevel | null, target: string | null, signal: AbortSignal) {
@@ -177,7 +178,6 @@ export function WordReviewPage() {
         if (signal.aborted) return
         if (!word || word.id !== id) throw new Error(t('word.queue.invalidTarget'))
         setQueue([{ word, is_new: false }])
-        if (LEVELS.includes(word.jlpt_level)) setLevel(word.jlpt_level)
       } else {
         const cards = await apiFetch<WordCard[]>('GET', `/api/v1/words/queue?level=${lv}`, undefined, signal)
         if (!signal.aborted) setQueue(cards ?? [])
@@ -300,14 +300,6 @@ export function WordReviewPage() {
     && (!requiresKanji || normalizeDictationAnswer(dictationReadingInput)),
   )
 
-  if (loading) {
-    return (
-      <div className={styles.page} style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
-        <Spinner size="lg" />
-      </div>
-    )
-  }
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -344,7 +336,7 @@ export function WordReviewPage() {
           <button
             key={lv}
             className={`${styles.tab} ${level === lv ? styles.tabActive : ''}`}
-            onClick={() => targetWord !== null ? returnToQueue(lv) : setLevel(lv)}
+            onClick={() => returnToQueue(lv)}
             disabled={submitting}
             aria-pressed={level === lv}
           >
@@ -355,7 +347,9 @@ export function WordReviewPage() {
 
       {error && <p className={styles.error} role="alert">{error}</p>}
 
-      {done ? (
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '40px' }}><Spinner size="lg" /></div>
+      ) : done ? (
         !error && <EmptyState icon="🎉" title={t(targetWord !== null ? 'word.queue.targetDone' : 'word.queue.done')} description={t(targetWord !== null ? 'word.queue.targetDoneDesc' : 'word.queue.doneDesc')} />
       ) : (
         <>

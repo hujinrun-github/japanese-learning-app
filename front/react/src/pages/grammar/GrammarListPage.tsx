@@ -38,7 +38,7 @@ export function GrammarListPage() {
   const query = (searchParams.get('q') ?? '').trim()
   const isSearching = query !== ''
 
-  const [level, setLevel] = useState<JLPTLevel>('N5')
+  const level = LEVELS.find(item => item === searchParams.get('level')) ?? 'N5'
   const [filter, setFilter] = useState<FilterKey>('')
   const [points, setPoints] = useState<GrammarPointWithStatus[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,19 +51,21 @@ export function GrammarListPage() {
 
   useEffect(() => {
     if (isSearching) return
-    loadPoints(level)
+    const controller = new AbortController()
+    void loadPoints(level, controller.signal)
+    return () => controller.abort()
   }, [level, isSearching])
 
-  async function loadPoints(lv: JLPTLevel) {
+  async function loadPoints(lv: JLPTLevel, signal: AbortSignal) {
     setLoading(true)
     setError('')
     try {
-      const data = await apiFetch<GrammarPointWithStatus[]>('GET', `/api/v1/grammar?level=${lv}`)
-      setPoints(data ?? [])
+      const data = await apiFetch<GrammarPointWithStatus[]>('GET', `/api/v1/grammar?level=${lv}`, undefined, signal)
+      if (!signal.aborted) setPoints(data ?? [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load')
+      if (!signal.aborted) setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
-      setLoading(false)
+      if (!signal.aborted) setLoading(false)
     }
   }
 
@@ -109,15 +111,22 @@ export function GrammarListPage() {
 
   function submitSearch() {
     const next = searchInput.trim()
-    if (!next) {
-      setSearchParams({})
-      return
-    }
-    setSearchParams({ q: next })
+    const params = new URLSearchParams(searchParams)
+    if (next) params.set('q', next)
+    else params.delete('q')
+    setSearchParams(params)
   }
 
   function clearSearch() {
-    setSearchParams({})
+    const params = new URLSearchParams(searchParams)
+    params.delete('q')
+    setSearchParams(params)
+  }
+
+  function changeLevel(next: JLPTLevel) {
+    const params = new URLSearchParams(searchParams)
+    params.set('level', next)
+    setSearchParams(params)
   }
 
   const hits = searchResult?.points ?? []
@@ -187,7 +196,8 @@ export function GrammarListPage() {
               <button
                 key={lv}
                 className={`${styles.tab} ${level === lv ? styles.tabActive : ''}`}
-                onClick={() => setLevel(lv)}
+                onClick={() => changeLevel(lv)}
+                aria-pressed={level === lv}
               >
                 {lv}
               </button>

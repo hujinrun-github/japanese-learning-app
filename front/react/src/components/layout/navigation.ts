@@ -10,6 +10,7 @@ export const DESKTOP_NAV_ITEMS: NavigationItem[] = [
   { to: '/words/review', labelKey: 'nav.words', icon: '📖' },
   { to: '/grammar', labelKey: 'nav.grammar', icon: '📝' },
   { to: '/lesson', labelKey: 'nav.lesson', icon: '📚' },
+  { to: '/listening', labelKey: 'nav.listening', icon: '🎧' },
   { to: '/speaking', labelKey: 'nav.speaking', icon: '🎙️' },
   { to: '/writing', labelKey: 'nav.writing', icon: '✏️' },
   { to: '/notes', labelKey: 'nav.notes', icon: '🗒️' },
@@ -32,6 +33,7 @@ export const MOBILE_PRIMARY_ITEMS: NavigationItem[] = [
 ]
 
 export const MOBILE_MORE_ITEMS: NavigationItem[] = [
+  { to: '/listening', labelKey: 'nav.listening', icon: '🎧' },
   { to: '/speaking', labelKey: 'nav.speaking', icon: '🎙️' },
   { to: '/writing', labelKey: 'nav.writing', icon: '✏️' },
   { to: '/notes', labelKey: 'nav.notes', icon: '🗒️' },

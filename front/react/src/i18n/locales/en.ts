@@ -55,6 +55,7 @@ const en = {
     words: 'Words',
     grammar: 'Grammar',
     speaking: 'Speaking',
+    listening: 'Listening',
     writing: 'Writing',
     notes: 'Notes',
     lesson: 'Reading',

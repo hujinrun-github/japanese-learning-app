@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"japanese-learning-app/internal/module/errata"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
+	"japanese-learning-app/internal/module/listening"
 	"japanese-learning-app/internal/module/mistake"
 	"japanese-learning-app/internal/module/note"
 	"japanese-learning-app/internal/module/notesync"
@@ -98,6 +100,9 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	grammarH := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
 	grammarH.SetStreakRecorder(userSvc)
 	lessonH := lesson.NewLessonHandler(lessonSvc)
+	listeningH := listening.NewHandler(pgdata.NewListeningStore(db, func(ctx context.Context, tx *sql.Tx, uid int64, now time.Time) error {
+		return studyplan.CompleteListeningTask(ctx, tx, uid, now)
+	}))
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	speakingH.SetStreakRecorder(userSvc)
 	speakingEvaluationH := speaking.NewEvaluationHandler(speakingSvc, cfg.AudioStorePath, newLessonAudioObjectLoader(db, cfg), evaluator)
@@ -122,6 +127,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	wordH.RegisterRoutes(protectedMux)
 	grammarH.RegisterRoutes(protectedMux)
 	lessonH.RegisterRoutes(protectedMux)
+	listeningH.RegisterRoutes(protectedMux)
 	lesson.RegisterCatalogRoute(protectedMux, data.NewLessonCatalog(db))
 	lesson.NewAnnotationHandler(db, lessonSvc, runtime.Admin.Words, runtime.Admin.Grammar).RegisterRoutes(protectedMux)
 	speakingH.RegisterRoutes(protectedMux)
@@ -146,6 +152,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	mux.Handle("/api/v1/grammar/", authenticated)
 	mux.Handle("/api/v1/lessons", authenticated)
 	mux.Handle("/api/v1/lessons/", authenticated)
+	mux.Handle("/api/v1/listening/", authenticated)
 	mux.Handle("/api/v1/speaking/", authenticated)
 	mux.Handle("/api/v1/writing/", authenticated)
 	mux.Handle("/api/v1/translation/", authenticated)
