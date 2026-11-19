@@ -26,8 +26,26 @@ type TaskDB interface {
 // CompleteListeningTask marks the built-in daily listening task, if scheduled
 // today in the saved plan's timezone. It never creates or rewrites a plan.
 func CompleteListeningTask(ctx context.Context, db TaskDB, uid int64, now time.Time) error {
+	if pool, ok := db.(*sql.DB); ok {
+		tx, err := pool.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("begin listening study task: %w", err)
+		}
+		defer tx.Rollback()
+		if err := completeListeningTask(ctx, tx, uid, now); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit listening study task: %w", err)
+		}
+		return nil
+	}
+	return completeListeningTask(ctx, db, uid, now)
+}
+
+func completeListeningTask(ctx context.Context, db TaskDB, uid int64, now time.Time) error {
 	var raw string
-	if err := db.QueryRowContext(ctx, `SELECT plan_json FROM study_plans WHERE user_id=$1`, uid).Scan(&raw); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT plan_json FROM study_plans WHERE user_id=$1 FOR UPDATE`, uid).Scan(&raw); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
@@ -46,7 +64,7 @@ func CompleteListeningTask(ctx context.Context, db TaskDB, uid int64, now time.T
 			if task.ID != "listening" || !validTaskPath(task.Path) || !(task.Path == "/listening" || strings.HasPrefix(task.Path, "/listening?") || strings.HasPrefix(task.Path, "/listening/")) {
 				continue
 			}
-			if _, err := db.ExecContext(ctx, `INSERT INTO study_plan_task_completions(user_id,study_date,slot_id,task_id) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`, uid, today.Date, slot.ID, task.ID); err != nil {
+			if err := SetTaskCompletion(ctx, db, uid, today.Date, slot.ID, task.ID, true, "listening_training", now); err != nil {
 				return fmt.Errorf("complete listening study task: %w", err)
 			}
 			slog.Debug("listening study task completed", "user_id", uid, "study_date", today.Date, "slot_id", slot.ID)
@@ -162,10 +180,23 @@ func (h *Handler) completeTask(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, 404, "ERR_STUDY_TASK_NOT_FOUND", "当天没有这项学习任务", "")
 		return
 	}
-	if *input.Completed {
-		_, err = h.db.ExecContext(r.Context(), `INSERT INTO study_plan_task_completions(user_id,study_date,slot_id,task_id) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`, uid, today.Date, slotID, taskID)
-	} else {
-		_, err = h.db.ExecContext(r.Context(), `DELETE FROM study_plan_task_completions WHERE user_id=$1 AND study_date=$2 AND slot_id=$3 AND task_id=$4`, uid, today.Date, slotID, taskID)
+	tx, err := h.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		h.fail(w, fmt.Errorf("begin study task completion: %w", err))
+		return
+	}
+	defer tx.Rollback()
+	err = SetTaskCompletion(r.Context(), tx, uid, today.Date, slotID, taskID, *input.Completed, "manual", h.now())
+	if errors.Is(err, ErrStudyDateChanged) {
+		httputil.WriteError(w, 409, "ERR_STUDY_DATE_CHANGED", "学习日期已变化，请刷新当天任务", "")
+		return
+	}
+	if errors.Is(err, ErrStudyTaskNotFound) {
+		httputil.WriteError(w, 404, "ERR_STUDY_TASK_NOT_FOUND", "当天没有这项学习任务", "")
+		return
+	}
+	if err == nil {
+		err = tx.Commit()
 	}
 	if err != nil {
 		h.fail(w, fmt.Errorf("save study task completion: %w", err))

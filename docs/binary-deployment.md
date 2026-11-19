@@ -26,6 +26,16 @@ Actions 需要以下配置：
 
 生产学习端通过 `https://japanese.jinrunlab.site` 访问，管理端通过 `https://japanese-admin.jinrunlab.site` 访问。未配置 `APP_BASE_URL` 时，部署脚本默认使用学习端公网地址。
 
+### FlowSpace 联动生产配置
+
+本版生产发布要求启用 FlowSpace 联动。可以设置 GitHub 配置 `FLOWSPACE_BASE_URL`、`FLOWSPACE_SOURCE_INSTANCE_ID`，以及 Secret `FLOWSPACE_INTEGRATION_MASTER_KEY`；SSH 部署会把这三项传给学习端 API。
+
+Actions 中未设置的字段，从服务器私有文件 `/home/ubuntu/.config/japanese-learning-app/flowspace.env` 补齐。该文件位于发布目录和 Git 仓库之外，必须由部署用户 `ubuntu` 持有、权限为 `0600`，使用不加引号的 `KEY=value` 行；部署只读取上述三个白名单字段，不会 source 或执行文件内容。文件中的密钥不应复制到公开日志或仓库，已有连接使用的主密钥需跨发布保持不变。
+
+流水线在停止任何现有进程前检查三项配置均完整，URL 必须为 HTTPS 且不含凭据、查询或 fragment，实例 ID 不含空白，主密钥为 64 个十六进制字符。缺失或无效时发布失败，旧服务继续运行；不会默默以“未配置联动”状态上线。
+
+发布前先确认 FlowSpace 接收端已部署并完成 control/tenant 迁移。配对与验收方式见 [FlowSpace 联动说明](spec/flowspace-integration.md)。
+
 线上机器首次部署还需要安装：
 
 - `tar`、`curl`、`lsof`

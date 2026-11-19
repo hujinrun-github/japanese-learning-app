@@ -6,6 +6,7 @@ import { updateProfile, changePassword, updateDailyGoals, getStats } from '../..
 import { confirmNoteSyncDeletion, createNoteSyncTarget, deleteNoteSyncTarget, listNoteSyncDeletions, listNoteSyncTargets, pullNoteSyncTarget, pushNoteSyncTarget, restoreNoteSyncDeletion, testNoteSyncTarget, updateNoteSyncTarget } from '../../api/noteSync'
 import type { JLPTLevel, NoteSyncResult, NoteSyncState, NoteSyncTarget, NoteSyncTargetInput } from '../../types/api'
 import styles from './SettingsPage.module.css'
+import FlowSpaceIntegrationCard from './FlowSpaceIntegrationCard'
 
 const ALL_LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
 
@@ -388,6 +389,8 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      <FlowSpaceIntegrationCard />
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>🔗 {t('settings.notionSync')}</h2>

@@ -73,6 +73,9 @@ jobs:
       - name: Run Go tests
         run: make test
 
+      - name: Test FlowSpace deployment configuration
+        run: python3 scripts/test_flowspace_deploy_config.py
+
       - name: Test learner frontend
         working-directory: front/react
         run: npm test
@@ -239,6 +242,9 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_FROM: ${{ secrets.SMTP_FROM || vars.SMTP_FROM }}
           SHADOWING_DATABASE_URL: ${{ secrets.SHADOWING_DATABASE_URL }}
+          FLOWSPACE_BASE_URL: ${{ secrets.FLOWSPACE_BASE_URL || vars.FLOWSPACE_BASE_URL }}
+          FLOWSPACE_SOURCE_INSTANCE_ID: ${{ secrets.FLOWSPACE_SOURCE_INSTANCE_ID || vars.FLOWSPACE_SOURCE_INSTANCE_ID }}
+          FLOWSPACE_INTEGRATION_MASTER_KEY: ${{ secrets.FLOWSPACE_INTEGRATION_MASTER_KEY }}
         with:
           host: ${{ secrets.SERVER_HOST || vars.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER || vars.SERVER_USER }}
@@ -246,7 +252,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || vars.SERVER_PORT || '22' }}
           command_timeout: 15m
-          envs: APP_DIR,RELEASE_ID,RELEASE_ARCHIVE,ADMIN_TOKEN,JWT_SECRET,JWT_EXPIRE_HOURS,LOG_LEVEL,RELATIONAL_STORE,DATABASE_URL,APP_TIMEZONE,AUDIO_OBJECT_STORE,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,MINIO_BUCKET_AUDIO,MINIO_BUCKET_VIDEO,MINIO_USE_SSL,MINIO_PUBLIC_ENDPOINT,AI_API_KEY,AI_API_ENDPOINT,AI_MODEL,APP_BASE_URL,RESEND_API_KEY,RESEND_FROM,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM,SHADOWING_DATABASE_URL
+          envs: APP_DIR,RELEASE_ID,RELEASE_ARCHIVE,ADMIN_TOKEN,JWT_SECRET,JWT_EXPIRE_HOURS,LOG_LEVEL,RELATIONAL_STORE,DATABASE_URL,APP_TIMEZONE,AUDIO_OBJECT_STORE,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,MINIO_BUCKET_AUDIO,MINIO_BUCKET_VIDEO,MINIO_USE_SSL,MINIO_PUBLIC_ENDPOINT,AI_API_KEY,AI_API_ENDPOINT,AI_MODEL,APP_BASE_URL,RESEND_API_KEY,RESEND_FROM,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,SMTP_FROM,SHADOWING_DATABASE_URL,FLOWSPACE_BASE_URL,FLOWSPACE_SOURCE_INSTANCE_ID,FLOWSPACE_INTEGRATION_MASTER_KEY
           script: |
             set -eu
 
@@ -267,13 +273,83 @@ jobs:
             trap cleanup_staging EXIT
 
             echo "Check deploy dependencies"
-            for command in tar curl lsof node; do
+            for command in tar curl lsof node python3; do
               if ! command -v "$command" >/dev/null 2>&1; then
                 echo "$command is required on the deploy server."
                 exit 1
               fi
             done
             cd "$APP_DIR"
+
+            # BEGIN FLOWSPACE DEPLOY CONFIG
+            load_flowspace_private_config() {
+              flowspace_config_file="$1"
+              if [ -n "${FLOWSPACE_BASE_URL:-}" ] && [ -n "${FLOWSPACE_SOURCE_INSTANCE_ID:-}" ] && [ -n "${FLOWSPACE_INTEGRATION_MASTER_KEY:-}" ]; then
+                return
+              fi
+              if [ ! -f "$flowspace_config_file" ]; then
+                return
+              fi
+              python3 - "$flowspace_config_file" <<'PY'
+            import os
+            import stat
+            import sys
+
+            info = os.lstat(sys.argv[1])
+            if not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o600 or info.st_uid != os.geteuid():
+                raise SystemExit("FlowSpace private config must be an owned regular file with mode 0600.")
+            PY
+              flowspace_seen_url=0
+              flowspace_seen_instance=0
+              flowspace_seen_key=0
+              while IFS= read -r flowspace_config_line || [ -n "$flowspace_config_line" ]; do
+                case "$flowspace_config_line" in
+                  FLOWSPACE_BASE_URL=*)
+                    [ "$flowspace_seen_url" = 0 ] || { echo "Duplicate FlowSpace URL configuration." >&2; return 1; }
+                    flowspace_seen_url=1
+                    if [ -z "${FLOWSPACE_BASE_URL:-}" ]; then FLOWSPACE_BASE_URL="${flowspace_config_line#*=}"; fi
+                    ;;
+                  FLOWSPACE_SOURCE_INSTANCE_ID=*)
+                    [ "$flowspace_seen_instance" = 0 ] || { echo "Duplicate FlowSpace instance configuration." >&2; return 1; }
+                    flowspace_seen_instance=1
+                    if [ -z "${FLOWSPACE_SOURCE_INSTANCE_ID:-}" ]; then FLOWSPACE_SOURCE_INSTANCE_ID="${flowspace_config_line#*=}"; fi
+                    ;;
+                  FLOWSPACE_INTEGRATION_MASTER_KEY=*)
+                    [ "$flowspace_seen_key" = 0 ] || { echo "Duplicate FlowSpace encryption configuration." >&2; return 1; }
+                    flowspace_seen_key=1
+                    if [ -z "${FLOWSPACE_INTEGRATION_MASTER_KEY:-}" ]; then FLOWSPACE_INTEGRATION_MASTER_KEY="${flowspace_config_line#*=}"; fi
+                    ;;
+                esac
+              done < "$flowspace_config_file"
+            }
+
+            validate_flowspace_deploy_config() {
+              FLOWSPACE_BASE_URL="${FLOWSPACE_BASE_URL:-}" \
+              FLOWSPACE_SOURCE_INSTANCE_ID="${FLOWSPACE_SOURCE_INSTANCE_ID:-}" \
+              FLOWSPACE_INTEGRATION_MASTER_KEY="${FLOWSPACE_INTEGRATION_MASTER_KEY:-}" python3 - <<'PY'
+            import os
+            import re
+            from urllib.parse import urlsplit
+
+            base = os.environ["FLOWSPACE_BASE_URL"]
+            try:
+                parsed = urlsplit(base)
+                valid_url = parsed.scheme == "https" and bool(parsed.hostname) and parsed.username is None and parsed.password is None and not parsed.query and not parsed.fragment
+                parsed.port
+            except ValueError:
+                valid_url = False
+            if not valid_url or any(character.isspace() for character in base):
+                raise SystemExit("Production FlowSpace URL must be an absolute HTTPS URL without credentials, query or fragment.")
+            if not re.fullmatch(r"\S{1,200}", os.environ["FLOWSPACE_SOURCE_INSTANCE_ID"]):
+                raise SystemExit("Production FlowSpace source instance ID is required and must not contain whitespace.")
+            if not re.fullmatch(r"[0-9a-fA-F]{64}", os.environ["FLOWSPACE_INTEGRATION_MASTER_KEY"]):
+                raise SystemExit("Production FlowSpace master key must contain exactly 64 hexadecimal characters.")
+            PY
+            }
+
+            load_flowspace_private_config /home/ubuntu/.config/japanese-learning-app/flowspace.env
+            validate_flowspace_deploy_config
+            # END FLOWSPACE DEPLOY CONFIG
 
             echo "Extract release $RELEASE_ID"
             mkdir -p "$RELEASES_DIR" "$LOG_DIR" "$DATA_DIR/audio"
@@ -351,6 +427,9 @@ jobs:
               DB_PATH="$DATA_DIR/app.db" \
               AUDIO_STORE_PATH="$DATA_DIR/audio" \
               APP_TIMEZONE="$APP_TIMEZONE" \
+              FLOWSPACE_BASE_URL="$FLOWSPACE_BASE_URL" \
+              FLOWSPACE_SOURCE_INSTANCE_ID="$FLOWSPACE_SOURCE_INSTANCE_ID" \
+              FLOWSPACE_INTEGRATION_MASTER_KEY="$FLOWSPACE_INTEGRATION_MASTER_KEY" \
               JWT_SECRET="$JWT_SECRET" \
               JWT_EXPIRE_HOURS="${JWT_EXPIRE_HOURS:-72}" \
               LOG_LEVEL="$LOG_LEVEL" \

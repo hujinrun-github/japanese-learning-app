@@ -99,8 +99,42 @@ func (h *Handler) save(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, fmt.Errorf("encode study plan: %w", err))
 		return
 	}
+	tx, err := h.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		h.fail(w, fmt.Errorf("begin study plan save: %w", err))
+		return
+	}
+	defer tx.Rollback()
+	var previous *Plan
+	var previousRaw string
+	err = tx.QueryRowContext(r.Context(), `SELECT plan_json FROM study_plans WHERE user_id=$1 FOR UPDATE`, uid).Scan(&previousRaw)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		h.fail(w, fmt.Errorf("lock previous study plan: %w", err))
+		return
+	}
+	if err == nil {
+		previous = &Plan{}
+		if err := json.Unmarshal([]byte(previousRaw), previous); err != nil {
+			h.fail(w, fmt.Errorf("decode previous study plan: %w", err))
+			return
+		}
+	}
 	// Increment revisions atomically, including multiple updates in the same second.
-	_, err = h.db.ExecContext(r.Context(), `INSERT INTO study_plans(user_id,plan_json,calendar_token) VALUES($1,$2,$3) ON CONFLICT(user_id) DO UPDATE SET plan_json=excluded.plan_json,revision=study_plans.revision+1`, uid, string(raw), token)
+	var planID string
+	err = tx.QueryRowContext(r.Context(), `INSERT INTO study_plans(user_id,plan_json,calendar_token) VALUES($1,$2,$3) ON CONFLICT(user_id) DO UPDATE SET plan_json=excluded.plan_json,revision=study_plans.revision+1 RETURNING plan_id`, uid, string(raw), token).Scan(&planID)
+	if err == nil {
+		err = KeepTaskIdentities(r.Context(), tx, uid, planID, previous, p)
+	}
+	if errors.Is(err, ErrStudyTaskIdentityReused) {
+		httputil.WriteError(w, 409, "ERR_STUDY_TASK_ID_REUSED", "已使用的任务 ID 不能改作其他任务或删除后复用，请使用新任务 ID", "")
+		return
+	}
+	if err == nil {
+		err = QueueCatalog(r.Context(), tx, uid, true, h.now())
+	}
+	if err == nil {
+		err = tx.Commit()
+	}
 	if err != nil {
 		h.fail(w, fmt.Errorf("save study plan: %w", err))
 		return
@@ -114,8 +148,22 @@ func (h *Handler) remove(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, 401, "ERR_UNAUTHORIZED", "请先登录", "")
 		return
 	}
-	if _, err := h.db.ExecContext(r.Context(), `DELETE FROM study_plans WHERE user_id=$1`, uid); err != nil {
+	tx, err := h.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		h.fail(w, fmt.Errorf("begin study plan delete: %w", err))
+		return
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(r.Context(), `DELETE FROM study_plans WHERE user_id=$1`, uid); err != nil {
 		h.fail(w, fmt.Errorf("delete study plan: %w", err))
+		return
+	}
+	if err := QueueCatalog(r.Context(), tx, uid, true, h.now()); err != nil {
+		h.fail(w, err)
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		h.fail(w, fmt.Errorf("commit study plan delete: %w", err))
 		return
 	}
 	w.WriteHeader(204)

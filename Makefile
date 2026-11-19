@@ -1,5 +1,6 @@
 -include .env.local
 export DATABASE_URL DATABASE_URL_TEST PGPASSFILE APP_TIMEZONE
+export FLOWSPACE_BASE_URL FLOWSPACE_SOURCE_INSTANCE_ID FLOWSPACE_INTEGRATION_MASTER_KEY
 
 .PHONY: run web test build lint seed seed-grammar seed-lessons seed-speaking seed-writing seed-all seed-postgres test-db validate-shadowing-pilot front-build clean kill-ports start-all start-preview start-backend start-admin start-learner-front start-admin-front admin-run admin-build admin-front-build admin-front-dev
 

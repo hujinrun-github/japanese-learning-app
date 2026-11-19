@@ -42,6 +42,9 @@
 .pendingItem { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); font-size: var(--font-size-sm); }
 .pendingItem:last-child { border-bottom: none; }
 .pendingItem .buttonRow { flex-shrink: 0; }
+.integrationEvents { list-style: none; margin: 0; padding: 0; }
+.integrationEvent { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
+.integrationEvent time { color: var(--color-text-muted); font-size: var(--font-size-xs); }
 
 @media (max-width: 560px) {
   .page { padding-block: var(--space-3); }
