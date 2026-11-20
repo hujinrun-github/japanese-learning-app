@@ -67,7 +67,7 @@ func TestWritingTopicPractice(t *testing.T) {
 	for _, tc := range []struct {
 		level string
 		min   int
-	}{{"N5", 10}, {"N4", 12}, {"N3", 11}, {"N2", 24}, {"N1", 8}} {
+	}{{"N5", 14}, {"N4", 16}, {"N3", 15}, {"N2", 30}, {"N1", 13}} {
 		if counts[tc.level] < tc.min {
 			t.Errorf("%s: got %d topics, want at least %d", tc.level, counts[tc.level], tc.min)
 		}

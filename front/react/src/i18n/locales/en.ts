@@ -484,6 +484,15 @@ const en = {
       empty: 'No practice records yet',
     },
     score: 'Score',
+    topicList: {
+      title: 'Writing Topics',
+      intro: 'Pick a topic from the list to practice, or jump straight back into your progress.',
+      startPractice: '✏️ Start Practicing',
+      backToList: '📋 Topic List',
+      summary: '{{total}} topics · {{practiced}} practiced',
+      cardAction: 'Practice →',
+      loading: 'Loading topics',
+    },
   },
   lesson: {
     title: 'Reading',

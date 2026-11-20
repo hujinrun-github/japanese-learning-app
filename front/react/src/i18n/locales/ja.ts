@@ -484,6 +484,15 @@ const ja = {
       empty: 'まだ練習記録がありません',
     },
     score: '得点',
+    topicList: {
+      title: '作文テーマ一覧',
+      intro: '一覧からテーマを選んで練習するか、前回の続きから再開できます。',
+      startPractice: '✏️ 練習を始める',
+      backToList: '📋 テーマ一覧',
+      summary: '全 {{total}} テーマ · 練習済み {{practiced}} 件',
+      cardAction: '練習する →',
+      loading: 'テーマを読み込み中',
+    },
   },
   lesson: {
     title: 'テキスト読解',
