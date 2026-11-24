@@ -54,9 +54,10 @@ describe('SpeakingText', () => {
     const annotations = annotated ? await Promise.all(lines.map(toFuriganaTokens)) : []
     const html = renderToStaticMarkup(<SpeakingText lines={lines} annotations={annotations} />)
     const rows = Array.from(html.matchAll(/<div class="[^"]*sentenceLine[^"]*"[^>]*>(.*?)<\/div>/g), (match) =>
-      match[1].replace(/<rt>.*?<\/rt>/g, '').replace(/<[^>]*>/g, ''),
+      match[1].replace(/<rt>.*?<\/rt>|<button\b[^>]*>.*?<\/button>/g, '').replace(/<[^>]*>/g, ''),
     )
     expect(rows).toEqual(lines)
+    expect(html.match(/aria-haspopup="dialog"/g)).toHaveLength(lines.length)
     expect(html.includes('<ruby')).toBe(annotated)
   })
 })

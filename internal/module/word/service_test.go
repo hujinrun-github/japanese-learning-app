@@ -1,6 +1,7 @@
 package word_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -30,6 +31,10 @@ func newFakeWordStore() *fakeWordStore {
 
 func recordKey(userID, wordID int64) string {
 	return fmt.Sprintf("%d:%d", userID, wordID)
+}
+
+func (f *fakeWordStore) Search(context.Context, string, int) ([]word.SearchHit, error) {
+	return nil, nil
 }
 
 func (f *fakeWordStore) GetByID(id int64) (*word.Word, error) {

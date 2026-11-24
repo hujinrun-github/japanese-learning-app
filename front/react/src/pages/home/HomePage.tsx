@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiFetch } from '@/api/client'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { getMistakes } from '@/api/mistakes'
 import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -218,7 +219,7 @@ export function HomePage() {
                 <h2>{t('home.readingDrill')}</h2>
                 <Badge level={jlptLevel} size="sm" />
               </div>
-              <p className={styles.japaneseLine}>
+              <p className={styles.japaneseLine} lang="ja" data-dictionary-text>
                 この<ruby>本<rt>ほん</rt></ruby>はとてもおもしろくて、
                 <ruby>一日<rt>いちにち</rt></ruby>で
                 <ruby>全部<rt>ぜんぶ</rt></ruby>
@@ -228,6 +229,7 @@ export function HomePage() {
               <p className={styles.translation}>{t('home.readingTranslation')}</p>
             </div>
             <div className={styles.practiceActions}>
+              <DictionaryButton text="この本はとてもおもしろくて、一日で全部読み終えました。" />
               <Link to="/lesson" className={styles.secondaryButton}>{t('home.showAnalysis')}</Link>
               <Link to="/notes/new" className={styles.secondaryButton}>{t('home.addToNotes')}</Link>
             </div>

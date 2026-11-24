@@ -46,6 +46,7 @@ describe('LessonReading', () => {
       expect(html).toMatch(/aria-pressed="true"[^>]*>竖排阅读<\/button>/)
       expect(html).not.toContain('早上了。')
       expect(html).toContain('点选模式')
+      expect(html).toContain('查词和语法')
       expect(html).toMatch(/data-lesson-end="\d+"/)
       expect(html).toContain('data-tap-mode="off"')
       expect(html).toContain('从右侧第一列开始，自上往下读。')

@@ -7,6 +7,7 @@ export interface NavigationItem {
 
 export const DESKTOP_NAV_ITEMS: NavigationItem[] = [
   { to: '/', labelKey: 'nav.home', icon: '🏠', end: true },
+  { to: '/search', labelKey: 'nav.search', icon: '🔍' },
   { to: '/words/review', labelKey: 'nav.words', icon: '📖' },
   { to: '/grammar', labelKey: 'nav.grammar', icon: '📝' },
   { to: '/lesson', labelKey: 'nav.lesson', icon: '📚' },
@@ -27,6 +28,7 @@ export const ACCOUNT_NAV_ITEMS: NavigationItem[] = [
 
 export const MOBILE_PRIMARY_ITEMS: NavigationItem[] = [
   { to: '/', labelKey: 'nav.home', icon: '🏠', end: true },
+  { to: '/search', labelKey: 'nav.search', icon: '🔍' },
   { to: '/words/review', labelKey: 'nav.words', icon: '📖' },
   { to: '/grammar', labelKey: 'nav.grammar', icon: '📝' },
   { to: '/lesson', labelKey: 'nav.lesson', icon: '📚' },

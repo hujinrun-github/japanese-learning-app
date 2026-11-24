@@ -4,6 +4,7 @@ import { completeListening, getListeningSession, saveListeningProgress, submitLi
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import type { ListeningAttempt, ListeningPhase, ListeningSession, ListeningStage, SaveListeningProgress } from '@/types/listening'
 import { answerList, audioSourceLabel, canSubmitAnswers, formatDueDate, getListeningStepAction, needsBlindBaseline, restoreExercise, sentenceBounds, shouldReportPlaybackError, STAGE_LABELS } from './listeningFlow'
 import { ListeningQuestions } from './ListeningQuestions'
@@ -366,11 +367,12 @@ export function ListeningTrainingPage() {
         const bounds = sentenceBounds(sentence)
         const selected = sentence.index === sentenceIndex
         const bookmarked = exercise.bookmarks.includes(sentence.index)
+        const japanese = sentence.tokens.map((token) => token.surface).join('')
         return <article key={sentence.index} className={selected ? styles.activeSentence : styles.sentence}>
           <div className={styles.sentenceHeader}><strong>第 {sentence.index + 1} 句</strong><button type="button" aria-pressed={bookmarked} onClick={() => toggleBookmark(sentence.index)}>{bookmarked ? '⭐ 已收藏难句' : '⭐ 收藏难句'}</button></div>
-          {showJapanese ? <p lang="ja" className={styles.japanese}>{sentence.tokens.map((token) => token.surface).join('')}</p> : <p className={styles.hiddenText}>日文已隐藏，先试着听一遍</p>}
+          {showJapanese ? <p lang="ja" className={styles.japanese} data-dictionary-text>{japanese}</p> : <p className={styles.hiddenText}>日文已隐藏，先试着听一遍</p>}
           {showChinese && <p className={styles.translation}>{sentence.chinese || '暂无中文译文'}</p>}
-          <div className={styles.sentenceActions}><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index)}>▶️ 播放这句</button><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index, true)}>🐢 0.75× 慢听</button>{!bounds && <small>时间轴待补充，可使用整段音频</small>}</div>
+          <div className={styles.sentenceActions}><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index)}>▶️ 播放这句</button><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index, true)}>🐢 0.75× 慢听</button>{showJapanese && japanese.trim() && <DictionaryButton text={japanese} />}{!bounds && <small>时间轴待补充，可使用整段音频</small>}</div>
         </article>
       })}</div>
       {blind && <div className={styles.baseline}><h3>首次理解：{blind.correct_count}/{blind.total} 题</h3><ListeningQuestions questions={questions} answers={{}} result={blind} onAnswer={() => undefined} onEvidence={(index) => playSentence(index)} /></div>}

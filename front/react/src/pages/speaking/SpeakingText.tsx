@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import type { FuriganaToken } from '@/types/api'
 import type { PronunciationResult, PronunciationWord } from '@/types/speaking'
 import styles from './SpeakingPage.module.css'
@@ -75,12 +76,13 @@ export function SpeakingText({ lines, annotations, offsets, pronunciation, activ
       {lines.map((line, i) => (
         <div key={i} className={`${styles.sentenceLine}${activeSentenceIndex === i ? ` ${styles.sentenceActive}` : ''}`}
           data-sentence-index={i} aria-current={activeSentenceIndex === i ? 'true' : undefined}>
-          <span lang="ja">{renderLine(line, i)}</span>
+          <span lang="ja" data-dictionary-text>{renderLine(line, i)}</span>
           {onPlaySentence && <button type="button" className={styles.sentencePlay} disabled={playDisabled}
             aria-label={t('speaking.practice.playSentence', { index: i + 1, defaultValue: '播放第 {{index}} 句' })}
             onClick={() => onPlaySentence(i)}>
             🔊 {t('speaking.practice.sentence', { defaultValue: '本句' })}
           </button>}
+          <DictionaryButton text={line} compact />
         </div>
       ))}
     </div>

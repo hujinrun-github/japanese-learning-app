@@ -7,6 +7,7 @@ import { apiFetch } from '@/api/client'
 import { Spinner } from '@/components/ui/Spinner'
 import type { TranslationSentence, TranslationRecord } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { grammarSearchPath } from './grammarLink'
 import styles from './TranslationPracticePage.module.css'
 
@@ -167,7 +168,9 @@ export function TranslationPracticePage() {
       <DailyPracticeProgress progress={progress} />
 
       <div className={styles.sourceText}>
-        <p>{sentence.source_text}</p>
+        <p lang={sentence.direction === 'jp2cn' ? 'ja' : 'zh'}
+          data-dictionary-text={sentence.direction === 'jp2cn' ? '' : undefined}>{sentence.source_text}</p>
+        {sentence.direction === 'jp2cn' && <DictionaryButton text={sentence.source_text} />}
         <ErrataButton key={sentence.id} module="translation" itemKey={String(sentence.id)} label={sentence.source_text} />
       </div>
 
@@ -213,7 +216,11 @@ export function TranslationPracticePage() {
           <section className={styles.referenceSection} aria-labelledby="translation-reference">
             <h2 className={styles.correctedLabel} id="translation-reference">参考译文</h2>
             {reference ? (
-              <p className={styles.correctedText} lang={sentence.direction === 'jp2cn' ? 'zh' : 'ja'}>{reference}</p>
+              <>
+                <p className={styles.correctedText} lang={sentence.direction === 'jp2cn' ? 'zh' : 'ja'}
+                  data-dictionary-text={sentence.direction === 'cn2jp' ? '' : undefined}>{reference}</p>
+                {sentence.direction === 'cn2jp' && <DictionaryButton text={reference} />}
+              </>
             ) : (
               <p className={styles.grammarEmpty}>{aiPolling ? '正在获取参考译文…' : '这道题暂无参考译文。'}</p>
             )}

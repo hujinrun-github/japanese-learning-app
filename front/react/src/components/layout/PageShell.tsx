@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { TopNavBar } from './TopNavBar'
 import { BottomTabBar } from './BottomTabBar'
+import { ContextualSearchProvider } from '@/pages/search/ContextualSearch'
 import styles from './PageShell.module.css'
 
 interface PageShellProps {
@@ -16,7 +17,9 @@ export function PageShell({ children, title }: PageShellProps) {
   return (
     <div className={styles.shell}>
       <TopNavBar />
-      <main className={styles.main}>{children}</main>
+      <ContextualSearchProvider>
+        <main className={styles.main}>{children}</main>
+      </ContextualSearchProvider>
       <BottomTabBar />
     </div>
   )

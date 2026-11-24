@@ -1,6 +1,7 @@
 package word
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -17,6 +18,10 @@ const testJWTSecret = "test-secret"
 // fakeWordStore is the minimum WordStoreInterface needed to rate a word.
 type fakeWordStore struct {
 	records map[int64]WordRecord
+}
+
+func (f *fakeWordStore) Search(context.Context, string, int) ([]SearchHit, error) {
+	return nil, nil
 }
 
 func newFakeWordStore() *fakeWordStore {

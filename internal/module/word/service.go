@@ -1,6 +1,7 @@
 package word
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,6 +12,7 @@ import (
 // WordStoreInterface defines data access methods required by WordService.
 type WordStoreInterface interface {
 	GetByID(id int64) (*Word, error)
+	Search(ctx context.Context, query string, limit int) ([]SearchHit, error)
 	GetRecord(userID, wordID int64) (*WordRecord, error)
 	// ListReviewCandidates returns at most dueLimit overdue words (oldest
 	// first, excluding ones reviewed today) followed by at most newLimit new

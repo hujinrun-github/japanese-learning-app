@@ -5,6 +5,7 @@ describe('responsive navigation', () => {
   it('keeps every learner module reachable on desktop and mobile', () => {
     const requiredRoutes = [
       '/',
+      '/search',
       '/words/review',
       '/grammar',
       '/lesson',
@@ -28,7 +29,8 @@ describe('responsive navigation', () => {
     }
   })
 
-  it('limits the fixed mobile tab bar to four learning destinations', () => {
-    expect(MOBILE_PRIMARY_ITEMS).toHaveLength(4)
+  it('keeps search directly accessible in the fixed mobile tab bar', () => {
+    expect(MOBILE_PRIMARY_ITEMS.map((item) => item.to)).toContain('/search')
+    expect(MOBILE_PRIMARY_ITEMS).toHaveLength(5)
   })
 })

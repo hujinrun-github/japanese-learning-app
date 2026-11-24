@@ -1,7 +1,7 @@
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { speakExample } from '@/util/exampleAudio'
 import type { GrammarPointWithStatus, QuizSubmission, QuizResult } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { createMistake } from '@/api/mistakes'
 import { buildGrammarMistakes } from '@/pages/mistakes/mistakeInput'
 import { answerPartsFor, hasFullAnswer } from './quizAnswer'
@@ -21,6 +22,10 @@ export function GrammarDetailPage() {
   const { progress, refreshProgress } = useDailyPracticeProgress('grammar')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { state } = useLocation()
+  const backToSearch = typeof state?.fromSearch === 'string' && state.fromSearch.startsWith('/search?')
+  const backPath = backToSearch ? state.fromSearch : '/grammar'
+  const backLabel = t(backToSearch ? 'search.back' : 'lesson.back')
 
   const [point, setPoint] = useState<GrammarPointWithStatus | null>(null)
   const [loading, setLoading] = useState(true)
@@ -110,15 +115,15 @@ export function GrammarDetailPage() {
     return (
       <div className={styles.page}>
         <p style={{ color: 'var(--color-error)' }}>{error || 'Not found'}</p>
-        <Button variant="secondary" onClick={() => navigate('/grammar')}>← Back</Button>
+        <Button variant="secondary" onClick={() => navigate(backPath)}>← {backLabel}</Button>
       </div>
     )
   }
 
   return (
     <div className={styles.page}>
-      <button className={styles.back} onClick={() => navigate('/grammar')}>
-        ← {t('lesson.back')}
+      <button className={styles.back} onClick={() => navigate(backPath)}>
+        ← {backLabel}
       </button>
 
       <div className={styles.nameRow}>
@@ -155,10 +160,11 @@ export function GrammarDetailPage() {
               <div key={i} className={styles.exampleItem}>
                 <div className={styles.exampleJaRow}>
                   {ex.furigana_html ? (
-                    <div className={styles.exampleJa} dangerouslySetInnerHTML={{ __html: ex.furigana_html }} />
+                    <div className={styles.exampleJa} lang="ja" data-dictionary-text dangerouslySetInnerHTML={{ __html: ex.furigana_html }} />
                   ) : (
-                    <div className={styles.exampleJa}>{ex.japanese}</div>
+                    <div className={styles.exampleJa} lang="ja" data-dictionary-text>{ex.japanese}</div>
                   )}
+                  <DictionaryButton text={ex.japanese} compact />
                   <button
                     className={styles.speakBtn}
                     onClick={() => speakExample(ex.japanese)}

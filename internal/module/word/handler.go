@@ -60,11 +60,13 @@ func (h *WordHandler) SetStreakRecorder(r user.StreakRecorder) {
 // RegisterRoutes registers routes onto the provided mux.
 // Routes:
 //
+//	GET  /api/v1/words/search?q=...    → Search
 //	GET  /api/v1/words/queue?level=N5   → GetReviewQueue
 //	POST /api/v1/words/{id}/seen        → MarkSeen
 //	POST /api/v1/words/{id}/rate        → SubmitRating
 //	POST /api/v1/words/{id}/bookmark    → Bookmark
 func (h *WordHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/words/search", h.handleSearch)
 	mux.HandleFunc("GET /api/v1/words/{id}", h.handleGetWord)
 	mux.HandleFunc("GET /api/v1/words/queue", h.handleGetReviewQueue)
 	mux.HandleFunc("POST /api/v1/words/{id}/seen", h.handleMarkSeen)

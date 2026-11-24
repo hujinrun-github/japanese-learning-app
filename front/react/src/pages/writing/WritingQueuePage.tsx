@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { WritingDraft, WritingMode, WritingRecord, WritingTopic } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import {
   filterWritingTopics,
   findWritingTopicIndex,
@@ -361,7 +362,8 @@ export function WritingQueuePage() {
                   <div className={styles.feedbackSectionTitle}>
                     {t(feedback.type === 'essay' ? 'writing.feedback.correctedEssay' : 'writing.feedback.corrected')}
                   </div>
-                  <div className={styles.feedbackText} lang="ja">{feedback.ai_feedback.corrected_sentence}</div>
+                  <div className={styles.feedbackText} lang="ja" data-dictionary-text>{feedback.ai_feedback.corrected_sentence}</div>
+                  <DictionaryButton text={feedback.ai_feedback.corrected_sentence} />
                 </div>
               )}
 

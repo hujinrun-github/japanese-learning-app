@@ -37,6 +37,9 @@
   display: flex;
   gap: var(--space-1);
   flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .link {
@@ -46,8 +49,10 @@
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
   text-decoration: none;
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
+.link:focus-visible { outline-offset: -2px; }
 .link:hover {
   background: var(--color-brand-subtle);
   color: var(--color-text);

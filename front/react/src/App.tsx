@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedLayout } from '@/router/ProtectedLayout'
@@ -26,6 +27,10 @@ import { ErrataHistoryPage } from '@/pages/errata/ErrataHistoryPage'
 import { MistakesPage } from '@/pages/mistakes/MistakesPage'
 import { ListeningPage } from '@/pages/listening/ListeningPage'
 import { ListeningTrainingPage } from '@/pages/listening/ListeningTrainingPage'
+import { Spinner } from '@/components/ui/Spinner'
+
+const SearchPage = lazy(() => import('@/pages/search/SearchPage'))
+const WordEntryPage = lazy(() => import('@/pages/search/WordEntryPage'))
 
 export default function App() {
   return (
@@ -41,6 +46,8 @@ export default function App() {
           {/* Protected routes */}
           <Route element={<ProtectedLayout />}>
             <Route index element={<HomePage />} />
+            <Route path="/search" element={<Suspense fallback={<Spinner />}><SearchPage /></Suspense>} />
+            <Route path="/search/words/:id" element={<Suspense fallback={<Spinner />}><WordEntryPage /></Suspense>} />
             <Route path="/words/review" element={<WordReviewPage />} />
             <Route path="/grammar" element={<GrammarListPage />} />
             <Route path="/grammar/:id" element={<GrammarDetailPage />} />

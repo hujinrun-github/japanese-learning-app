@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import type { Sentence } from '@/types/api'
 import { LessonAnnotationEditor } from './LessonAnnotationEditor'
 import {
@@ -112,7 +113,7 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
 
   // Tap selection owns the selection on touch devices; dragging handles is unreliable in vertical text.
   useEffect(() => {
-    if (!canAnnotate || draft || tapMode) return
+    if (!indexed.length || draft || tapMode) return
     function updateSelection() {
       const selection = window.getSelection()
       const next = body.current ? getLessonSelection(body.current, selection, chars) : null
@@ -121,7 +122,7 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
     }
     document.addEventListener('selectionchange', updateSelection)
     return () => document.removeEventListener('selectionchange', updateSelection)
-  }, [canAnnotate, chars, draft, tapMode])
+  }, [indexed.length, chars, draft, tapMode])
 
   function clearSelection() {
     window.getSelection()?.removeAllRanges()
@@ -224,6 +225,7 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
           }} />
           ✏️ {t('lesson.reading.tapMode')}
         </label>
+        <DictionaryButton text={selection?.quote} selected={!!selection} onOpen={clearSelection} />
       </div>
 
       {loadState === 'failed' && (
@@ -245,6 +247,7 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
                 <div key={sentence.index} className={styles.pair}>
                   <p lang="ja"><JapaneseText tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} /></p>
                   {sentence.chinese && <p className={styles.translation} lang="zh-Hans">{sentence.chinese}</p>}
+                  <DictionaryButton text={sentence.tokens.map((token) => token.surface).join('')} />
                   <ErrataButton
                     module="lesson"
                     itemKey={`${lessonId}:sentence:${sentence.index}`}
@@ -285,9 +288,10 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
       {selection && createPortal(
         <div className={annotationStyles.selectionBar} role="group" aria-label={t('lesson.annotations.selected')}>
           <span className={annotationStyles.selectionQuote} lang="ja">{selection.quote}</span>
-          <button type="button" className={annotationStyles.selectionAction} onPointerDown={(event) => event.preventDefault()} onClick={annotateSelection}>
+          <DictionaryButton text={selection.quote} selected onOpen={clearSelection} />
+          {canAnnotate && <button type="button" className={annotationStyles.selectionAction} onPointerDown={(event) => event.preventDefault()} onClick={annotateSelection}>
             {t('lesson.annotations.create')}
-          </button>
+          </button>}
           <button type="button" className={annotationStyles.selectionCancel} onPointerDown={(event) => event.preventDefault()} onClick={clearSelection}>
             {t('lesson.annotations.cancel')}
           </button>

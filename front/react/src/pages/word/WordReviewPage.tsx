@@ -13,6 +13,7 @@ import type { Word, WordCard, JLPTLevel } from '@/types/api'
 import { evaluateDictationAnswer, normalizeDictationAnswer, wordRequiresKanji } from './dictationAnswer'
 import type { DictationAnswerResult } from './dictationAnswer'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { createMistake } from '@/api/mistakes'
 import { buildWordReadingMistake, buildWordDictationMistake } from '@/pages/mistakes/mistakeInput'
 import { wordReviewTargetID } from './wordReviewTarget'
@@ -601,11 +602,14 @@ export function WordReviewPage() {
                           {example.furigana_html ? (
                             <span
                               className={styles.exampleJa}
+                              lang="ja"
+                              data-dictionary-text
                               dangerouslySetInnerHTML={{ __html: example.furigana_html }}
                             />
                           ) : (
-                            <span className={styles.exampleJa}>{example.japanese}</span>
+                            <span className={styles.exampleJa} lang="ja" data-dictionary-text>{example.japanese}</span>
                           )}
+                          <DictionaryButton text={example.japanese} compact />
                           <button
                             className={`${styles.speakBtn} ${styles.speakBtnSm}`}
                             aria-label={t('word.queue.speak')}

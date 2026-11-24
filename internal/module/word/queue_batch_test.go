@@ -1,6 +1,7 @@
 package word_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -19,6 +20,10 @@ type batchQueueStore struct {
 	gotDueLimit    int
 	gotNewLimit    int
 	queueErr       error
+}
+
+func (f *batchQueueStore) Search(context.Context, string, int) ([]word.SearchHit, error) {
+	return nil, nil
 }
 
 func (f *batchQueueStore) GetByID(id int64) (*word.Word, error) {

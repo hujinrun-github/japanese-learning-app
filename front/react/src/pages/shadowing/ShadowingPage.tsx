@@ -17,6 +17,7 @@ import { classifyEvaluationError, recordButtonLabel } from '@/util/shadowing/eva
 import { getCurrentSentenceIndex } from '@/util/shadowing/currentSentence'
 import { selectShadowingMedia } from '@/util/shadowing/media'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { ScoreCard } from './ScoreCard'
 import styles from './ShadowingPage.module.css'
 
@@ -389,7 +390,7 @@ export function ShadowingPage() {
         <div className={styles.currentLabel}>Current sentence</div>
         {sentence ? (
           <>
-            <div className={styles.sentenceJa}>
+            <div className={styles.sentenceJa} lang="ja" data-dictionary-text>
               {sentence.tokens.map((token, index) =>
                 token.reading ? (
                   <ruby key={index}>
@@ -402,6 +403,7 @@ export function ShadowingPage() {
               )}
             </div>
             <p className={styles.sentenceZh}>{sentence.chinese}</p>
+            <DictionaryButton text={sentence.tokens.map((token) => token.surface).join('')} />
             <ErrataButton
               module="shadowing"
               itemKey={`${session.lesson.id}:v${session.lesson.shadowing_version}:sentence:${sentence.index}`}
