@@ -25,6 +25,7 @@ func NewTranslationHandler(svc *TranslationService) *TranslationHandler {
 
 // RegisterRoutes registers translation routes.
 func (h *TranslationHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/translation/progress", h.handleGetDailyProgress)
 	mux.HandleFunc("GET /api/v1/translation/queue", h.handleGetDailyQueue)
 	mux.HandleFunc("GET /api/v1/translation/sentences", h.handleGetSentences)
 	mux.HandleFunc("POST /api/v1/translation/submit", h.handleSubmit)
@@ -46,22 +47,41 @@ func getUserID(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	return userID, true
 }
 
+func (h *TranslationHandler) handleGetDailyProgress(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(w, r)
+	if !ok {
+		return
+	}
+	progress, err := h.svc.GetDailyProgress(r.Context(), userID)
+	if err != nil {
+		slog.Error("load translation progress", "user_id", userID, "err", err)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "加载翻译进度失败", r.Header.Get("X-Request-ID"))
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: progress, RequestID: r.Header.Get("X-Request-ID")})
+}
+
 // handleGetDailyQueue returns today's practice sentences for the user.
 func (h *TranslationHandler) handleGetDailyQueue(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(w, r)
 	if !ok {
 		return
 	}
-	count := 5
-	if n, err := strconv.Atoi(r.URL.Query().Get("count")); err == nil && n > 0 && n <= 20 {
-		count = n
+	count := 0
+	if value := r.URL.Query().Get("count"); value != "" {
+		count = 5
+		if n, err := strconv.Atoi(value); err == nil && n > 0 && n <= 20 {
+			count = n
+		}
 	}
-	sentences, err := h.svc.GetDailyQueue(userID, count)
+	sentences, err := h.svc.GetDailyQueue(r.Context(), userID, count)
 	if err != nil {
 		slog.Error("handleGetDailyQueue failed", "err", err)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", err.Error(), r.Header.Get("X-Request-ID"))
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store")
 	writePracticeSentences(w, r, sentences)
 }
 

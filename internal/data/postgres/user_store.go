@@ -265,11 +265,7 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	if err != nil {
 		return nil, err
 	}
-	translationToday, err := s.countRows(
-		`SELECT COUNT(*) FROM translation_records
-		 WHERE user_id = $1 AND practiced_at >= $2 AND practiced_at < $3`,
-		userID, start.UTC(), end.UTC(),
-	)
+	translationToday, err := countTranslationsToday(context.Background(), s.db, userID, now)
 	if err != nil {
 		return nil, err
 	}

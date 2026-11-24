@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/api/client'
 import type { DailyPracticeState } from '@/components/ui/DailyPracticeProgress'
-import type { DailyPlanModuleKey, UserStats } from '@/types/api'
+import type { DailyPlanModuleKey, ModuleStat, UserStats } from '@/types/api'
 
 export function useDailyPracticeProgress(module: DailyPlanModuleKey) {
   const [progress, setProgress] = useState<DailyPracticeState>({ status: 'loading' })
@@ -9,10 +9,12 @@ export function useDailyPracticeProgress(module: DailyPlanModuleKey) {
 
   useEffect(() => {
     const controller = new AbortController()
-    apiFetch<UserStats>('GET', '/api/v1/users/stats', undefined, controller.signal)
-      .then((stats) => {
+    const request = module === 'translation'
+      ? apiFetch<Pick<ModuleStat, 'daily_goal' | 'today_completed'>>('GET', '/api/v1/translation/progress', undefined, controller.signal)
+      : apiFetch<UserStats>('GET', '/api/v1/users/stats', undefined, controller.signal).then(stats => stats?.modules?.[module])
+    request
+      .then((item) => {
         if (controller.signal.aborted) return
-        const item = stats?.modules?.[module]
         setProgress(item
           ? { status: 'ready', completed: item.today_completed, goal: item.daily_goal }
           : { status: 'error' })

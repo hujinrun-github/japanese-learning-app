@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -14,15 +15,59 @@ import (
 )
 
 type TranslationStore struct {
-	db  queryer
-	now func() time.Time
+	db       queryer
+	now      func() time.Time
+	location *time.Location
 }
 
 func NewTranslationStore(db queryer, deps store.StoreDeps) *TranslationStore {
 	return &TranslationStore{
-		db:  db,
-		now: currentTimeFunc(deps.Clock),
+		db:       db,
+		now:      currentTimeFunc(deps.Clock),
+		location: appLocation(deps.AppTimezone),
 	}
+}
+
+func (s *TranslationStore) GetDailyProgress(ctx context.Context, userID int64, resolveTarget translation.StudyPlanTarget) (translation.DailyProgress, error) {
+	var dailyGoals string
+	var rawPlan sql.NullString
+	err := s.db.QueryRowContext(ctx, `
+		SELECT u.daily_goals_json::text, p.plan_json::text
+		FROM users u LEFT JOIN study_plans p ON p.user_id = u.id
+		WHERE u.id = $1`, userID).Scan(&dailyGoals, &rawPlan)
+	if err != nil {
+		return translation.DailyProgress{}, fmt.Errorf("read translation targets: %w", translateError(err))
+	}
+
+	goal := parseDailyGoals(dailyGoals)["translation"]
+	now := s.now().In(s.location)
+	if rawPlan.Valid && resolveTarget != nil {
+		target, loc, err := resolveTarget(rawPlan.String, now)
+		if err != nil {
+			return translation.DailyProgress{}, fmt.Errorf("resolve scheduled translation target: %w", err)
+		}
+		if target > 0 {
+			goal = target
+			now = now.In(loc)
+		}
+	}
+
+	completed, err := countTranslationsToday(ctx, s.db, userID, now)
+	if err != nil {
+		return translation.DailyProgress{}, err
+	}
+	slog.Debug("resolved daily translation progress", "user_id", userID, "date", now.Format(time.DateOnly), "goal", goal, "completed", completed)
+	return translation.DailyProgress{Goal: goal, Completed: completed}, nil
+}
+
+func countTranslationsToday(ctx context.Context, db queryer, userID int64, now time.Time) (int, error) {
+	start, end := dayWindow(now)
+	count, err := countRows(ctx, db, `SELECT COUNT(*) FROM translation_records
+		WHERE user_id = $1 AND practiced_at >= $2 AND practiced_at < $3`, userID, start.UTC(), end.UTC())
+	if err != nil {
+		return 0, fmt.Errorf("count today's translations: %w", err)
+	}
+	return count, nil
 }
 
 func (s *TranslationStore) ListAllSentences(sourceID int64, direction string, offset, limit int) ([]translation.TranslationSentence, int, error) {

@@ -1,12 +1,16 @@
 package translation
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 	"unicode"
 )
+
+type StudyPlanTarget func(planJSON string, now time.Time) (goal int, location *time.Location, err error)
 
 // StoreInterface defines data access methods required by TranslationService.
 type StoreInterface interface {
@@ -15,6 +19,7 @@ type StoreInterface interface {
 	ListSources() ([]TranslationSource, error)
 	ListSentencesBySource(sourceID int64) ([]TranslationSentence, error)
 	GetSentenceByID(id int64) (*TranslationSentence, error)
+	GetDailyProgress(ctx context.Context, userID int64, resolveTarget StudyPlanTarget) (DailyProgress, error)
 	ListUnpracticedSentences(userID, sourceID int64, limit int) ([]TranslationSentence, error)
 	SaveRecord(r TranslationRecord) (int64, error)
 	GetRecord(id int64) (*TranslationRecord, error)
@@ -26,14 +31,15 @@ type StoreInterface interface {
 
 // TranslationService handles business logic for translation practice.
 type TranslationService struct {
-	store    StoreInterface
-	reviewer TranslationReviewer
+	store         StoreInterface
+	reviewer      TranslationReviewer
+	resolveTarget StudyPlanTarget
 }
 
 // NewTranslationService creates a TranslationService.
-func NewTranslationService(store StoreInterface, reviewer TranslationReviewer) *TranslationService {
+func NewTranslationService(store StoreInterface, reviewer TranslationReviewer, resolveTarget StudyPlanTarget) *TranslationService {
 	slog.Debug("TranslationService created")
-	return &TranslationService{store: store, reviewer: reviewer}
+	return &TranslationService{store: store, reviewer: reviewer, resolveTarget: resolveTarget}
 }
 
 // ImportSource saves a source material, splits it into sentences, detects direction,
@@ -68,9 +74,23 @@ func (s *TranslationService) ImportSource(src TranslationSource) (*TranslationSo
 	return &src, nil
 }
 
-// GetDailyQueue returns today's practice sentences for the user.
-func (s *TranslationService) GetDailyQueue(userID int64, count int) ([]TranslationSentence, error) {
-	slog.Debug("TranslationService.GetDailyQueue called", "user_id", userID)
+func (s *TranslationService) GetDailyProgress(ctx context.Context, userID int64) (DailyProgress, error) {
+	return s.store.GetDailyProgress(ctx, userID, s.resolveTarget)
+}
+
+// GetDailyQueue uses the remaining daily target when no count is requested.
+func (s *TranslationService) GetDailyQueue(ctx context.Context, userID int64, count int) ([]TranslationSentence, error) {
+	if count == 0 {
+		progress, err := s.GetDailyProgress(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("resolve translation queue size: %w", err)
+		}
+		count = progress.Goal - progress.Completed
+		if count <= 0 {
+			return []TranslationSentence{}, nil
+		}
+	}
+	slog.Debug("loading translation queue", "user_id", userID, "count", count)
 	return s.store.ListUnpracticedSentences(userID, 0, count)
 }
 

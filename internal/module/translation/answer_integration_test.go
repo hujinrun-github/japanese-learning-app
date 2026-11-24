@@ -55,7 +55,7 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 				t.Fatal(err)
 			}
 			mux := http.NewServeMux()
-			translation.NewTranslationHandler(translation.NewTranslationService(store, tc.reviewer)).RegisterRoutes(mux)
+			translation.NewTranslationHandler(translation.NewTranslationService(store, tc.reviewer, nil)).RegisterRoutes(mux)
 			handler := user.AuthMiddleware(secret, mux)
 			request := func(userID int64, method, path, body string, status int) *httptest.ResponseRecorder {
 				t.Helper()

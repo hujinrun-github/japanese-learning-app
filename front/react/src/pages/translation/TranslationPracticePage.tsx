@@ -43,7 +43,7 @@ export function TranslationPracticePage() {
       try {
         if (mode !== 'daily' && !sourceID) return
         const path = mode === 'daily'
-          ? '/api/v1/translation/queue?count=5'
+          ? '/api/v1/translation/queue'
           : `/api/v1/translation/sentences?${new URLSearchParams({
               source_id: sourceID ?? '',
               unpracticed: String(!review),
@@ -112,12 +112,17 @@ export function TranslationPracticePage() {
     }
   }
 
-  if (loading) {
+  if (loading || (mode === 'daily' && !error && progress.status === 'loading')) {
     return <div className={styles.page}><div className={styles.center}><Spinner size="lg" /></div></div>
   }
 
   if (sentences.length === 0) {
     const canReview = mode !== 'daily' && sourceID && !review && !error
+    let dailyMessage = '当前没有未练习的翻译题。'
+    if (mode === 'daily' && progress.status === 'ready') {
+      if (progress.goal === 0) dailyMessage = '今天没有设置翻译练习目标。'
+      else if (progress.completed >= progress.goal) dailyMessage = '今日翻译目标已完成。'
+    }
     return (
       <div className={styles.page}>
         <button className={styles.backBtn} onClick={() => navigate('/translation')}>← 戻る</button>
@@ -126,7 +131,7 @@ export function TranslationPracticePage() {
           <p className={styles.error} role="alert">{error}</p>
         ) : (
           <p className={styles.empty}>
-            {mode === 'daily' ? '当前没有未练习的翻译题。'
+            {mode === 'daily' ? dailyMessage
               : !sourceID ? '请返回翻译页选择素材。'
               : review ? '这份素材暂无翻译题。'
               : '这份素材没有未练习的题。'}

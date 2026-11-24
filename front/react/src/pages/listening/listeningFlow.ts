@@ -36,6 +36,27 @@ export function getListeningFilters(search: URLSearchParams) {
 export function needsBlindBaseline(trainingReady: boolean, stage: ListeningStage, attempts: Pick<ListeningAttempt, 'phase'>[]) {
   return trainingReady && (stage === 'intensive' || stage === 'retest') && !attempts.some((attempt) => attempt.phase === 'blind')
 }
+export function getListeningStepAction(
+  savedStage: ListeningStage,
+  target: ListeningStage,
+  trainingReady: boolean,
+  hasAudio: boolean,
+  attempts: Pick<ListeningAttempt, 'phase'>[],
+): 'view' | 'advance' | 'locked' {
+  if (target === savedStage || savedStage === 'completed') return 'view'
+  const hasBlind = attempts.some(attempt => attempt.phase === 'blind')
+  switch (target) {
+    case 'blind':
+      return needsBlindBaseline(trainingReady, savedStage, attempts) ? 'advance' : 'view'
+    case 'intensive':
+      if (savedStage === 'retest') return 'view'
+      return hasAudio && (!trainingReady || hasBlind) ? 'advance' : 'locked'
+    case 'retest':
+      return savedStage === 'intensive' && trainingReady && hasAudio && hasBlind ? 'advance' : 'locked'
+    case 'completed':
+      return savedStage === 'retest' && trainingReady && hasBlind && attempts.some(attempt => attempt.phase === 'retest') ? 'view' : 'locked'
+  }
+}
 export function shouldReportPlaybackError(error: unknown) {
   return !(typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError')
 }

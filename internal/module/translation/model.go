@@ -63,3 +63,9 @@ type TranslationRecord struct {
 	AIFeedback           *TranslationFeedback `json:"ai_feedback,omitempty"`
 	PracticedAt          time.Time            `json:"practiced_at"`
 }
+
+// DailyProgress is the learner's effective translation target and progress.
+type DailyProgress struct {
+	Goal      int `json:"daily_goal"`
+	Completed int `json:"today_completed"`
+}

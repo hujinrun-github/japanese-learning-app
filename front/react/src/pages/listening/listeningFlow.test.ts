@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { answerList, canSubmitAnswers, getListeningFilters, needsBlindBaseline, restoreExercise, sentenceBounds, shouldReportPlaybackError } from './listeningFlow'
+import type { ListeningPhase, ListeningStage } from '@/types/listening'
+import { answerList, canSubmitAnswers, getListeningFilters, getListeningStepAction, needsBlindBaseline, restoreExercise, sentenceBounds, shouldReportPlaybackError } from './listeningFlow'
+
+describe('listening step navigation', () => {
+  it.each<{ saved: ListeningStage; target: ListeningStage; phases: ListeningPhase[]; ready?: boolean; hasAudio?: boolean; expected: string }>([
+    { saved: 'blind', target: 'intensive', phases: [], expected: 'locked' },
+    { saved: 'blind', target: 'retest', phases: [], expected: 'locked' },
+    { saved: 'blind', target: 'intensive', phases: ['blind'], expected: 'advance' },
+    { saved: 'blind', target: 'intensive', phases: [], ready: false, expected: 'advance' },
+    { saved: 'blind', target: 'intensive', phases: [], ready: false, hasAudio: false, expected: 'locked' },
+    { saved: 'intensive', target: 'blind', phases: [], expected: 'advance' },
+    { saved: 'intensive', target: 'blind', phases: ['blind'], expected: 'view' },
+    { saved: 'intensive', target: 'retest', phases: [], expected: 'locked' },
+    { saved: 'intensive', target: 'retest', phases: ['blind'], expected: 'advance' },
+    { saved: 'intensive', target: 'retest', phases: ['blind'], ready: false, expected: 'locked' },
+    { saved: 'retest', target: 'intensive', phases: ['blind'], expected: 'view' },
+    { saved: 'retest', target: 'completed', phases: ['blind'], expected: 'locked' },
+    { saved: 'retest', target: 'completed', phases: ['blind', 'retest'], expected: 'view' },
+    { saved: 'completed', target: 'blind', phases: ['blind', 'retest'], expected: 'view' },
+    { saved: 'completed', target: 'intensive', phases: ['blind', 'retest'], expected: 'view' },
+    { saved: 'completed', target: 'retest', phases: ['blind', 'retest'], expected: 'view' },
+    { saved: 'completed', target: 'completed', phases: ['blind', 'retest'], expected: 'view' },
+  ])('resolves $saved → $target with $phases and readiness $ready', ({ saved, target, phases, ready = true, hasAudio = true, expected }) => {
+    expect(getListeningStepAction(saved, target, ready, hasAudio, phases.map(phase => ({ phase })))).toBe(expected)
+  })
+})
 
 describe('listening exercise recovery and submission', () => {
   it.each([

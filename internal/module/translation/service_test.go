@@ -1,6 +1,7 @@
 package translation_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -67,6 +68,10 @@ func (f *fakeStore) ListUnpracticedSentences(userID, sourceID int64, limit int) 
 	return nil, nil // The practice queue is covered by the database integration test.
 }
 
+func (f *fakeStore) GetDailyProgress(context.Context, int64, translation.StudyPlanTarget) (translation.DailyProgress, error) {
+	return translation.DailyProgress{}, nil // Daily progress is covered by the database integration test.
+}
+
 func (f *fakeStore) SaveRecord(r translation.TranslationRecord) (int64, error) {
 	r.ID = f.nextID
 	f.records[f.nextID] = r
@@ -117,7 +122,7 @@ func (f *fakeStore) ListRecords(userID int64) ([]translation.TranslationRecord, 
 
 func TestService_ImportSource(t *testing.T) {
 	store := newFakeStore()
-	svc := translation.NewTranslationService(store, &translation.StubReviewer{})
+	svc := translation.NewTranslationService(store, &translation.StubReviewer{}, nil)
 
 	src := translation.TranslationSource{
 		Title:      "Test Import",
@@ -154,7 +159,7 @@ func TestService_SubmitTranslation(t *testing.T) {
 			CorrectedTranslation: "雨が降っています。",
 			ReferenceTranslation: "雨が降っています。",
 		},
-	})
+	}, nil)
 
 	srcID, _ := store.SaveSource(translation.TranslationSource{
 		Title: "Submit Test", SourceType: "manual", RawContent: "正在下雨。",
@@ -198,7 +203,7 @@ func TestService_SubmitTranslationRuleScoreUsesReferenceTranslation(t *testing.T
 				SourceID: srcID, Direction: "jp2cn", SourceText: "こんにちは。", ReferenceTranslation: "你好。",
 			})
 
-			rec, err := translation.NewTranslationService(store, nil).SubmitTranslation(1, sentID, tt.userAnswer)
+			rec, err := translation.NewTranslationService(store, nil, nil).SubmitTranslation(1, sentID, tt.userAnswer)
 			if err != nil {
 				t.Fatalf("SubmitTranslation error: %v", err)
 			}
@@ -221,7 +226,7 @@ func TestService_SubmitTranslationReviewerErrorKeepsGrammarFallback(t *testing.T
 		SourceID: srcID, Direction: "jp2cn", SourceText: "雨が降っています。", ReferenceTranslation: "正在下雨。",
 	})
 
-	svc := translation.NewTranslationService(store, &translation.StubReviewer{Err: fmt.Errorf("AI unavailable")})
+	svc := translation.NewTranslationService(store, &translation.StubReviewer{Err: fmt.Errorf("AI unavailable")}, nil)
 	rec, err := svc.SubmitTranslation(1, sentID, "正在下雨。")
 	if err != nil {
 		t.Fatalf("SubmitTranslation error: %v", err)

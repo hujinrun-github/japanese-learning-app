@@ -99,7 +99,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	lessonSvc := lesson.NewLessonService(runtime.App.Lessons)
 	speakingSvc := speaking.NewSpeakingService(runtime.App.Speaking, speaking.NewWaveformScorer())
 	writingSvc := writing.NewWritingService(runtime.App.Writing, aiReviewer)
-	translationSvc := translation.NewTranslationService(runtime.App.Translation, translationReviewer)
+	translationSvc := translation.NewTranslationService(runtime.App.Translation, translationReviewer, studyplan.ResolveTranslationTarget)
 	noteSvc := note.NewNoteService(runtime.App.Notes)
 	noteSyncSvc := notesync.NewService(runtime.App.NoteSync, runtime.App.Notes, notesync.NewEnvClientFactory(envOrDefault("NOTION_API_BASE_URL", "")))
 	summarySvc := summary.NewSummaryService(runtime.App.Sessions)
