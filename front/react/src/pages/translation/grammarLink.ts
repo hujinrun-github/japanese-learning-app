@@ -1,10 +1,16 @@
-/**
- * Build the grammar-library destination for a translation feedback annotation.
- * The grammar list page resolves the query to a detail page when the library
- * has an exact entry, and shows related entries otherwise.
- */
-export function grammarSearchPath(point: string): string {
+const roundPath = '/translation/practice'
+
+export function translationRoundPath(search: URLSearchParams, subpath = '', grammarQuery = '') {
+  const params = new URLSearchParams()
+  for (const key of ['mode', 'source_id', 'review']) {
+    const value = search.get(key)
+    if (value !== null) params.set(key, value)
+  }
+  if (grammarQuery) params.set('q', grammarQuery)
+  return `${roundPath}${subpath}${params.size ? `?${params}` : ''}`
+}
+
+export function grammarSearchPath(point: string, search = new URLSearchParams()): string {
   const q = point.trim()
-  if (!q) return '/grammar'
-  return `/grammar?q=${encodeURIComponent(q)}`
+  return translationRoundPath(search, '/grammar', q)
 }

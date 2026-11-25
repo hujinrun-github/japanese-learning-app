@@ -31,6 +31,7 @@ const (
 
 // WordExample 单词例句
 type WordExample struct {
+	ID           int64  `json:"id,omitempty"`
 	Japanese     string `json:"japanese"`
 	Chinese      string `json:"chinese"`
 	FuriganaHTML string `json:"furigana_html,omitempty"`

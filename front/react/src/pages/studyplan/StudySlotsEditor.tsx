@@ -21,16 +21,28 @@ export function StudySlotsEditor({ slots, weekdays, onChange }: Props) {
       </div>
       <details className={styles.taskDetails}>
         <summary>📝 查看或调整{slot.title}任务</summary>
-        {slot.tasks.map(task => <div key={task.id} className={styles.taskEditor}>
+        {slot.tasks.map(task => {
+          const url = new URL(task.path, 'https://local.invalid')
+          const grammar = url.pathname === '/grammar'
+          const wordReview = url.pathname === '/words/review' && !url.searchParams.has('word_id')
+            && ['', 'review'].includes(url.searchParams.get('queue') ?? '')
+          return <div key={task.id} className={styles.taskEditor}>
           <label>任务名称<input required maxLength={80} value={task.title} onChange={e => updateTask(slot.id, task.id, { title: e.target.value })} /></label>
           <label>任务说明<textarea required maxLength={1000} rows={3} value={task.description} onChange={e => updateTask(slot.id, task.id, { description: e.target.value })} /></label>
           <label>任务时长（分钟）<input type="number" required min={1} max={480} value={Number.isNaN(task.minutes) ? '' : task.minutes} onChange={e => updateTask(slot.id, task.id, { minutes: e.target.valueAsNumber })} /></label>
+          {(grammar || wordReview) && (
+            <label>自动打卡目标（{grammar ? '语法项数' : '单词数'}）<input type="number" min={0} max={grammar ? 100 : 200} value={task.practice_target ?? task.review_target ?? ''}
+              onChange={e => updateTask(slot.id, task.id, { practice_target: e.target.value === '' ? undefined : e.target.valueAsNumber, review_target: undefined })} />
+              <small>填 0 使用手动打卡。{grammar ? '按提交过测验的不同语法点计数。' : '按评分过的不同词条计数。'}</small>
+            </label>
+          )}
           <fieldset className={styles.days}><legend>{task.title}的适用星期（仅在计划学习日执行）</legend>{[1, 2, 3, 4, 5, 6, 0].map(day => <label key={day}><input type="checkbox" checked={(task.weekdays?.length ? task.weekdays : weekdays).includes(day)} disabled={(task.weekdays?.length ? task.weekdays : weekdays).length === 1 && (task.weekdays?.length ? task.weekdays : weekdays).includes(day)} onChange={e => {
             const current = task.weekdays?.length ? task.weekdays : weekdays
             const selected = e.target.checked ? [...current, day].sort() : current.filter(value => value !== day)
             if (selected.length) updateTask(slot.id, task.id, { weekdays: selected })
           }} />{STUDY_DAY_NAMES[day]}</label>)}</fieldset>
-        </div>)}
+          </div>
+        })}
       </details>
     </section>)}
   </fieldset>

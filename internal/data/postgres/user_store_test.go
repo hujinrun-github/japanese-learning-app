@@ -227,7 +227,7 @@ func TestUserStoreGetStatsIncludesTranslation(t *testing.T) {
 	for position, record := range records {
 		t.Run(record.name, func(t *testing.T) {
 			sentenceID, saveErr := translationStore.SaveSentence(translation.TranslationSentence{
-				SourceID: sourceID, Direction: "cn2jp", SourceText: record.name, Position: position,
+				SourceID: sourceID, Direction: "cn2jp", SourceText: record.name, Position: position, JLPTLevel: "N5",
 			})
 			if saveErr != nil {
 				t.Fatalf("SaveSentence error: %v", saveErr)

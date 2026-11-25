@@ -96,7 +96,7 @@ func (h *TranslationHandler) handleGetSentences(w http.ResponseWriter, r *http.R
 		sourceID, _ = strconv.ParseInt(s, 10, 64)
 	}
 	unpracticed := r.URL.Query().Get("unpracticed") == "true"
-	sentences, err := h.svc.GetFreeSentences(userID, r.URL.Query().Get("direction"), sourceID, unpracticed)
+	sentences, err := h.svc.GetFreeSentences(r.Context(), userID, r.URL.Query().Get("direction"), sourceID, unpracticed)
 	if err != nil {
 		slog.Error("handleGetSentences failed", "err", err)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", err.Error(), r.Header.Get("X-Request-ID"))

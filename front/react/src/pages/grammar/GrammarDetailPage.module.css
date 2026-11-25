@@ -21,6 +21,10 @@
 .exampleJa { font-size: var(--font-size-md); color: var(--color-text); flex: 1; line-height: var(--line-height-japanese); }
 .exampleJa rt { font-size: 0.6em; color: var(--color-text-muted); }
 .exampleZh { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.exampleItem:is(:target, :focus), .question:is(:target, :focus) {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
 
 .speakBtn { width: 32px; height: 32px; border-radius: var(--radius-full); border: 1.5px solid var(--color-border); background: var(--color-bg-surface); font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all var(--transition-fast); }
 .speakBtn:hover { border-color: var(--color-brand); background: var(--color-brand-light); transform: scale(1.05); }
@@ -55,7 +59,8 @@
 .correctAnswer { font-size: var(--font-size-sm); color: var(--color-text); margin-top: var(--space-2); padding: var(--space-3); background: var(--color-success-light); border-radius: var(--radius-sm); border-left: 3px solid var(--color-success); line-height: var(--line-height-japanese); word-break: break-word; }
 .correctAnswer strong { color: var(--color-success); font-weight: 700; }
 
-.submitRow { display: flex; justify-content: flex-end; margin-top: var(--space-4); }
+.submitRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+.submitRow > span { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
 
 .scoreCard { text-align: center; padding: var(--space-8); background: var(--color-bg-surface); border: 2px solid var(--color-brand); border-radius: var(--radius-2xl); margin-bottom: var(--space-4); animation: popIn var(--transition-spring) both; }
 @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }

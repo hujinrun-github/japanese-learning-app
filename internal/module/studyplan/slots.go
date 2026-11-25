@@ -20,17 +20,22 @@ type TimeSlot struct {
 }
 
 type Task struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Path        string `json:"path"`
-	Minutes     int    `json:"minutes"`
-	Weekdays    []int  `json:"weekdays,omitempty"`
+	ID             string `json:"id"`
+	Title          string `json:"title"`
+	Description    string `json:"description"`
+	Path           string `json:"path"`
+	Minutes        int    `json:"minutes"`
+	Weekdays       []int  `json:"weekdays,omitempty"`
+	PracticeTarget *int   `json:"practice_target,omitempty"`
+	ReviewTarget   *int   `json:"review_target,omitempty"` // nil preserves existing named word tasks; zero is manual.
 }
 
 type TodayTask struct {
 	Task
-	Completed bool `json:"completed"`
+	Completed        bool              `json:"completed"`
+	CompletionReason string            `json:"completion_reason,omitempty"`
+	Progress         *PracticeProgress `json:"progress,omitempty"`
+	WordReview       *PracticeProgress `json:"word_review,omitempty"` // Compatibility with existing learners.
 }
 
 type TodaySlot struct {
@@ -42,14 +47,15 @@ type TodaySlot struct {
 }
 
 type TodayPlan struct {
-	HasPlan      bool        `json:"has_plan"`
-	Date         string      `json:"date"`
-	Timezone     string      `json:"timezone"`
-	Title        string      `json:"title"`
-	RestDay      bool        `json:"rest_day"`
-	Reason       string      `json:"reason"`
-	TotalMinutes int         `json:"total_minutes"`
-	Slots        []TodaySlot `json:"slots"`
+	HasPlan       bool              `json:"has_plan"`
+	Date          string            `json:"date"`
+	Timezone      string            `json:"timezone"`
+	Title         string            `json:"title"`
+	RestDay       bool              `json:"rest_day"`
+	Reason        string            `json:"reason"`
+	TotalMinutes  int               `json:"total_minutes"`
+	Slots         []TodaySlot       `json:"slots"`
+	LegacyGrammar *PracticeProgress `json:"legacy_grammar,omitempty"`
 }
 
 func safeID(id string) bool {
@@ -138,6 +144,17 @@ func (p Plan) validateTimeSlots() error {
 			}
 			if !validTaskPath(task.Path) {
 				return fmt.Errorf("任务入口须为学习页面或官方问题集")
+			}
+			if task.ReviewTarget != nil {
+				if _, ok := wordReviewScope(task.Path); !ok || *task.ReviewTarget < 0 || *task.ReviewTarget > maxWordReviewTarget {
+					return fmt.Errorf("单词复习自动打卡目标须为 0–%d，且任务入口须为单词复习", maxWordReviewTarget)
+				}
+			}
+			if task.PracticeTarget != nil {
+				_, _, max := practiceScope(task.Path)
+				if max == 0 || *task.PracticeTarget < 0 || *task.PracticeTarget > max {
+					return fmt.Errorf("练习数量目标须在入口支持的范围内（0–%d）", max)
+				}
 			}
 			days := make(map[int]bool, len(task.Weekdays))
 			for _, day := range task.Weekdays {

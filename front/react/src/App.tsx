@@ -63,7 +63,10 @@ export default function App() {
             <Route path="/notes/new" element={<NoteEditPage />} />
             <Route path="/notes/:id" element={<NoteDetailPage />} />
             <Route path="/translation" element={<TranslationListPage />} />
-            <Route path="/translation/practice" element={<TranslationPracticePage />} />
+            <Route path="/translation/practice" element={<TranslationPracticePage />}>
+              <Route path="grammar" element={<GrammarListPage fromTranslation />} />
+              <Route path="grammar/:id" element={<GrammarDetailPage fromTranslation />} />
+            </Route>
             <Route path="/study-plan" element={<StudyPlanPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/errata" element={<ErrataHistoryPage />} />

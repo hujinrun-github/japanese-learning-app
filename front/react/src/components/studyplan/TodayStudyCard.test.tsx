@@ -39,6 +39,17 @@ describe('今日时段任务', () => {
     expect(html).not.toContain('type="checkbox"')
   })
 
+  it('链接到该语法任务，显示服务端数量和自动打卡状态', () => {
+    const slot = today.slots[0]
+    const task = { ...slot.tasks[0], id: 'grammar', title: '语法2项', description: '',
+      path: '/grammar?level=N2', completed: true, completion_reason: 'grammar_goal',
+      progress: { kind: 'grammar' as const, target: 2, completed: 2, level: 'N2' as const, due_remaining: 0 } }
+    const html = render({ ...today, slots: [{ ...slot, tasks: [task] }] })
+    expect(html).toContain('N2 · 今日 2/2 项 · 已自动打卡')
+    expect(html).toContain('/grammar?level=N2&amp;plan_slot=lunch&amp;plan_task=grammar')
+    expect(html).toContain('disabled=""')
+  })
+
   it('没有保存计划时不显示服务器 Local 时区', () => {
     const html = render({ ...today, has_plan: false, slots: [], timezone: 'Local', reason: 'no_plan' })
     expect(html).not.toContain('Local')
@@ -54,5 +65,23 @@ describe('今日时段任务', () => {
 
   it('提交完成状态时禁用勾选，避免并发覆盖', () => {
     expect(render(today, 'lunch/words')).toContain('disabled=""')
+  })
+
+  it.each([
+    { completed: 19, checked: false, reason: undefined, status: '还差 1 个，达标自动打卡' },
+    { completed: 20, checked: true, reason: 'word_review_goal', status: '已自动打卡' },
+    { completed: 19, checked: true, reason: 'manual', status: '已手动确认' },
+  ])('计划目标显示 $completed/20 和 $status', ({ completed, checked, reason, status }) => {
+    const slot = today.slots[0]
+    const task = { ...slot.tasks[0], title: '复习20个单词', description: '复习20个单词，完成后在今日任务中打卡。',
+      path: '/words/review', completed: checked, completion_reason: reason,
+      word_review: { target: 20, completed, level: 'all' as const, due_remaining: 0 } }
+    const html = render({ ...today, slots: [{ ...slot, tasks: [task] }] })
+    expect(html).toContain(`今日 ${completed}/20 个`)
+    expect(html).toContain(status)
+    expect(html).toContain('level=all&amp;queue=review&amp;plan_slot=lunch&amp;plan_task=words')
+    expect(html).not.toContain('完成后在今日任务中打卡')
+    expect(html.includes('checked=""')).toBe(checked)
+    expect(html.includes('disabled=""')).toBe(reason === 'word_review_goal')
   })
 })

@@ -448,7 +448,7 @@ func (s *WordStore) loadExamplesByWordIDs(ctx context.Context, wordIDs []int64) 
 		args[i] = id
 	}
 	query := fmt.Sprintf(
-		`SELECT word_id, japanese, chinese, furigana_html
+		`SELECT word_id, id, japanese, chinese, furigana_html
 		 FROM word_examples
 		 WHERE word_id IN (%s)
 		 ORDER BY word_id, position`,
@@ -464,7 +464,7 @@ func (s *WordStore) loadExamplesByWordIDs(ctx context.Context, wordIDs []int64) 
 	for rows.Next() {
 		var wordID int64
 		var example word.WordExample
-		if err := rows.Scan(&wordID, &example.Japanese, &example.Chinese, &example.FuriganaHTML); err != nil {
+		if err := rows.Scan(&wordID, &example.ID, &example.Japanese, &example.Chinese, &example.FuriganaHTML); err != nil {
 			return nil, fmt.Errorf("postgres.WordStore.loadExamplesByWordIDs scan: %w", translateError(err))
 		}
 		result[wordID] = append(result[wordID], example)

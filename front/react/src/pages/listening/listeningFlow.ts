@@ -1,4 +1,4 @@
-import type { ListeningAttempt, ListeningAudioSource, ListeningProgress, ListeningQuestion, ListeningSentence, ListeningStage, ListeningStatus } from '@/types/listening'
+import type { ListeningAttempt, ListeningAudioSource, ListeningMaterial, ListeningProgress, ListeningQuestion, ListeningSentence, ListeningStage, ListeningStatus } from '@/types/listening'
 
 export function restoreExercise(progress?: ListeningProgress | null) {
   const answers: Record<'blind' | 'retest', Record<string, number>> = { blind: {}, retest: {} }
@@ -33,6 +33,23 @@ export function getListeningFilters(search: URLSearchParams) {
     status: (['all', 'new', 'practiced', 'due'].includes(status) ? status : 'all') as ListeningStatus,
   }
 }
+export function listeningPath({ level, status }: ReturnType<typeof getListeningFilters>, id?: number) {
+  const query = new URLSearchParams()
+  if (level) query.set('level', level)
+  if (status !== 'all') query.set('status', status)
+  return `/listening${id === undefined ? '' : `/${id}`}${query.size ? `?${query}` : ''}`
+}
+
+export function nextUnpracticedMaterial(
+  materials: Pick<ListeningMaterial, 'id' | 'status' | 'training_ready'>[],
+  currentID: number,
+) {
+  // The catalogue is ordered by id. Wrap to the first remaining material
+  // when the learner opened a later one out of sequence.
+  const available = materials.filter(item => item.id !== currentID && item.status === 'new' && item.training_ready === true)
+  return available.find(item => item.id > currentID) ?? available[0]
+}
+
 export function needsBlindBaseline(trainingReady: boolean, stage: ListeningStage, attempts: Pick<ListeningAttempt, 'phase'>[]) {
   return trainingReady && (stage === 'intensive' || stage === 'retest') && !attempts.some((attempt) => attempt.phase === 'blind')
 }

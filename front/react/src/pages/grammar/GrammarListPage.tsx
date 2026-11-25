@@ -1,5 +1,4 @@
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
-import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -10,36 +9,33 @@ import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { GrammarPointWithStatus, GrammarSearchResult, JLPTLevel } from '@/types/api'
 import { exactMatchPath, grammarSearchApiPath } from './grammarSearch'
+import { withPracticeTask } from '@/pages/studyplan/practiceTask'
+import { translationRoundPath } from '@/pages/translation/grammarLink'
+import { useGrammarPracticeProgress } from './useGrammarPracticeProgress'
 import styles from './GrammarListPage.module.css'
 
 const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
 
-type FilterKey = '' | 'learning' | 'mastered' | 'unlearned'
+type FilterKey = 'all' | GrammarPointWithStatus['user_status']
 
 const FILTERS: { key: FilterKey; labelKey: string }[] = [
-  { key: '', labelKey: 'grammar.list.filter.all' },
+  { key: 'all', labelKey: 'grammar.list.filter.all' },
   { key: 'learning', labelKey: 'grammar.list.filter.learning' },
   { key: 'mastered', labelKey: 'grammar.list.filter.mastered' },
   { key: 'unlearned', labelKey: 'grammar.list.filter.unlearned' },
 ]
 
-function filterPoints(items: GrammarPointWithStatus[], f: FilterKey): GrammarPointWithStatus[] {
-  if (f === 'learning') return items.filter((p) => p.user_status === 'learning')
-  if (f === 'mastered') return items.filter((p) => p.user_status === 'mastered')
-  if (f === 'unlearned') return items.filter((p) => p.user_status === 'unlearned')
-  return items
-}
-
-export function GrammarListPage() {
+export function GrammarListPage({ fromTranslation = false }: { fromTranslation?: boolean }) {
   const { t } = useTranslation()
-  const { progress } = useDailyPracticeProgress('grammar')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const query = (searchParams.get('q') ?? '').trim()
   const isSearching = query !== ''
 
   const level = LEVELS.find(item => item === searchParams.get('level')) ?? 'N5'
-  const [filter, setFilter] = useState<FilterKey>('')
+  const { progress } = useGrammarPracticeProgress(level, searchParams)
+  const listSearch = searchParams.toString()
+  const filter = FILTERS.find(item => item.key === searchParams.get('status'))?.key ?? 'unlearned'
   const [points, setPoints] = useState<GrammarPointWithStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -91,7 +87,8 @@ export function GrammarListPage() {
         const target = exactMatchPath(result)
         if (target) {
           console.debug('[grammar] exact library entry found', query, target)
-          navigate(target, { replace: true })
+          const params = new URLSearchParams(listSearch)
+          navigate(fromTranslation ? translationRoundPath(params, target) : withPracticeTask(target, params), { replace: true })
           return
         }
         console.debug('[grammar] no exact entry, showing related hits', query, result?.points.length ?? 0)
@@ -107,30 +104,46 @@ export function GrammarListPage() {
 
     void run()
     return () => controller.abort()
-  }, [query, navigate])
+  }, [query, navigate, listSearch, fromTranslation])
+
+  function openPoint(id: number) {
+    const path = `/grammar/${id}`
+    navigate(fromTranslation ? translationRoundPath(searchParams, path) : withPracticeTask(path, searchParams), {
+      replace: fromTranslation,
+      state: { grammarListSearch: listSearch },
+    })
+  }
 
   function submitSearch() {
     const next = searchInput.trim()
     const params = new URLSearchParams(searchParams)
     if (next) params.set('q', next)
     else params.delete('q')
-    setSearchParams(params)
+    setSearchParams(params, { replace: fromTranslation })
   }
 
-  function clearSearch() {
+  function clearSearch(status?: FilterKey) {
     const params = new URLSearchParams(searchParams)
     params.delete('q')
-    setSearchParams(params)
+    if (status) params.set('status', status)
+    setSearchParams(params, { replace: fromTranslation })
   }
 
   function changeLevel(next: JLPTLevel) {
     const params = new URLSearchParams(searchParams)
     params.set('level', next)
-    setSearchParams(params)
+    setSearchParams(params, { replace: fromTranslation })
+  }
+
+  function changeFilter(next: FilterKey) {
+    if (next === filter) return
+    const params = new URLSearchParams(searchParams)
+    params.set('status', next)
+    setSearchParams(params, { replace: fromTranslation })
   }
 
   const hits = searchResult?.points ?? []
-  const filtered = filterPoints(points, filter)
+  const filtered = filter === 'all' ? points : points.filter(point => point.user_status === filter)
 
   return (
     <div className={styles.page}>
@@ -151,7 +164,7 @@ export function GrammarListPage() {
               aria-label="搜索语法点"
             />
             <button className={styles.searchBtn} onClick={submitSearch}>搜索</button>
-            <button className={styles.clearBtn} onClick={clearSearch}>清除</button>
+            <button className={styles.clearBtn} onClick={() => clearSearch()}>清除</button>
           </div>
           <p className={styles.searchHint}>来自翻译练习的语法标注「{query}」</p>
 
@@ -164,7 +177,7 @@ export function GrammarListPage() {
           ) : hits.length === 0 ? (
             <>
               <EmptyState icon="📝" title="语法库中暂无相关语法点" description="可以换个关键词，或浏览全部语法。" />
-              <button className={styles.browseAllBtn} onClick={clearSearch}>浏览全部语法 →</button>
+              <button className={styles.browseAllBtn} onClick={() => clearSearch('all')}>浏览全部语法 →</button>
             </>
           ) : (
             <>
@@ -173,7 +186,7 @@ export function GrammarListPage() {
               </p>
               <div className={styles.list}>
                 {hits.map(p => (
-                  <button key={p.id} className={styles.item} onClick={() => navigate(`/grammar/${p.id}`)}>
+                  <button key={p.id} className={styles.item} onClick={() => openPoint(p.id)}>
                     <div className={styles.itemLeft}>
                       <div className={styles.itemName}>{p.name}</div>
                       <div className={styles.itemMeaning}>{p.meaning}</div>
@@ -185,7 +198,7 @@ export function GrammarListPage() {
                   </button>
                 ))}
               </div>
-              <button className={styles.browseAllBtn} onClick={clearSearch}>浏览全部语法 →</button>
+              <button className={styles.browseAllBtn} onClick={() => clearSearch('all')}>浏览全部语法 →</button>
             </>
           )}
         </>
@@ -209,7 +222,8 @@ export function GrammarListPage() {
               <button
                 key={f.key}
                 className={`${styles.filterBtn} ${filter === f.key ? styles.filterBtnActive : ''}`}
-                onClick={() => setFilter(f.key)}
+                onClick={() => changeFilter(f.key)}
+                aria-pressed={filter === f.key}
               >
                 {t(f.labelKey)}
               </button>
@@ -227,7 +241,7 @@ export function GrammarListPage() {
           ) : (
             <div className={styles.list}>
               {filtered.map((p) => (
-                <button key={p.id} className={styles.item} onClick={() => navigate(`/grammar/${p.id}`)}>
+                <button key={p.id} className={styles.item} onClick={() => openPoint(p.id)}>
                   <div className={styles.itemLeft}>
                     <div className={styles.itemName}>{p.name}</div>
                     <div className={styles.itemMeaning}>{p.meaning}</div>

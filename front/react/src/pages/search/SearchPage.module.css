@@ -248,6 +248,10 @@
 }
 
 .examples p { margin: 0; }
+.examples li:is(:target, :focus) {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
 .examples p + p { margin-top: var(--space-1); color: var(--color-text-secondary); }
 .examples .audio { flex-shrink: 0; min-width: 44px; padding: 0; }
 

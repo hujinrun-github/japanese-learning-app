@@ -117,6 +117,43 @@ func TestErrataContentWordPreservesExamplesAndAudio(t *testing.T) {
 	}
 }
 
+func TestErrataContentTargetsOnlyReportedExample(t *testing.T) {
+	e := newErrataContentTestEnv(t)
+	_, err := e.db.Exec(`INSERT INTO words (id,kanji_form,reading,meaning,jlpt_level) VALUES (10,'工場','こうじょう','工厂','N5'), (11,'町','まち','小镇','N5');
+	INSERT INTO word_examples (id,word_id,position,japanese,chinese) VALUES (20,10,0,'工場です。','是工厂。'), (21,10,1,'工場へ行きます。','去工厂。'), (22,11,0,'町です。','是小镇。');
+	INSERT INTO grammar_points (id,name,meaning,jlpt_level) VALUES (30,'〜から','因为','N5'), (33,'〜まで','直到','N5');
+	INSERT INTO grammar_examples (id,grammar_point_id,position,japanese,chinese) VALUES (31,30,0,'雨だから。','因为下雨。'), (32,30,1,'雪だから。','因为下雪。'), (34,33,0,'夜まで。','直到晚上。');
+	INSERT INTO grammar_quiz_questions (id,grammar_point_id,position,type,prompt,options,answer) VALUES (35,30,0,'multi_choice','雨です。','["から","まで"]','から')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		module, key, foreignKey, targetField, siblingField, query string
+	}{
+		{"word", "10:example:20", "10:example:22", "word_example:20.chinese", "word_example:21.chinese", `SELECT chinese FROM word_examples WHERE id=20`},
+		{"grammar", "30:example:31", "30:example:34", "grammar_example:31.chinese", "grammar_example:32.chinese", `SELECT chinese FROM grammar_examples WHERE id=31`},
+	} {
+		t.Run(tc.module, func(t *testing.T) {
+			id := e.report(t, tc.module, tc.key)
+			path := fmt.Sprintf("/api/admin/errata/%d/content", id)
+			before := e.content(t, id)
+			for _, field := range before.Fields {
+				if field.Key == tc.siblingField || strings.HasPrefix(field.Key, "grammar_quiz:") {
+					t.Fatalf("unrelated field in example editor: %s", field.Key)
+				}
+			}
+			e.request(t, "PUT", path, map[string]any{"revision": before.Revision, "values": map[string]string{tc.siblingField: "不能覆盖"}}, http.StatusBadRequest)
+			e.request(t, "PUT", path, map[string]any{"revision": before.Revision, "values": map[string]string{tc.targetField: "修正译文"}}, http.StatusOK)
+			var got string
+			if err := e.db.QueryRow(tc.query).Scan(&got); err != nil || got != "修正译文" {
+				t.Fatalf("corrected translation = %q, err = %v", got, err)
+			}
+			foreignReport := e.report(t, tc.module, tc.foreignKey)
+			e.request(t, "GET", fmt.Sprintf("/api/admin/errata/%d/content", foreignReport), nil, http.StatusNotFound)
+		})
+	}
+}
+
 func TestErrataContentModuleCorrections(t *testing.T) {
 	e := newErrataContentTestEnv(t)
 	_, err := e.db.Exec(`INSERT INTO grammar_points (id,name,meaning,jlpt_level) VALUES (30,'〜から','因为','N5');

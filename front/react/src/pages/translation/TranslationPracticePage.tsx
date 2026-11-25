@@ -1,21 +1,64 @@
 import { useTranslation } from 'react-i18next'
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
-import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Fragment, useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { Link, useNavigate, useOutlet, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '@/api/client'
 import { Spinner } from '@/components/ui/Spinner'
+import { Badge } from '@/components/ui/Badge'
 import type { TranslationSentence, TranslationRecord } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import { DictionaryButton } from '@/pages/search/ContextualSearch'
-import { grammarSearchPath } from './grammarLink'
+import { grammarSearchPath, translationRoundPath } from './grammarLink'
 import styles from './TranslationPracticePage.module.css'
 
 const grammarSourceLabels = { bank: '题库标注', ai: 'AI 分析', local: '本地规则' }
 
 export function TranslationPracticePage() {
   const { t } = useTranslation()
-  const { progress, refreshProgress } = useDailyPracticeProgress('translation')
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const grammar = useOutlet()
+  const showingGrammar = grammar !== null
+  const origin = useRef<{ scrollY: number; trigger: HTMLButtonElement } | null>(null)
+  const returnButton = useRef<HTMLButtonElement>(null)
+
+  useLayoutEffect(() => {
+    if (showingGrammar) {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      returnButton.current?.focus({ preventScroll: true })
+    } else if (origin.current) {
+      window.scrollTo({ top: origin.current.scrollY, behavior: 'instant' })
+      origin.current.trigger.focus({ preventScroll: true })
+    }
+  }, [showingGrammar])
+
+  function openGrammar(point: string, trigger: HTMLButtonElement) {
+    origin.current = { scrollY: window.scrollY, trigger }
+    navigate(grammarSearchPath(point, searchParams))
+  }
+
+  function returnToPractice() {
+    if (origin.current?.trigger.isConnected) navigate(-1)
+    else navigate(translationRoundPath(searchParams), { replace: true })
+  }
+
+  return <>
+    <div hidden={showingGrammar}><TranslationExercise onOpenGrammar={openGrammar} /></div>
+    {showingGrammar && <>
+      <div className={styles.grammarReturn}>
+        <button className={styles.backBtn} type="button" ref={returnButton} onClick={returnToPractice}>
+          ← {t(origin.current?.trigger.isConnected ? 'translation.backToQuestion' : 'translation.backToPractice')}
+        </button>
+      </div>
+      {grammar}
+    </>}
+  </>
+}
+
+function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string, trigger: HTMLButtonElement) => void }) {
+  const { t } = useTranslation()
+  const { progress, refreshProgress, jlptLevels } = useDailyPracticeProgress('translation')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const mode = searchParams.get('mode') || 'daily'
@@ -120,9 +163,14 @@ export function TranslationPracticePage() {
   if (sentences.length === 0) {
     const canReview = mode !== 'daily' && sourceID && !review && !error
     let dailyMessage = '当前没有未练习的翻译题。'
+    let showLevelSettings = false
     if (mode === 'daily' && progress.status === 'ready') {
       if (progress.goal === 0) dailyMessage = '今天没有设置翻译练习目标。'
       else if (progress.completed >= progress.goal) dailyMessage = '今日翻译目标已完成。'
+      else if (jlptLevels?.length) {
+        dailyMessage = t('translation.emptyForLevels', { levels: jlptLevels.join(' / ') })
+        showLevelSettings = !error
+      }
     }
     return (
       <div className={styles.page}>
@@ -138,6 +186,7 @@ export function TranslationPracticePage() {
               : '这份素材没有未练习的题。'}
           </p>
         )}
+        {showLevelSettings && <Link className={styles.backBtn} to="/settings">{t('translation.levelSettings')}</Link>}
         {canReview && (
           <button
             className={styles.nextBtn}
@@ -153,6 +202,7 @@ export function TranslationPracticePage() {
   const sentence = sentences[currentIdx]
   const directionLabel = sentence.direction === 'jp2cn' ? '日→中' : '中→日'
   const reference = currentResult?.reference_translation?.trim() || currentResult?.ai_feedback?.reference_translation?.trim()
+  const referenceTokens = sentence.direction === 'cn2jp' ? currentResult?.reference_tokens : undefined
   const correction = currentResult?.ai_feedback?.corrected_translation?.trim()
   const grammarSource = currentResult?.ai_feedback?.grammar_source
   const grammar = grammarSource ? currentResult?.ai_feedback?.grammar_explanations : undefined
@@ -162,6 +212,7 @@ export function TranslationPracticePage() {
       <div className={styles.header}>
         <button className={styles.backBtn} onClick={() => navigate('/translation')}>← 戻る</button>
         <span className={styles.directionBadge}>{directionLabel}</span>
+        {sentence.jlpt_level && <Badge level={sentence.jlpt_level} size="sm" />}
         <span className={styles.progress}>{t('common.translationRound', { current: currentIdx + 1, total: sentences.length })}</span>
       </div>
 
@@ -218,7 +269,11 @@ export function TranslationPracticePage() {
             {reference ? (
               <>
                 <p className={styles.correctedText} lang={sentence.direction === 'jp2cn' ? 'zh' : 'ja'}
-                  data-dictionary-text={sentence.direction === 'cn2jp' ? '' : undefined}>{reference}</p>
+                  data-dictionary-text={sentence.direction === 'cn2jp' ? '' : undefined}>
+                  {referenceTokens?.length ? referenceTokens.map(({ surface, reading }, index) => (
+                    reading ? <ruby key={index}>{surface}<rt>{reading}</rt></ruby> : <Fragment key={index}>{surface}</Fragment>
+                  )) : reference}
+                </p>
                 {sentence.direction === 'cn2jp' && <DictionaryButton text={reference} />}
               </>
             ) : (
@@ -239,7 +294,7 @@ export function TranslationPracticePage() {
                       key={point.grammar_point}
                       type="button"
                       className={styles.grammarTag}
-                      onClick={() => navigate(grammarSearchPath(point.grammar_point))}
+                      onClick={event => onOpenGrammar(point.grammar_point, event.currentTarget)}
                       title="查看语法详情"
                     >
                       <span className={styles.grammarPoint}>{point.grammar_point}</span>

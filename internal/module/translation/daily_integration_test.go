@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
@@ -20,6 +21,105 @@ type translationClock struct{ time.Time }
 
 func (c translationClock) Now() time.Time { return c.Time }
 
+func TestTranslationDailyPracticeMatchesSavedLevels(t *testing.T) {
+	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
+	now := time.Date(2026, 11, 26, 9, 0, 0, 0, time.UTC)
+	st := pgdata.NewTranslationStore(db, store.StoreDeps{Clock: translationClock{now}, AppTimezone: time.UTC})
+	if _, err := db.Exec(`INSERT INTO users (id,email,password_hash) VALUES (1,'levels@example.test','unused');
+		INSERT INTO translation_sources(id,title,source_type,raw_content)
+		VALUES (1,'标题里的 N4 并非分级依据','manual',''), (2,'手动导入','manual','');
+		INSERT INTO translation_sentences (id,source_id,direction,source_text,position,jlpt_level)
+		VALUES (10,1,'jp2cn','N4 practice',0,'N4'), (11,1,'jp2cn','N2 practice',1,'N2'),
+		       (12,1,'jp2cn','N2 new',2,'N2'), (13,1,'jp2cn','N3 new',3,'N3'),
+		       (14,2,'jp2cn','Ungraded',0,'')`); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []int64{10, 11, 14} {
+		if _, err := st.SaveRecord(translation.TranslationRecord{
+			UserID: 1, SentenceID: id, UserTranslation: "回答", PracticedAt: now,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	const secret = "translation-level-test"
+	mux := http.NewServeMux()
+	translation.NewTranslationHandler(translation.NewTranslationService(st, nil, nil)).RegisterRoutes(mux)
+	handler := user.AuthMiddleware(secret, mux)
+	token, _, err := user.SignToken(1, secret, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	get := func(path string, out any) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := httptest.NewRecorder()
+		handler.ServeHTTP(resp, req)
+		if resp.Code != http.StatusOK {
+			t.Fatalf("GET %s: status = %d, body = %s", path, resp.Code, resp.Body)
+		}
+		if err := json.Unmarshal(resp.Body.Bytes(), &struct{ Data any }{Data: out}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		name, storedLevels string
+		levels             []string
+		done               int
+		ids                []int64
+	}{
+		{"one level", `["N2"]`, []string{"N2"}, 1, []int64{12}},
+		{"multiple levels", `["N2","N3"]`, []string{"N2", "N3"}, 1, []int64{12, 13}},
+		{"changing settings scopes existing progress", `["N3"]`, []string{"N3"}, 0, []int64{13}},
+		{"no questions for the selected level", `["N1"]`, []string{"N1"}, 0, nil},
+		{"old profile without a saved level", `[]`, []string{"N5"}, 0, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := db.Exec(`UPDATE users SET jlpt_levels=ARRAY(SELECT jsonb_array_elements_text($1::jsonb)) WHERE id=1`, tc.storedLevels); err != nil {
+				t.Fatal(err)
+			}
+			var progress struct {
+				Levels []string `json:"jlpt_levels"`
+				Done   int      `json:"today_completed"`
+			}
+			get("/api/v1/translation/progress", &progress)
+			if progress.Done != tc.done || !slices.Equal(progress.Levels, tc.levels) {
+				t.Errorf("progress = %+v, want %d completed at %v", progress, tc.done, tc.levels)
+			}
+			for _, suffix := range []string{"", "?count=20"} {
+				var queued []translation.TranslationSentence
+				get("/api/v1/translation/queue"+suffix, &queued)
+				var got []int64
+				for _, item := range queued {
+					got = append(got, item.ID)
+				}
+				slices.Sort(got)
+				if !slices.Equal(got, tc.ids) {
+					t.Errorf("queue%s = %v, want %v", suffix, got, tc.ids)
+				}
+			}
+		})
+	}
+	var sources []struct {
+		ID     int64
+		Levels []string `json:"jlpt_levels"`
+	}
+	get("/api/v1/translation/sources", &sources)
+	for _, source := range sources {
+		if source.ID == 1 && !slices.Equal(source.Levels, []string{"N4", "N3", "N2"}) {
+			t.Errorf("mixed source labels = %v, want N4/N3/N2", source.Levels)
+		}
+		if source.ID == 2 && len(source.Levels) != 0 {
+			t.Errorf("ungraded source labels = %v", source.Levels)
+		}
+	}
+	var ungraded []translation.TranslationSentence
+	get("/api/v1/translation/sentences?source_id=2", &ungraded)
+	if len(ungraded) != 1 || ungraded[0].ID != 14 {
+		t.Fatalf("ungraded free practice = %+v", ungraded)
+	}
+}
+
 func TestTranslationDailyProgressAndQueueUseTheScheduledGoal(t *testing.T) {
 	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 	// UTC is still Monday, but the learner's plan is already on Tuesday.
@@ -32,7 +132,7 @@ func TestTranslationDailyProgressAndQueueUseTheScheduledGoal(t *testing.T) {
 	var ids []int64
 	for i := range 35 {
 		id, err := store.SaveSentence(translation.TranslationSentence{
-			SourceID: sourceID, Direction: "jp2cn", SourceText: fmt.Sprintf("問題%dです。", i), Position: i,
+			SourceID: sourceID, Direction: "jp2cn", SourceText: fmt.Sprintf("問題%dです。", i), Position: i, JLPTLevel: "N5",
 		})
 		if err != nil {
 			t.Fatal(err)

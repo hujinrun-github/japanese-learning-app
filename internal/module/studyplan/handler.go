@@ -18,11 +18,19 @@ import (
 )
 
 type Handler struct {
-	db  *sql.DB
-	now func() time.Time
+	db           *sql.DB
+	now          func() time.Time
+	wordTimezone *time.Location
 }
 
-func NewHandler(db *sql.DB) *Handler { return &Handler{db: db, now: time.Now} }
+func NewHandler(db *sql.DB) *Handler { return &Handler{db: db, now: time.Now, wordTimezone: time.UTC} }
+
+func (h *Handler) SetWordReviewTimezone(location *time.Location) {
+	if location != nil {
+		h.wordTimezone = location
+	}
+}
+
 func (h *Handler) RegisterRoutes(protected, public *http.ServeMux) {
 	protected.HandleFunc("GET /api/v1/study-plan", h.get)
 	protected.HandleFunc("GET /api/v1/study-plan/today", h.today)
@@ -60,6 +68,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.Revision = revision
+	p.normalizePracticeTargets()
 	httputil.WriteJSON(w, 200, httputil.APIResponse{Data: map[string]any{"plan": p, "calendar_path": "/api/v1/calendar/" + token + ".ics"}})
 }
 func newToken() (string, error) {
@@ -86,6 +95,7 @@ func (h *Handler) save(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, 400, "ERR_BAD_REQUEST", err.Error(), "")
 		return
 	}
+	p.normalizePracticeTargets()
 	token, err := newToken()
 	if err != nil {
 		h.fail(w, err)
@@ -131,6 +141,9 @@ func (h *Handler) save(w http.ResponseWriter, r *http.Request) {
 	}
 	if err == nil {
 		err = QueueCatalog(r.Context(), tx, uid, true, h.now())
+	}
+	if err == nil {
+		_, err = h.syncPracticeCheckIns(r.Context(), tx, uid, h.now())
 	}
 	if err == nil {
 		err = tx.Commit()

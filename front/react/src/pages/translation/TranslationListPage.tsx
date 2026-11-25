@@ -1,14 +1,17 @@
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Badge } from '@/components/ui/Badge'
 import type { TranslationSource } from '@/types/api'
 import styles from './TranslationListPage.module.css'
 
 export function TranslationListPage() {
+  const { t } = useTranslation()
   const { progress } = useDailyPracticeProgress('translation')
   const navigate = useNavigate()
   const [sources, setSources] = useState<TranslationSource[]>([])
@@ -72,8 +75,7 @@ export function TranslationListPage() {
     }
   }
 
-  async function handleDelete(id: number, e: React.MouseEvent) {
-    e.stopPropagation()
+  async function handleDelete(id: number) {
     if (!confirm('确定删除这个素材及其所有句子吗？')) return
     setDeleting(id)
     try {
@@ -89,12 +91,15 @@ export function TranslationListPage() {
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>翻訳練習</h1>
-      <DailyPracticeProgress progress={progress} />
+      <div className={styles.progressRow}>
+        <DailyPracticeProgress progress={progress} />
+        <Link className={styles.settingsLink} to="/settings">{t('translation.levelSettings')}</Link>
+      </div>
 
       <div className={styles.cardRow}>
         <button className={styles.mainCard} onClick={() => navigate('/translation/practice?mode=daily')}>
           <span className={styles.cardIcon}>📅</span>
-          <span className={styles.cardLabel}>今日任务</span>
+          <span className={styles.cardLabel}>{t('translation.dailyPractice')}</span>
         </button>
         <button className={styles.mainCard} onClick={() => navigate('/translation/practice?mode=free')}>
           <span className={styles.cardIcon}>📝</span>
@@ -111,27 +116,29 @@ export function TranslationListPage() {
       ) : (
         <div className={styles.sourceList}>
           {sources.map(s => (
-            <div
-              key={s.id}
-              className={styles.sourceCard}
-              onClick={() => navigate(`/translation/practice?mode=free&source_id=${s.id}`)}
-            >
-              <div className={styles.sourceHeader}>
-                <span className={styles.sourceTitle}>{s.title}</span>
-                <div className={styles.sourceHeaderRight}>
-                  <span className={styles.sourceType}>{s.source_type}</span>
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={e => handleDelete(s.id, e)}
-                    disabled={deleting === s.id}
-                    title="删除素材"
-                  >
-                    {deleting === s.id ? '…' : '🗑'}
-                  </button>
+            <article key={s.id} className={styles.sourceCard}>
+              <Link to={`/translation/practice?mode=free&source_id=${s.id}`} className={styles.sourceLink}>
+                <div className={styles.sourceHeader}>
+                  <span className={styles.sourceTitle}>{s.title}</span>
+                  <div className={styles.levelTags}>
+                    {s.jlpt_levels?.length ? s.jlpt_levels.map(level => <Badge key={level} level={level} size="sm" />)
+                      : <span className={styles.ungraded}>{t('translation.ungraded')}</span>}
+                  </div>
                 </div>
-              </div>
-              <p className={styles.sourcePreview}>{s.raw_content.slice(0, 100)}…</p>
-            </div>
+                {s.raw_content.trim() && (
+                  <p className={styles.sourcePreview}>{s.raw_content.slice(0, 100)}{s.raw_content.length > 100 ? '…' : ''}</p>
+                )}
+              </Link>
+              <button
+                className={styles.deleteBtn}
+                onClick={() => { void handleDelete(s.id) }}
+                disabled={deleting === s.id}
+                title="删除素材"
+                aria-label={`删除素材 ${s.title}`}
+              >
+                {deleting === s.id ? '…' : '🗑'}
+              </button>
+            </article>
           ))}
         </div>
       )}

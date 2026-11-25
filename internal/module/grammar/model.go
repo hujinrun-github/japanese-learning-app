@@ -33,6 +33,7 @@ type QuizQuestion struct {
 
 // GrammarExample 语法例句
 type GrammarExample struct {
+	ID           int64   `json:"id,omitempty"`
 	Japanese     string  `json:"japanese"`
 	Chinese      string  `json:"chinese"`
 	FuriganaHTML string  `json:"furigana_html,omitempty"`
@@ -72,7 +73,7 @@ type GrammarRecord struct {
 
 // QuizAttempt 一次检验记录
 type QuizAttempt struct {
-	Score       int       `json:"score"`        // 本次得分（0~100）
+	Score       int       `json:"score"` // 本次得分（0~100）
 	AttemptedAt time.Time `json:"attempted_at"`
 }
 

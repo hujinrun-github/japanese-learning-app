@@ -1,5 +1,5 @@
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
-import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
+import { useSourceAnchor } from '@/hooks/useSourceAnchor'
 import { useState, useEffect } from 'react'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -15,27 +15,38 @@ import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { createMistake } from '@/api/mistakes'
 import { buildGrammarMistakes } from '@/pages/mistakes/mistakeInput'
 import { answerPartsFor, hasFullAnswer } from './quizAnswer'
+import { grammarDeepLink } from './grammarDeepLink'
+import { withPracticeTask } from '@/pages/studyplan/practiceTask'
+import { translationRoundPath } from '@/pages/translation/grammarLink'
+import { useGrammarPracticeProgress } from './useGrammarPracticeProgress'
 import styles from './GrammarDetailPage.module.css'
 
-export function GrammarDetailPage() {
+export function GrammarDetailPage({ fromTranslation = false }: { fromTranslation?: boolean }) {
   const { t } = useTranslation()
-  const { progress, refreshProgress } = useDailyPracticeProgress('grammar')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { state } = useLocation()
+  const { state, search, hash } = useLocation()
+  const { quizOpen: initialQuizOpen, anchor } = grammarDeepLink(search, hash)
   const backToSearch = typeof state?.fromSearch === 'string' && state.fromSearch.startsWith('/search?')
-  const backPath = backToSearch ? state.fromSearch : '/grammar'
-  const backLabel = t(backToSearch ? 'search.back' : 'lesson.back')
+  const params = new URLSearchParams(search)
 
   const [point, setPoint] = useState<GrammarPointWithStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { progress, refreshProgress } = useGrammarPracticeProgress(point?.jlpt_level ?? null, params)
+  const listSearch = typeof state?.grammarListSearch === 'string'
+    ? state.grammarListSearch
+    : point ? new URLSearchParams({ level: point.jlpt_level }).toString() : ''
+  const backPath = backToSearch ? state.fromSearch : withPracticeTask(listSearch ? `/grammar?${listSearch}` : '/grammar', params)
+  const backLabel = t(backToSearch ? 'search.back' : 'grammar.detail.back')
 
   // Quiz state
-  const [quizOpen, setQuizOpen] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(initialQuizOpen)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [result, setResult] = useState<QuizResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const questions = point?.quiz_questions ?? []
+  const canSubmitQuiz = questions.length > 0 && questions.every(question => (answers[question.id] ?? '').trim() !== '')
 
   // Neighbor navigation
   const [prevId, setPrevId] = useState<number | null>(null)
@@ -46,10 +57,17 @@ export function GrammarDetailPage() {
     loadPoint(Number(id))
   }, [id])
 
+  // 勘误「返回原题」带来的锚点：等内容渲染完成后再滚动到例句区或指定测验题。
+  useEffect(() => {
+    setQuizOpen(initialQuizOpen)
+  }, [id, initialQuizOpen])
+
+  const isQuizTarget = anchor?.startsWith('quiz-') ?? false
+  useSourceAnchor(anchor, !loading && point?.id === Number(id) && (!isQuizTarget || quizOpen), isQuizTarget ? 'quiz' : 'examples')
+
   async function loadPoint(pointId: number) {
     setLoading(true)
     setError('')
-    setQuizOpen(false)
     setAnswers({})
     setResult(null)
     setPrevId(null)
@@ -80,7 +98,7 @@ export function GrammarDetailPage() {
   }
 
   async function handleSubmitQuiz() {
-    if (!point) return
+    if (!point || !canSubmitQuiz || submitting) return
     setSubmitting(true)
     try {
       const submissions: QuizSubmission[] = point.quiz_questions.map((q) => ({
@@ -103,6 +121,11 @@ export function GrammarDetailPage() {
     }
   }
 
+  function openNeighbor(pointId: number) {
+    const path = `/grammar/${pointId}`
+    navigate(fromTranslation ? translationRoundPath(params, path) : withPracticeTask(path, params), { state, replace: fromTranslation })
+  }
+
   if (loading) {
     return (
       <div className={styles.page} style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
@@ -115,16 +138,16 @@ export function GrammarDetailPage() {
     return (
       <div className={styles.page}>
         <p style={{ color: 'var(--color-error)' }}>{error || 'Not found'}</p>
-        <Button variant="secondary" onClick={() => navigate(backPath)}>← {backLabel}</Button>
+        {!fromTranslation && <Button variant="secondary" onClick={() => navigate(backPath)}>← {backLabel}</Button>}
       </div>
     )
   }
 
   return (
     <div className={styles.page}>
-      <button className={styles.back} onClick={() => navigate(backPath)}>
+      {!fromTranslation && <button className={styles.back} onClick={() => navigate(backPath)}>
         ← {backLabel}
-      </button>
+      </button>}
 
       <div className={styles.nameRow}>
         <h1 className={styles.name}>{point.name}</h1>
@@ -153,11 +176,11 @@ export function GrammarDetailPage() {
 
       {/* Examples */}
       {point.examples && point.examples.length > 0 && (
-        <div className={styles.section}>
+        <div className={styles.section} id="examples" tabIndex={-1}>
           <div className={styles.sectionTitle}>{t('grammar.detail.examples')}</div>
           <div className={styles.exampleList}>
             {point.examples.map((ex, i) => (
-              <div key={i} className={styles.exampleItem}>
+              <div key={ex.id ?? i} id={ex.id ? `example-${ex.id}` : undefined} tabIndex={ex.id ? -1 : undefined} className={styles.exampleItem}>
                 <div className={styles.exampleJaRow}>
                   {ex.furigana_html ? (
                     <div className={styles.exampleJa} lang="ja" data-dictionary-text dangerouslySetInnerHTML={{ __html: ex.furigana_html }} />
@@ -173,6 +196,7 @@ export function GrammarDetailPage() {
                   >
                     🔊
                   </button>
+                  {ex.id && <ErrataButton module="grammar" itemKey={`${point.id}:example:${ex.id}`} label={ex.japanese} />}
                 </div>
                 <div className={styles.exampleZh}>{ex.chinese}</div>
               </div>
@@ -183,8 +207,8 @@ export function GrammarDetailPage() {
 
       {/* Quiz */}
       {point.quiz_questions && point.quiz_questions.length > 0 && (
-        <div className={styles.section}>
-          <button className={styles.quizToggle} onClick={() => setQuizOpen((o) => !o)}>
+        <div className={styles.section} id="quiz" tabIndex={-1}>
+          <button className={styles.quizToggle} aria-expanded={quizOpen} onClick={() => setQuizOpen((o) => !o)}>
             <span>{t('grammar.detail.quiz.title')}</span>
             <span className={`${styles.chevron} ${quizOpen ? styles.chevronOpen : ''}`}>▼</span>
           </button>
@@ -202,7 +226,7 @@ export function GrammarDetailPage() {
                 const itemResult = result?.results.find((r) => r.question_id === q.id)
                 const answerParts = itemResult ? answerPartsFor(q.type, q.prompt) : null
                 return (
-                  <div key={q.id} className={styles.question}>
+                  <div key={q.id} id={`quiz-${q.id}`} tabIndex={-1} className={styles.question}>
                     <div className={styles.questionPrompt}>{q.prompt}</div>
                     <ErrataButton module="grammar" itemKey={`${point.id}:quiz:${q.id}`} label={q.prompt} />
 
@@ -269,7 +293,8 @@ export function GrammarDetailPage() {
 
               {!result && (
                 <div className={styles.submitRow}>
-                  <Button onClick={handleSubmitQuiz} loading={submitting}>
+                  {!canSubmitQuiz && <span>{t('grammar.detail.quiz.incomplete')}</span>}
+                  <Button onClick={handleSubmitQuiz} loading={submitting} disabled={!canSubmitQuiz}>
                     {t('grammar.detail.quiz.submit')}
                   </Button>
                 </div>
@@ -284,14 +309,14 @@ export function GrammarDetailPage() {
         <Button
           variant="secondary"
           disabled={!prevId}
-          onClick={() => prevId && navigate(`/grammar/${prevId}`)}
+          onClick={() => prevId && openNeighbor(prevId)}
         >
           ← {t('grammar.detail.prev')}
         </Button>
         <Button
           variant="secondary"
           disabled={!nextId}
-          onClick={() => nextId && navigate(`/grammar/${nextId}`)}
+          onClick={() => nextId && openNeighbor(nextId)}
         >
           {t('grammar.detail.next')} →
         </Button>

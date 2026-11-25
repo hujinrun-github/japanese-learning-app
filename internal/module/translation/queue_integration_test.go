@@ -35,7 +35,7 @@ func TestTranslationPracticeSkipsSubmittedPrompts(t *testing.T) {
 	addSentence := func(sourceID int64, text, direction string, position int) int64 {
 		t.Helper()
 		id, err := store.SaveSentence(translation.TranslationSentence{
-			SourceID: sourceID, Direction: direction, SourceText: text, Position: position,
+			SourceID: sourceID, Direction: direction, SourceText: text, Position: position, JLPTLevel: "N5",
 		})
 		if err != nil {
 			t.Fatal(err)

@@ -1,6 +1,10 @@
 package translation
 
-import "time"
+import (
+	"time"
+
+	"japanese-learning-app/internal/module/word"
+)
 
 // Direction represents the translation direction.
 type Direction string
@@ -18,6 +22,7 @@ type TranslationSource struct {
 	SourceURL   string    `json:"source_url"`
 	APIEndpoint string    `json:"api_endpoint"`
 	RawContent  string    `json:"raw_content"`
+	JLPTLevels  []string  `json:"jlpt_levels,omitempty"`
 	Direction   string    `json:"direction,omitempty"` // populated after import
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -30,6 +35,7 @@ type TranslationSentence struct {
 	SourceText           string   `json:"source_text"`
 	ReferenceTranslation string   `json:"reference_translation"`
 	Position             int      `json:"position"`
+	JLPTLevel            string   `json:"jlpt_level,omitempty"`
 	GrammarPoints        []string `json:"-"`
 }
 
@@ -56,8 +62,10 @@ type TranslationRecord struct {
 	ID                   int64                `json:"id"`
 	UserID               int64                `json:"user_id"`
 	SentenceID           int64                `json:"sentence_id"`
+	Direction            string               `json:"-"`
 	UserTranslation      string               `json:"user_translation"`
 	ReferenceTranslation string               `json:"reference_translation,omitempty"`
+	ReferenceTokens      []word.FuriganaToken `json:"reference_tokens,omitempty"`
 	Score                int                  `json:"score"`
 	RuleScore            int                  `json:"rule_score"`
 	AIFeedback           *TranslationFeedback `json:"ai_feedback,omitempty"`
@@ -66,6 +74,7 @@ type TranslationRecord struct {
 
 // DailyProgress is the learner's effective translation target and progress.
 type DailyProgress struct {
-	Goal      int `json:"daily_goal"`
-	Completed int `json:"today_completed"`
+	Goal      int      `json:"daily_goal"`
+	Completed int      `json:"today_completed"`
+	Levels    []string `json:"jlpt_levels"`
 }

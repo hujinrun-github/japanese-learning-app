@@ -50,7 +50,7 @@ export function createN2Plan(now = new Date()): StudyPlan {
         id: 'night', title: '晚间学习', time: '22:00', duration_minutes: 60,
         tasks: [
           { id: 'catch-up', title: '补上周漏洞', description: '重做上周仍未理解的词汇、语法错题，不急于增加新内容。', path: '/mistakes', minutes: 20, weekdays: [1] },
-          { id: 'grammar', title: '学习新语法', description: '学习约 2 个 N2 语法点：接续、含义、例句和易混表达，然后完成测验。', path: '/grammar?level=N2', minutes: 20, weekdays: [2, 3, 4] },
+          { id: 'grammar', title: '学习新语法', description: '学习 N2 语法的接续、含义、例句和易混表达，然后完成测验。', path: '/grammar?level=N2', minutes: 20, weekdays: [2, 3, 4], practice_target: 2 },
           { id: 'reading', title: '阅读精读', description: '先关闭假名和中文独立阅读，再核对长句、文章主旨和转折。一篇可以分两天完成。', path: '/lesson?level=N2', minutes: 30, weekdays: [1, 2, 3, 4] },
           { id: 'mistakes', title: '错题复盘', description: '重做旧错题，记录当天最需要记住的 1–3 个问题及错误原因。', path: '/mistakes', minutes: 10, weekdays: [1, 2, 3, 4] },
           { id: 'weekly-test', title: '限时分项测验', description: '使用未做过的 N2 题，按周轮换词汇语法、阅读和听力，记录正确率与用时。', path: OFFICIAL_N2_MATERIALS, minutes: 45, weekdays: [5] },

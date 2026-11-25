@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { completeListening, getListeningSession, saveListeningProgress, submitListeningAttempt } from '@/api/listening'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { completeListening, getListeningMaterials, getListeningSession, saveListeningProgress, submitListeningAttempt } from '@/api/listening'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import type { ListeningAttempt, ListeningPhase, ListeningSession, ListeningStage, SaveListeningProgress } from '@/types/listening'
-import { answerList, audioSourceLabel, canSubmitAnswers, formatDueDate, getListeningStepAction, needsBlindBaseline, restoreExercise, sentenceBounds, shouldReportPlaybackError, STAGE_LABELS } from './listeningFlow'
+import { answerList, audioSourceLabel, canSubmitAnswers, formatDueDate, getListeningFilters, getListeningStepAction, listeningPath, needsBlindBaseline, nextUnpracticedMaterial, restoreExercise, sentenceBounds, shouldReportPlaybackError, STAGE_LABELS } from './listeningFlow'
 import { ListeningQuestions } from './ListeningQuestions'
 import styles from './ListeningPage.module.css'
 
@@ -15,8 +15,14 @@ const stages: ListeningStage[] = ['blind', 'intensive', 'retest', 'completed']
 
 export function ListeningTrainingPage() {
   const { id } = useParams()
-  const materialID = Number(id)
+  const [search] = useSearchParams()
+  const filters = getListeningFilters(search)
+  return <ListeningTraining key={listeningPath(filters, Number(id))} materialID={Number(id)} filters={filters} />
+}
+
+function ListeningTraining({ materialID, filters }: { materialID: number; filters: ReturnType<typeof getListeningFilters> }) {
   const navigate = useNavigate()
+  const backPath = listeningPath(filters)
   const [session, setSession] = useState<ListeningSession | null>(null)
   const [exercise, setExercise] = useState<Exercise>(() => restoreExercise())
   // A review view has its own player and selected sentence.
@@ -30,12 +36,14 @@ export function ListeningTrainingPage() {
   const saveChain = useRef<Promise<unknown>>(Promise.resolve())
   const saveVersion = useRef(0)
   const mutatingRef = useRef(false)
+  const nextRequest = useRef<AbortController | null>(null)
   const keys = useRef<Record<string, string>>({})
   const [retry, setRetry] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [mediaError, setMediaError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [nextStatus, setNextStatus] = useState<'idle' | 'loading' | 'empty' | 'error'>('idle')
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'failed'>('saved')
   const [showJapanese, setShowJapanese] = useState(false)
   const [showChinese, setShowChinese] = useState(false)
@@ -71,6 +79,10 @@ export function ListeningTrainingPage() {
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [materialID, retry])
+
+  useEffect(() => () => {
+    nextRequest.current?.abort()
+  }, [])
 
   function publish(next: Exercise) {
     stateRef.current = next
@@ -201,9 +213,37 @@ export function ListeningTrainingPage() {
     try {
       const next = { ...restoreExercise(), bookmarks: stateRef.current.bookmarks }
       await persist(next, true)
+      setNextStatus('idle')
       setRetry((value) => value + 1)
     } catch (err) { setError(message(err, '新一轮训练创建失败')) }
     finally { mutatingRef.current = false; setBusy(false) }
+  }
+
+  async function openNextMaterial() {
+    if (mutatingRef.current) return
+    const controller = new AbortController()
+    nextRequest.current = controller
+    mutatingRef.current = true
+    setNextStatus('loading')
+    try {
+      const catalog = await getListeningMaterials(filters.level, 'new', controller.signal)
+      if (controller.signal.aborted) return
+      const next = nextUnpracticedMaterial(catalog.materials, materialID)
+      if (next) {
+        navigate(listeningPath(filters, next.id))
+        window.scrollTo(0, 0)
+      } else {
+        setNextStatus('empty')
+      }
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        console.error('[listening] failed to load next unpracticed material', err)
+        setNextStatus('error')
+      }
+    } finally {
+      mutatingRef.current = false
+      nextRequest.current = null
+    }
   }
 
   function playSentence(index: number, slow = false) {
@@ -251,7 +291,7 @@ export function ListeningTrainingPage() {
   }
 
   if (loading) return <div className={styles.page}><div className={styles.loading}><Spinner /><span>正在恢复听力训练…</span></div></div>
-  if (!session) return <div className={styles.page}><Link to="/listening">返回听力库</Link><div className={styles.error} role="alert"><p>{error}</p><Button onClick={() => setRetry((value) => value + 1)}>重试加载</Button></div></div>
+  if (!session) return <div className={styles.page}><Link to={backPath}>返回听力库</Link><div className={styles.error} role="alert"><p>{error}</p><Button onClick={() => setRetry((value) => value + 1)}>重试加载</Button></div></div>
 
   const { lesson, questions, attempts } = session
   const stage = review?.stage ?? exercise.stage
@@ -270,7 +310,7 @@ export function ListeningTrainingPage() {
   const stepAction = (target: ListeningStage) => getListeningStepAction(exercise.stage, target, trainingReady, !!mediaURL, attempts)
   const unavailableHint = questions.length === 0
     ? '这篇素材暂未配置理解题，目前可逐句精听。'
-    : '音频或逐句时间轴待补充，暂无法复测。'
+    : '完整训练所需的素材待补充，暂无法复测。'
   const stepHint = completed ? ''
     : !trainingReady ? unavailableHint
     : baselineNeeded ? '理解题已补充，完成首次作答后即可复测。'
@@ -295,7 +335,7 @@ export function ListeningTrainingPage() {
   }
 
   return <div className={styles.page}>
-    <div className={styles.practiceNav}><Link to="/listening">返回听力库</Link><span className={styles.muted} role="status">{saveStatus === 'saving' ? '正在保存…' : saveStatus === 'failed' ? '保存失败' : '进度已保存'}</span></div>
+    <div className={styles.practiceNav}><Link to={backPath}>返回听力库</Link><span className={styles.muted} role="status">{saveStatus === 'saving' ? '正在保存…' : saveStatus === 'failed' ? '保存失败' : '进度已保存'}</span></div>
     <header className={styles.header}><div><p className={styles.eyebrow}>🎧 教材精听</p><h1 lang="ja">{lesson.title}</h1></div><Badge level={lesson.jlpt_level} /></header>
     <nav className={styles.stepNav} aria-label="训练步骤" aria-describedby={stepHint ? 'listening-step-hint' : undefined}>
       <ol className={styles.steps}>{stages.map((item, index) => <li key={item}>
@@ -380,7 +420,7 @@ export function ListeningTrainingPage() {
       {!trainingReady && <p className={styles.muted}>{unavailableHint}</p>}
       <div className={styles.actions}>{baselineNeeded ? <Button loading={busy} onClick={() => selectStep('blind')}>补做首次理解题</Button>
         : stepAction('retest') !== 'locked' ? <Button loading={busy} onClick={() => selectStep('retest')}>{retest ? '查看复测答案' : review ? '返回复测' : '关掉文本，开始复测'}</Button>
-        : <Button loading={busy} variant="secondary" onClick={() => { void persist().then(() => navigate('/listening')).catch(() => undefined) }}>保存精听进度，返回素材库</Button>}</div>
+        : <Button loading={busy} variant="secondary" onClick={() => { void persist().then(() => navigate(backPath)).catch(() => undefined) }}>保存精听进度，返回素材库</Button>}</div>
     </section>}
 
     {stage === 'completed' && <section className={styles.resultPanel}>
@@ -390,8 +430,12 @@ export function ListeningTrainingPage() {
       {completed && <p>下次复习：<strong>{formatDueDate(session.progress.due_at)}</strong>。复习时会重新盲听，再检查是否真正听懂。</p>}
       <p className={styles.muted}>本训练允许重听；首次结果指第一次作答。复测使用同一材料与题目，结果反映本篇掌握情况。{blind?.assisted || retest?.assisted ? '本轮使用过慢放辅助。' : ''}</p>
       {retest && <ListeningQuestions questions={questions} answers={{}} result={retest} onAnswer={() => undefined} />}
+      {completed && nextStatus === 'empty' && <p className={styles.muted} role="status">当前范围暂无可开始的未练习素材。</p>}
+      {completed && nextStatus === 'error' && <p className={styles.error} role="alert">暂时无法加载下一篇，请重试。</p>}
       <div className={styles.actions}>{completed ? <>
-        <Button loading={busy} onClick={() => { void restart() }}>再练一轮</Button><Link className={styles.secondaryButton} to="/listening">选择下一篇</Link>
+        <Button variant="secondary" loading={busy} disabled={nextStatus === 'loading'} onClick={() => { void restart() }}>再练一轮</Button>
+        {nextStatus === 'empty' ? <Link className={styles.secondaryButton} to={backPath}>返回听力库</Link>
+          : <Button disabled={busy} loading={nextStatus === 'loading'} onClick={() => { void openNextMaterial() }}>{nextStatus === 'error' ? '重试加载下一篇' : '下一篇未练习'}</Button>}
       </> : <Button loading={busy} onClick={() => { void finish() }}>完成训练，安排复习</Button>}</div>
     </section>}
     <footer className={styles.practiceFooter}><Link to={`/lesson/${lesson.id}`}>📚 查看课文</Link>{lesson.shadowing_enabled && <Link to={`/lesson/${lesson.id}/shadowing`}>🎙️ 进入跟读练习</Link>}<span className={styles.muted}>听力训练与口语评分分别记录</span></footer>

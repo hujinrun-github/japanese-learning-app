@@ -1,6 +1,7 @@
 package word
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -30,10 +31,15 @@ type DailyGoalProvider interface {
 
 // WordHandler handles HTTP requests for the word module.
 type WordHandler struct {
-	svc       *WordService
-	noteSvc   NoteDigestProvider
-	dailyGoal DailyGoalProvider
-	streak    user.StreakRecorder
+	svc           *WordService
+	noteSvc       NoteDigestProvider
+	dailyGoal     DailyGoalProvider
+	streak        user.StreakRecorder
+	reviewCheckIn func(context.Context, int64) error
+}
+
+func (h *WordHandler) SetReviewCheckIn(checkIn func(context.Context, int64) error) {
+	h.reviewCheckIn = checkIn
 }
 
 // NewWordHandler creates a WordHandler.
@@ -193,6 +199,11 @@ func (h *WordHandler) handleSubmitRating(w http.ResponseWriter, r *http.Request)
 	}
 
 	user.RecordStudyDayBestEffort(h.streak, userID)
+	if h.reviewCheckIn != nil {
+		if err := h.reviewCheckIn(r.Context(), userID); err != nil {
+			slog.Error("word review check-in failed", "err", err, "user_id", userID)
+		}
+	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: map[string]string{"status": "ok"}})
 }

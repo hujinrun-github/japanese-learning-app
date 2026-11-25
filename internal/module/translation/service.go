@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"japanese-learning-app/internal/module/word"
 )
 
 type StudyPlanTarget func(planJSON string, now time.Time) (goal int, location *time.Location, err error)
@@ -20,7 +22,7 @@ type StoreInterface interface {
 	ListSentencesBySource(sourceID int64) ([]TranslationSentence, error)
 	GetSentenceByID(id int64) (*TranslationSentence, error)
 	GetDailyProgress(ctx context.Context, userID int64, resolveTarget StudyPlanTarget) (DailyProgress, error)
-	ListUnpracticedSentences(userID, sourceID int64, limit int) ([]TranslationSentence, error)
+	ListUnpracticedSentences(ctx context.Context, userID, sourceID int64, limit int, levels []string) ([]TranslationSentence, error)
 	SaveRecord(r TranslationRecord) (int64, error)
 	GetRecord(id int64) (*TranslationRecord, error)
 	ListRecords(userID int64) ([]TranslationRecord, error)
@@ -80,25 +82,25 @@ func (s *TranslationService) GetDailyProgress(ctx context.Context, userID int64)
 
 // GetDailyQueue uses the remaining daily target when no count is requested.
 func (s *TranslationService) GetDailyQueue(ctx context.Context, userID int64, count int) ([]TranslationSentence, error) {
+	progress, err := s.GetDailyProgress(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("resolve translation queue scope: %w", err)
+	}
 	if count == 0 {
-		progress, err := s.GetDailyProgress(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("resolve translation queue size: %w", err)
-		}
 		count = progress.Goal - progress.Completed
 		if count <= 0 {
 			return []TranslationSentence{}, nil
 		}
 	}
-	slog.Debug("loading translation queue", "user_id", userID, "count", count)
-	return s.store.ListUnpracticedSentences(userID, 0, count)
+	slog.DebugContext(ctx, "loading translation queue", "user_id", userID, "count", count, "levels", progress.Levels)
+	return s.store.ListUnpracticedSentences(ctx, userID, 0, count, progress.Levels)
 }
 
 // GetFreeSentences returns a source's sentences for practice or review.
-func (s *TranslationService) GetFreeSentences(userID int64, direction string, sourceID int64, unpracticed bool) ([]TranslationSentence, error) {
+func (s *TranslationService) GetFreeSentences(ctx context.Context, userID int64, direction string, sourceID int64, unpracticed bool) ([]TranslationSentence, error) {
 	if sourceID > 0 {
 		if unpracticed {
-			return s.store.ListUnpracticedSentences(userID, sourceID, 0)
+			return s.store.ListUnpracticedSentences(ctx, userID, sourceID, 0, nil)
 		}
 		return s.store.ListSentencesBySource(sourceID)
 	}
@@ -144,6 +146,7 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 	rec := TranslationRecord{
 		UserID:               userID,
 		SentenceID:           sentenceID,
+		Direction:            sent.Direction,
 		UserTranslation:      userTranslation,
 		ReferenceTranslation: strings.TrimSpace(sent.ReferenceTranslation),
 		RuleScore:            ruleScore,
@@ -185,6 +188,7 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 	}
 
 	rec.ID = recID
+	annotateReference(&rec)
 	slog.Debug("TranslationService.SubmitTranslation done", "record_id", recID, "rule_score", ruleScore)
 	return rec, nil
 }
@@ -197,6 +201,7 @@ func (s *TranslationService) GetResult(recordID int64) (*TranslationRecord, erro
 	}
 	if rec != nil {
 		resolveRecordReference(rec)
+		annotateReference(rec)
 	}
 	return rec, nil
 }
@@ -217,6 +222,12 @@ func resolveRecordReference(rec *TranslationRecord) {
 	rec.ReferenceTranslation = strings.TrimSpace(rec.ReferenceTranslation)
 	if rec.ReferenceTranslation == "" && rec.AIFeedback != nil {
 		rec.ReferenceTranslation = strings.TrimSpace(rec.AIFeedback.ReferenceTranslation)
+	}
+}
+
+func annotateReference(rec *TranslationRecord) {
+	if rec.Direction == string(DirectionCN2JP) {
+		rec.ReferenceTokens = word.FuriganaTokens(rec.ReferenceTranslation)
 	}
 }
 

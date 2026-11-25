@@ -113,8 +113,12 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	wordH := word.NewWordHandlerWithNotes(wordSvc, &wordNoteProvider{svc: noteSvc})
 	wordH.SetDailyGoalProvider(&wordGoalProvider{store: runtime.App.Users})
 	wordH.SetStreakRecorder(userSvc)
+	studyPlanH := studyplan.NewHandler(db)
+	studyPlanH.SetWordReviewTimezone(cfg.AppTimezone)
+	wordH.SetReviewCheckIn(studyPlanH.ReconcilePracticeGoals)
 	grammarH := grammar.NewGrammarHandlerWithNotes(grammarSvc, &grammarNoteProvider{svc: noteSvc})
 	grammarH.SetStreakRecorder(userSvc)
+	grammarH.SetQuizCheckIn(studyPlanH.ReconcilePracticeGoals)
 	lessonH := lesson.NewLessonHandler(lessonSvc)
 	listeningH := listening.NewHandler(pgdata.NewListeningStore(db, func(ctx context.Context, tx *sql.Tx, uid int64, now time.Time) error {
 		return studyplan.CompleteListeningTask(ctx, tx, uid, now)
@@ -153,7 +157,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	userH.RegisterPublicRoutes(mux)
 
 	protectedMux := http.NewServeMux()
-	studyplan.NewHandler(db).RegisterRoutes(protectedMux, mux)
+	studyPlanH.RegisterRoutes(protectedMux, mux)
 	flowspace.NewHandler(flowspaceService).RegisterRoutes(protectedMux)
 	userH.RegisterProtectedRoutes(protectedMux)
 	wordH.RegisterRoutes(protectedMux)

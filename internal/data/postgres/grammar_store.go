@@ -411,7 +411,7 @@ func (s *GrammarStore) scanGrammarPoints(ctx context.Context, rows *sql.Rows) ([
 func (s *GrammarStore) loadExamplesByGrammarPointID(ctx context.Context, grammarPointID int64) ([]grammar.GrammarExample, error) {
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT japanese, chinese, furigana_html, COALESCE(array_to_json(linked_word_ids)::text, '[]')
+		`SELECT id, japanese, chinese, furigana_html, COALESCE(array_to_json(linked_word_ids)::text, '[]')
 		 FROM grammar_examples
 		 WHERE grammar_point_id = $1
 		 ORDER BY position`,
@@ -426,7 +426,7 @@ func (s *GrammarStore) loadExamplesByGrammarPointID(ctx context.Context, grammar
 	for rows.Next() {
 		var example grammar.GrammarExample
 		var linkedWordIDsJSON string
-		if err := rows.Scan(&example.Japanese, &example.Chinese, &example.FuriganaHTML, &linkedWordIDsJSON); err != nil {
+		if err := rows.Scan(&example.ID, &example.Japanese, &example.Chinese, &example.FuriganaHTML, &linkedWordIDsJSON); err != nil {
 			return nil, fmt.Errorf("postgres.GrammarStore.loadExamplesByGrammarPointID scan: %w", translateError(err))
 		}
 		if err := json.Unmarshal([]byte(linkedWordIDsJSON), &example.LinkedWords); err != nil {
@@ -439,6 +439,37 @@ func (s *GrammarStore) loadExamplesByGrammarPointID(ctx context.Context, grammar
 	}
 
 	return examples, nil
+}
+
+// CountGrammarPracticeByLevel counts each point once in the supplied day.
+// Both the learning statistics and the scheduled task use real quiz attempts.
+func CountGrammarPracticeByLevel(ctx context.Context, db queryer, uid int64, start, end time.Time) (map[string]int, error) {
+	rows, err := db.QueryContext(ctx, `SELECT p.jlpt_level, COUNT(*)
+		FROM grammar_records r JOIN grammar_points p ON p.id=r.grammar_point_id
+		WHERE r.user_id=$1 AND EXISTS (
+			SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(r.quiz_history_json)='array'
+				THEN r.quiz_history_json ELSE '[]'::jsonb END) AS ev
+			WHERE NULLIF(ev->>'attempted_at', '')::timestamptz >= $2
+			  AND NULLIF(ev->>'attempted_at', '')::timestamptz < $3
+		) GROUP BY p.jlpt_level`, uid, start.UTC(), end.UTC())
+	if err != nil {
+		return nil, fmt.Errorf("read grammar practice counts: %w", translateError(err))
+	}
+	defer rows.Close()
+	counts := make(map[string]int)
+	for rows.Next() {
+		var level string
+		var count int
+		if err := rows.Scan(&level, &count); err != nil {
+			return nil, fmt.Errorf("scan grammar practice count: %w", translateError(err))
+		}
+		counts[level] = count
+		counts["all"] += count
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate grammar practice counts: %w", translateError(err))
+	}
+	return counts, nil
 }
 
 func (s *GrammarStore) loadQuizQuestionsByGrammarPointID(ctx context.Context, grammarPointID int64) ([]grammar.QuizQuestion, error) {

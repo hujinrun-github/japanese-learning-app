@@ -7,6 +7,8 @@ export interface StudyTask {
   path: string
   minutes: number
   weekdays?: number[]
+  practice_target?: number
+  review_target?: number
 }
 
 export interface StudyTimeSlot {
@@ -41,7 +43,22 @@ export interface StudyPlanResult {
 }
 
 export interface TodayStudySlot extends Omit<StudyTimeSlot, 'tasks'> {
-  tasks: (StudyTask & { completed: boolean })[]
+  tasks: TodayStudyTask[]
+}
+
+export interface TodayStudyTask extends StudyTask {
+  completed: boolean
+  completion_reason?: string
+  progress?: StudyPracticeProgress
+  word_review?: Omit<StudyPracticeProgress, 'kind'>
+}
+
+export interface StudyPracticeProgress {
+  kind: 'word_review' | 'grammar'
+  target: number
+  completed: number
+  level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1' | 'all'
+  due_remaining: number
 }
 
 export interface TodayStudyPlan {
@@ -53,6 +70,7 @@ export interface TodayStudyPlan {
   reason: 'no_plan' | 'legacy' | 'before_start' | 'ended' | 'rest_day' | 'study_day'
   total_minutes: number
   slots: TodayStudySlot[]
+  legacy_grammar?: StudyPracticeProgress
 }
 
 export function getTodayStudyPlan(signal?: AbortSignal) {

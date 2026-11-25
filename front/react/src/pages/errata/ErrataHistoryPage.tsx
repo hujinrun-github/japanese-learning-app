@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/Spinner'
 import dialogStyles from '@/components/ui/ErrataButton.module.css'
+import { errataSourcePath } from './errataSource'
 import {
   allowsLabelEdit,
   buildEditPayload,
@@ -109,6 +110,7 @@ export function ErrataReportCard({ report, onChanged }: { report: ErrataReport; 
   const { t, i18n } = useTranslation()
   const [mode, setMode] = useState<CardMode>('idle')
   const dateFormat = new Intl.DateTimeFormat(i18n.resolvedLanguage, { dateStyle: 'medium', timeStyle: 'short' })
+  const sourcePath = errataSourcePath(report)
 
   return (
     <li className={styles.card}>
@@ -123,16 +125,24 @@ export function ErrataReportCard({ report, onChanged }: { report: ErrataReport; 
           <span>{t('errata.history.reportNumber', { id: report.id })}</span>
           <time dateTime={report.created_at}>{dateFormat.format(new Date(report.created_at))}</time>
         </div>
-        {canEdit(report) ? (
-          <div className={styles.actions}>
-            <Button variant="ghost" size="sm" onClick={() => setMode('edit')}>✏️ {t('errata.history.edit')}</Button>
-            {canDelete(report) && (
-              <Button variant="ghost" size="sm" onClick={() => setMode('delete')}>🗑️ {t('errata.history.delete')}</Button>
-            )}
-          </div>
-        ) : (
-          <p className={styles.locked}>{t('errata.history.lockedHint')}</p>
-        )}
+        <div className={styles.actions}>
+          {sourcePath && (
+            <a className={styles.sourceLink} href={sourcePath} target="_blank" rel="noopener noreferrer"
+              aria-label={`${t('errata.history.backToItem')} · ${report.item_label}`}>
+              ↩ {t('errata.history.backToItem')}
+            </a>
+          )}
+          {canEdit(report) ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setMode('edit')}>✏️ {t('errata.history.edit')}</Button>
+              {canDelete(report) && (
+                <Button variant="ghost" size="sm" onClick={() => setMode('delete')}>🗑️ {t('errata.history.delete')}</Button>
+              )}
+            </>
+          ) : (
+            <p className={styles.locked}>{t('errata.history.lockedHint')}</p>
+          )}
+        </div>
       </footer>
 
       {mode === 'edit' && (

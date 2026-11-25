@@ -49,14 +49,18 @@ func (s *ListeningStore) ListMaterials(ctx context.Context, uid int64, level, st
 	 COALESCE(NULLIF(l.shadowing_config_json->>'audio_url',''),CASE WHEN COALESCE(l.shadowing_config_json->>'media_type','audio')<>'video' THEN NULLIF(l.shadowing_config_json->>'media_url','') END,CASE WHEN ao.id IS NOT NULL THEN '/api/v1/audio/'||ao.id::text||'/stream' ELSE '' END),
 	 COALESCE(NULLIF(l.shadowing_config_json->>'video_url',''),CASE WHEN l.shadowing_config_json->>'media_type'='video' THEN NULLIF(l.shadowing_config_json->>'media_url','') END,CASE WHEN vo.id IS NOT NULL THEN '/api/v1/videos/'||vo.id::text||'/stream' ELSE '' END),
 	 CASE WHEN l.shadowing_config_json->>'audio_source' IN ('synthetic','human','unknown') THEN l.shadowing_config_json->>'audio_source' WHEN ao.metadata_json ? 'tts_provider' OR ao.metadata_json ? 'voice' THEN 'synthetic' ELSE 'unknown' END,
-	 COALESCE(ss.duration_ms,0),ss.sentence_count,COALESCE(ss.valid,false),qq.question_count,
+	 COALESCE(ss.duration_ms,0),ss.sentence_count,COALESCE(ss.valid,false) AND qq.evidence_valid,qq.question_count,
 	 p.user_id IS NOT NULL,COALESCE(p.stage,'blind'),COALESCE(p.sentence_index,0),COALESCE(p.position_ms,0),COALESCE(p.bookmarks_json,'[]'::jsonb)::text,
 	 COALESCE(p.cycle,1),COALESCE(p.review_step,0),COALESCE(p.completed_count,0),p.due_at
 	 FROM lessons l
 	 LEFT JOIN audio_objects ao ON ao.id=l.audio_object_id AND ao.deleted_at IS NULL AND ao.visibility='public'
 	 LEFT JOIN video_objects vo ON vo.id=l.video_object_id AND vo.deleted_at IS NULL AND vo.visibility='public'
 	 CROSS JOIN LATERAL(SELECT COUNT(*) AS sentence_count,MAX(end_ms) AS duration_ms,BOOL_AND(end_ms>start_ms AND start_ms>=COALESCE(previous_end,0) AND jsonb_array_length(tokens)>0) AS valid FROM (SELECT start_ms,end_ms,tokens,LAG(end_ms) OVER(ORDER BY position) AS previous_end FROM lesson_sentences WHERE lesson_id=l.id) segments) ss
-	 CROSS JOIN LATERAL(SELECT COUNT(*) AS question_count FROM listening_questions WHERE lesson_id=l.id AND published) qq
+	 CROSS JOIN LATERAL(
+	   SELECT COUNT(*) AS question_count,COALESCE(BOOL_AND(e.position IS NOT NULL),false) AS evidence_valid
+	   FROM listening_questions q LEFT JOIN lesson_sentences e ON e.lesson_id=q.lesson_id AND e.position=q.evidence_sentence_index
+	   WHERE q.lesson_id=l.id AND q.published
+	 ) qq
 	 LEFT JOIN listening_progress p ON p.lesson_id=l.id AND p.user_id=$1
 	 WHERE ($2='' OR l.jlpt_level=$2) AND ss.sentence_count>0
 	 ORDER BY l.id`, uid, level)

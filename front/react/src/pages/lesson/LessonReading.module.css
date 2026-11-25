@@ -114,6 +114,11 @@
   border-top: 1px solid var(--reading-border);
 }
 
+.pair:is(:target, :focus) {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
 /* Article paragraphs: vertical mode already starts a fresh column per <p>.
    Parallel mode keeps the sentence-by-sentence translation alignment and only
    marks the paragraph boundary with a heavier rule. */

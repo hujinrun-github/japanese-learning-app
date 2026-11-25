@@ -1,12 +1,15 @@
 package errata
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // 勘误的「题目类型」由两个维度共同决定：module 决定定位键 item_key 的形态，
 // category（问题类别）决定用户能改哪些字段、以及能否自行撤回报告。
 
 // validItemKeyForModule 按练习模块校验定位键。各模块的题目定位方式不同：
-// word/writing 用练习模式，grammar 用测验题，lesson/shadowing 用句子，
+// word/grammar 用例句，word/writing 用练习模式，grammar 也可用测验题，lesson/shadowing 用句子，
 // speaking/translation 只有材料或句子编号。
 func validItemKeyForModule(module, key string) bool {
 	if !validItemKey(key) {
@@ -17,6 +20,9 @@ func validItemKeyForModule(module, key string) bool {
 		if part == "" {
 			return false
 		}
+	}
+	if (module == "word" || module == "grammar") && len(parts) == 3 && parts[1] == "example" {
+		return positiveDecimalID(parts[0]) && positiveDecimalID(parts[2])
 	}
 	switch module {
 	case "word":
@@ -49,6 +55,11 @@ func validItemKeyForModule(module, key string) bool {
 	default:
 		return false
 	}
+}
+
+func positiveDecimalID(s string) bool {
+	id, err := strconv.ParseInt(s, 10, 64)
+	return err == nil && id > 0 && strconv.FormatInt(id, 10) == s
 }
 
 // editableFields 返回该问题类别是否允许修改题面摘要与定位键。

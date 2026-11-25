@@ -1,6 +1,8 @@
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/Badge'
+import { ErrataButton } from '@/components/ui/ErrataButton'
+import { useSourceAnchor } from '@/hooks/useSourceAnchor'
 import type { Word } from '@/types/api'
 import { speakExample, speakWord } from '@/util/exampleAudio'
 import { DictionaryButton } from './ContextualSearch'
@@ -10,8 +12,10 @@ import styles from './SearchPage.module.css'
 export default function WordEntryPage() {
   const { t } = useTranslation()
   const { id } = useParams()
-  const { search } = useLocation()
+  const { search, hash } = useLocation()
   const { result, retry } = useLookup<Word>(`/api/v1/words/${encodeURIComponent(id ?? '')}`)
+  const anchor = /^#(?:examples|example-[1-9]\d*)$/.test(hash) ? hash.slice(1) : null
+  useSourceAnchor(anchor, result.status === 'ready' && result.data.id === Number(id), 'examples')
 
   return (
     <div className={styles.page}>
@@ -47,15 +51,25 @@ export function WordEntry({ word, contextualLookup = true }: { word: Word; conte
       {traits.length > 0 && <p className={styles.partOfSpeech}>{traits.join(' · ')}</p>}
       <p className={styles.definition}>{word.meaning}</p>
       {word.examples?.length > 0 && (
-        <section className={styles.examples}>
+        <section className={styles.examples} id={contextualLookup ? 'examples' : undefined} tabIndex={contextualLookup ? -1 : undefined}>
           <h2>{t('search.examples')}</h2>
           <ol>
             {word.examples.map((example, index) => (
-              <li key={index}>
+              <li key={example.id ?? index}
+                id={contextualLookup && example.id ? `example-${example.id}` : undefined}
+                tabIndex={contextualLookup && example.id ? -1 : undefined}>
                 <div>
-                  <p lang="ja" data-dictionary-text={contextualLookup ? '' : undefined}>{example.japanese}</p>
+                  {example.furigana_html ? (
+                    <p lang="ja" data-dictionary-text={contextualLookup ? '' : undefined}
+                      dangerouslySetInnerHTML={{ __html: example.furigana_html }} />
+                  ) : (
+                    <p lang="ja" data-dictionary-text={contextualLookup ? '' : undefined}>{example.japanese}</p>
+                  )}
                   <p>{example.chinese}</p>
                   {contextualLookup && <DictionaryButton text={example.japanese} />}
+                  {contextualLookup && example.id && (
+                    <ErrataButton module="word" itemKey={`${word.id}:example:${example.id}`} label={example.japanese} />
+                  )}
                 </div>
                 <button type="button" className={styles.audio} aria-label={`${t('search.playExample')} ${index + 1}`}
                   onClick={() => void speakExample(example.japanese)}>🔊</button>

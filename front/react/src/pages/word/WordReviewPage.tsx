@@ -1,7 +1,8 @@
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
+import { useTodayStudyPlan } from '@/components/studyplan/useTodayStudyPlan'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
@@ -17,6 +18,7 @@ import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { createMistake } from '@/api/mistakes'
 import { buildWordReadingMistake, buildWordDictationMistake } from '@/pages/mistakes/mistakeInput'
 import { wordReviewTargetID } from './wordReviewTarget'
+import { findPracticeTask } from '@/pages/studyplan/practiceTask'
 import styles from './WordReviewPage.module.css'
 
 const LEVELS: JLPTLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
@@ -33,7 +35,10 @@ const READING_TYPE_LABELS: Record<string, string> = {
 type ReviewMode = 'recognition' | 'dictation'
 type ReviewCard = Omit<WordCard, 'record'> & { record?: WordCard['record'] }
 
-export function WordAnswerReading({ word }: { word: Pick<Word, 'reading' | 'reading_type' | 'verb_type'> }) {
+export function WordAnswerReading({ word }: { word: Pick<Word, 'reading' | 'reading_type' | 'part_of_speech' | 'verb_type'> }) {
+  const partOfSpeech = word.part_of_speech?.trim()
+  const verbType = word.verb_type?.trim()
+
   return (
     <div className={styles.readingRow}>
       {word.reading_type && (
@@ -45,7 +50,8 @@ export function WordAnswerReading({ word }: { word: Pick<Word, 'reading' | 'read
         </span>
       )}
       <div className={styles.reading}>{word.reading}</div>
-      {word.verb_type && <span className={styles.verbType}>{word.verb_type}</span>}
+      {partOfSpeech && partOfSpeech !== verbType && <span className={styles.partOfSpeech}>{partOfSpeech}</span>}
+      {verbType && <span className={styles.verbType}>{verbType}</span>}
     </div>
   )
 }
@@ -79,7 +85,8 @@ export function WordRatingActions({ onRate, disabled }: {
 
 export function WordReviewPage() {
   const { t } = useTranslation()
-  const { progress, refreshProgress } = useDailyPracticeProgress('word')
+  const { progress, refreshProgress: refreshStats } = useDailyPracticeProgress('word')
+  const reviewPlan = useTodayStudyPlan()
   const [searchParams, setSearchParams] = useSearchParams()
   const mode: ReviewMode = searchParams.get('mode') === 'dictation' ? 'dictation' : 'recognition'
   const targetWord = searchParams.get('word_id')
@@ -101,6 +108,18 @@ export function WordReviewPage() {
   const level = targetWord !== null ? queue[0]?.word.jlpt_level ?? requestedLevel : requestedLevel
   const allLevels = targetWord === null && queueScope === 'review' && searchParams.get('level') === 'all'
   const queueLevel = targetWord === null ? allLevels ? 'all' : level : null
+  const planned = queueScope === 'review' && targetWord === null
+    ? findPracticeTask(reviewPlan.plan, 'word_review', queueLevel, searchParams)
+    : undefined
+  const plannedLevel = planned?.progress.level
+  const inPlannedScope = plannedLevel === queueLevel
+  const plannedRemaining = planned ? Math.max(0, planned.progress.target - planned.progress.completed) : 0
+  const plannedWithoutDue = !reviewPlan.loading && !reviewPlan.error && planned?.progress.due_remaining === 0
+
+  function refreshProgress() {
+    refreshStats()
+    reviewPlan.reload()
+  }
 
   const done = queue.length === 0 || currentIndex >= queue.length
   const card = done ? null : queue[currentIndex]
@@ -323,7 +342,21 @@ export function WordReviewPage() {
           </button>
         )}
       </div>
-      <DailyPracticeProgress progress={progress} />
+      {planned ? (
+        <div className={styles.plannedProgress} role="status">
+          <strong>{t('word.queue.planProgress', {
+            scope: planned.progress.level === 'all' ? t('word.queue.allLevels') : planned.progress.level,
+            completed: planned.progress.completed, target: planned.progress.target,
+          })}</strong>
+          <span>{planned.task.completion_reason === 'word_review_goal' ? t('word.queue.planAutoDone')
+            : planned.task.completed ? t('word.queue.planManualDone')
+            : t('word.queue.planRemaining', { count: plannedRemaining })}</span>
+          <Link to="/study-plan">{t('word.queue.planDetails')}</Link>
+        </div>
+      ) : (
+        <DailyPracticeProgress progress={searchParams.has('plan_task') && (reviewPlan.loading || reviewPlan.error)
+          ? { status: reviewPlan.loading ? 'loading' : 'error' } : progress} />
+      )}
 
       <div className={styles.modeSwitch} role="group" aria-label={t('word.queue.scope.label')}>
         {(['review', 'new'] as const).map(scope => (
@@ -390,14 +423,22 @@ export function WordReviewPage() {
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '40px' }}><Spinner size="lg" /></div>
       ) : done ? (
         !error && <EmptyState
-          icon="🎉"
+          icon={planned && !planned.task.completed ? '📌' : '🎉'}
           title={t(targetWord !== null ? 'word.queue.targetDone' : queue.length > 0 ? 'word.queue.roundDone' : queueScope === 'new' ? 'word.queue.noNew' : 'word.queue.noDue')}
-          description={t(targetWord !== null ? 'word.queue.targetDoneDesc' : queue.length > 0 ? 'word.queue.roundDoneDesc' : queueScope === 'new' ? 'word.queue.noNewDesc' : 'word.queue.noDueDesc')}
-          action={targetWord === null && queue.length > 0 && (
+          description={planned && !planned.task.completed && !reviewPlan.loading
+            ? t(plannedWithoutDue ? 'word.queue.planNoDue' : 'word.queue.planRoundRemaining', { count: plannedRemaining })
+            : t(targetWord !== null ? 'word.queue.targetDoneDesc' : queue.length > 0 ? 'word.queue.roundDoneDesc' : queueScope === 'new' ? 'word.queue.noNewDesc' : 'word.queue.noDueDesc')}
+          action={planned && !planned.task.completed && plannedWithoutDue ? (
+            <Link className={styles.returnToQueue} to="/study-plan">{t('word.queue.planDetails')}</Link>
+          ) : planned && !planned.task.completed && plannedLevel && !inPlannedScope ? (
+            <button className={styles.returnToQueue} onClick={() => returnToQueue(plannedLevel)}>{t('word.queue.planSwitchScope')}</button>
+          ) : targetWord === null && queue.length > 0 ? (
             <button className={styles.returnToQueue} onClick={() => setRound(value => value + 1)}>
               {t(queueScope === 'new' ? 'word.queue.continueNew' : 'word.queue.continueReview')}
             </button>
-          )}
+          ) : planned && !planned.task.completed ? (
+            <Link className={styles.returnToQueue} to="/study-plan">{t('word.queue.planDetails')}</Link>
+          ) : undefined}
         />
       ) : (
         <>
@@ -597,7 +638,7 @@ export function WordReviewPage() {
                   <>
                     <div className={styles.examplesTitle}>{t('word.queue.examples')}</div>
                     {card!.word.examples.slice(0, 2).map((example, index) => (
-                      <div key={index} className={styles.example}>
+                      <div key={example.id ?? index} className={styles.example}>
                         <div className={styles.exampleJaRow}>
                           {example.furigana_html ? (
                             <span
@@ -620,6 +661,9 @@ export function WordReviewPage() {
                           >
                             🔊
                           </button>
+                          {example.id && (
+                            <ErrataButton module="word" itemKey={`${card!.word.id}:example:${example.id}`} label={example.japanese} />
+                          )}
                         </div>
                         <div className={styles.exampleZh}>{example.chinese}</div>
                       </div>

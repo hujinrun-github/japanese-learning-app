@@ -95,12 +95,12 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	stats := &user.UserStats{ModuleStats: make(map[string]user.ModuleStat)}
 
 	var streakDays int
-	var dailyGoalsJSON string
+	var dailyGoalsJSON, profileLevels string
 	err := s.db.QueryRowContext(
 		context.Background(),
-		`SELECT streak_days, daily_goals_json::text FROM users WHERE id = $1`,
+		`SELECT streak_days, daily_goals_json::text, to_json(jlpt_levels)::text FROM users WHERE id = $1`,
 		userID,
-	).Scan(&streakDays, &dailyGoalsJSON)
+	).Scan(&streakDays, &dailyGoalsJSON, &profileLevels)
 	if err != nil {
 		return nil, fmt.Errorf("postgres.UserStore.GetStats user: %w", translateError(err))
 	}
@@ -174,21 +174,7 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Mirrors the word counter: count real quiz attempts for today instead of
-	// trusting updated_at, which also moves on plain status changes.
-	grammarToday, err := s.countRows(
-		`SELECT COUNT(DISTINCT r.id)
-		   FROM grammar_records r
-		   CROSS JOIN LATERAL jsonb_array_elements(
-		       CASE WHEN jsonb_typeof(r.quiz_history_json) = 'array'
-		            THEN r.quiz_history_json ELSE '[]'::jsonb END
-		   ) AS ev
-		  WHERE r.user_id = $1
-		    AND NULLIF(ev->>'attempted_at', '') IS NOT NULL
-		    AND (ev->>'attempted_at')::timestamptz >= $2
-		    AND (ev->>'attempted_at')::timestamptz < $3`,
-		userID, start.UTC(), end.UTC(),
-	)
+	grammarToday, err := CountGrammarPracticeByLevel(context.Background(), s.db, userID, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +182,7 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 		DueCount:       grammarDue,
 		MasteredCount:  grammarMastered,
 		TotalCount:     grammarTotal,
-		TodayCompleted: grammarToday,
+		TodayCompleted: grammarToday["all"],
 		DailyGoal:      goals["grammar"],
 	}
 
@@ -265,7 +251,7 @@ func (s *UserStore) GetStats(userID int64) (*user.UserStats, error) {
 	if err != nil {
 		return nil, err
 	}
-	translationToday, err := countTranslationsToday(context.Background(), s.db, userID, now)
+	translationToday, err := countTranslationsToday(context.Background(), s.db, userID, now, translationLevelScope(profileLevels))
 	if err != nil {
 		return nil, err
 	}

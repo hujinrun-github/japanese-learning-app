@@ -227,27 +227,44 @@ func TestListeningMaterialReadinessAndValidation(t *testing.T) {
 	}
 }
 
-func TestListeningCatalogRejectsOverlappingTimestamps(t *testing.T) {
+func TestListeningCatalogMatchesSessionReadiness(t *testing.T) {
 	t.Setenv("REQUIRE_TEST_DATABASE", "1")
 	db := newMigratedPostgresTestDB(t)
-	id := listeningFixture(t, db, "Overlapping timeline")
-	if _, err := db.Exec(`INSERT INTO lesson_sentences(lesson_id,position,tokens,chinese,start_ms,end_ms) VALUES($1,1,'[{"surface":"次の文。"}]','下一句。',1000,3000)`, id); err != nil {
-		t.Fatal(err)
-	}
 	s := NewListeningStore(db)
-	session, err := s.GetSession(context.Background(), 1, id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if session.TrainingReady {
-		t.Fatal("overlapping session is ready")
-	}
-	catalog, err := s.ListMaterials(context.Background(), 1, "N2", "all")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(catalog.Materials) != 1 || catalog.Materials[0].TrainingReady {
-		t.Fatalf("catalog readiness disagrees with session: %+v", catalog)
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name, mutation string
+		ready          bool
+	}{
+		{"valid evidence and timestamps", "", true},
+		{"overlapping timeline", `INSERT INTO lesson_sentences(lesson_id,position,tokens,chinese,start_ms,end_ms) VALUES($1,1,'[{"surface":"次の文。"}]','下一句。',1000,3000)`, false},
+		{"missing evidence sentence", `UPDATE listening_questions SET evidence_sentence_index=99 WHERE lesson_id=$1`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			id := listeningFixture(t, db, tc.name)
+			if tc.mutation != "" {
+				if _, err := db.Exec(tc.mutation, id); err != nil {
+					t.Fatal(err)
+				}
+			}
+			session, err := s.GetSession(ctx, 1, id)
+			if err != nil || session.TrainingReady != tc.ready {
+				t.Fatalf("session readiness = %t, want %t, err = %v", session.TrainingReady, tc.ready, err)
+			}
+			catalog, err := s.ListMaterials(ctx, 1, "N2", "new")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, item := range catalog.Materials {
+				if item.ID == id {
+					if item.TrainingReady != session.TrainingReady {
+						t.Fatalf("catalog readiness = %t, session readiness = %t", item.TrainingReady, session.TrainingReady)
+					}
+					return
+				}
+			}
+			t.Fatalf("missing material %d", id)
+		})
 	}
 }
 

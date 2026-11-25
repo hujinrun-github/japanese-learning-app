@@ -18,9 +18,14 @@
 .check { padding: 2px 0; cursor: pointer; flex-shrink: 0; }
 .check input { width: 20px; height: 20px; margin: 0; accent-color: #2563eb; cursor: pointer; }
 .check input:disabled { cursor: wait; }
+.automatic { cursor: default; }
+.automatic input:checked:disabled { appearance: none; display: grid; place-items: center; border: 1px solid #047857; border-radius: 5px; background: #047857; cursor: default; opacity: 1; }
+.automatic input:checked::after { content: ''; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
 .task { min-width: 0; flex: 1; }
 .task strong { font-size: 14px; font-weight: 600; color: #1e293b; }
 .task p { font-size: 13px; color: #64748b; line-height: 1.7; margin: 6px 0; overflow-wrap: anywhere; }
+.task .wordProgress { font-weight: 600; color: #334155; }
+.done .task .wordProgress { color: #047857; }
 .done .task strong { color: #047857; }
 .note, .message { font-size: 13px; color: #64748b; line-height: 1.7; margin: 16px 0 0; }
 .rest { background: #f0fdf4; border-radius: 12px; padding: 20px; color: #166534; }

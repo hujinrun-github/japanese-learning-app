@@ -64,7 +64,7 @@ func (f *fakeStore) GetSentenceByID(id int64) (*translation.TranslationSentence,
 	return &s, nil
 }
 
-func (f *fakeStore) ListUnpracticedSentences(userID, sourceID int64, limit int) ([]translation.TranslationSentence, error) {
+func (f *fakeStore) ListUnpracticedSentences(ctx context.Context, userID, sourceID int64, limit int, levels []string) ([]translation.TranslationSentence, error) {
 	return nil, nil // The practice queue is covered by the database integration test.
 }
 
@@ -138,7 +138,7 @@ func TestService_ImportSource(t *testing.T) {
 		t.Fatal("ImportSource returned nil source")
 	}
 
-	sentences, err := svc.GetFreeSentences(0, "", result.ID, false)
+	sentences, err := svc.GetFreeSentences(context.Background(), 0, "", result.ID, false)
 	if err != nil {
 		t.Fatalf("GetFreeSentences error: %v", err)
 	}

@@ -52,6 +52,7 @@ type Catalog struct {
 
 var ErrStudyDateChanged = errors.New("study date changed")
 var ErrStudyTaskNotFound = errors.New("study task not found")
+var ErrAutomaticStudyTask = errors.New("study task was checked in automatically")
 
 func IntegrationID(prefix string) (string, error) {
 	var b [16]byte
@@ -103,6 +104,8 @@ func QueueCatalog(ctx context.Context, db TaskDB, uid int64, bump bool, now time
 		for i := range p.TimeSlots {
 			for j := range p.TimeSlots[i].Tasks {
 				p.TimeSlots[i].Tasks[j] = resolvedTask(p.TimeSlots[i].Tasks[j])
+				// Review targets are local; FlowSpace consumes completion events.
+				p.TimeSlots[i].Tasks[j].ReviewTarget = nil
 			}
 		}
 		catalog.Plan = &CatalogPlan{PlanID: planID, Revision: planRevision, Title: p.Title, Timezone: p.Timezone, StartDate: p.StartDate, EndDate: p.EndDate, Weekdays: p.Weekdays, TimeSlots: p.TimeSlots}
@@ -158,6 +161,18 @@ func SetTaskCompletion(ctx context.Context, db TaskDB, uid int64, date, slotID, 
 	}
 	if !found {
 		return ErrStudyTaskNotFound
+	}
+	if !completed && reason == "manual" {
+		var automatic bool
+		if err := db.QueryRowContext(ctx, `SELECT EXISTS (
+			SELECT 1 FROM study_plan_task_states WHERE user_id=$1 AND plan_id=$2 AND study_date=$3
+			AND slot_id=$4 AND task_id=$5 AND completed AND reason IN ($6,$7)
+		)`, uid, planID, date, slotID, taskID, wordReviewGoalReason, grammarGoalReason).Scan(&automatic); err != nil {
+			return fmt.Errorf("read automatic task status: %w", err)
+		}
+		if automatic {
+			return ErrAutomaticStudyTask
+		}
 	}
 	// The legacy completion row remains the current display authority, including
 	// pre-integration records and records deliberately cleared by older clients.

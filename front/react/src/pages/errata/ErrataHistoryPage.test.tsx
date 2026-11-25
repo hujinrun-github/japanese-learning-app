@@ -56,3 +56,27 @@ describe('ErrataReportCard 按题型与状态展示操作按钮', () => {
     expect(html).toContain('编辑反馈')
   })
 })
+
+describe('返回原题入口', () => {
+  it('语法测验题报告直达展开后的对应题目', () => {
+    const html = render(base)
+    expect(html).toContain('返回原题')
+    expect(html).toContain('href="/grammar/3?quiz=1#quiz-12"')
+  })
+
+  it('例句 / 音频类语法报告直达例句区', () => {
+    const html = render({ ...base, category: 'audio', item_key: '3' })
+    expect(html).toContain('href="/grammar/3#examples"')
+  })
+
+  it('已处理的报告也能返回原题，便于核对是否真的修复', () => {
+    const html = render({ ...base, status: 'resolved' })
+    expect(html).toContain('返回原题')
+    expect(html).toContain('href="/grammar/3?quiz=1#quiz-12"')
+  })
+
+  it('无法安全定位的报告不显示链接', () => {
+    const html = render({ ...base, item_key: '../admin' })
+    expect(html).not.toContain('返回原题')
+  })
+})

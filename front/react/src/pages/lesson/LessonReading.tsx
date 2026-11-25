@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrataButton } from '@/components/ui/ErrataButton'
+import { useSourceAnchor } from '@/hooks/useSourceAnchor'
 import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import type { Sentence } from '@/types/api'
 import { LessonAnnotationEditor } from './LessonAnnotationEditor'
@@ -27,6 +28,7 @@ import styles from './LessonReading.module.css'
 interface LessonReadingProps {
   lessonId: number
   sentences?: Sentence[] | null
+  sentenceAnchor?: string | null
 }
 
 type IndexedSentence = ReturnType<typeof indexLessonText>[number]
@@ -62,14 +64,14 @@ function prefersCoarsePointer() {
   return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)')?.matches === true
 }
 
-export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
+export function LessonReading({ lessonId, sentences, sentenceAnchor = null }: LessonReadingProps) {
   const { t } = useTranslation()
   const bodyId = useId()
   const hintId = useId()
   const annotationsId = useId()
   const body = useRef<HTMLDivElement>(null)
   const lastSelection = useRef<LessonSelection | null>(null)
-  const [parallel, setParallel] = useState(false)
+  const [parallel, setParallel] = useState(Boolean(sentenceAnchor))
   const [showReadings, setShowReadings] = useState(true)
   const [tapMode, setTapMode] = useState(prefersCoarsePointer)
   const [tapAnchor, setTapAnchor] = useState<TextRange | null>(null)
@@ -81,6 +83,7 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
   const [overlapping, setOverlapping] = useState<LessonAnnotation[]>([])
 
   const indexed = useMemo(() => indexLessonText(sentences ?? []), [sentences])
+  useSourceAnchor(sentenceAnchor, parallel && indexed.length > 0, bodyId)
   // Paragraph breaks are pure presentation: both groupings keep the global
   // token offsets produced by indexLessonText, so annotation ranges stay valid.
   const paragraphs = useMemo(() => toArticleParagraphs(indexed), [indexed])
@@ -240,11 +243,11 @@ export function LessonReading({ lessonId, sentences }: LessonReadingProps) {
       {hints && <p id={hintId} className={styles.hint}>{hints}</p>}
 
       {parallel ? (
-        <div ref={body} id={bodyId} className={styles.parallel} onClick={handleBodyClick}>
+        <div ref={body} id={bodyId} className={styles.parallel} tabIndex={-1} onClick={handleBodyClick}>
           {sentenceParagraphs.map((paragraph, paragraphIndex) => (
             <div key={paragraphIndex} className={styles.paragraphGroup} data-lesson-paragraph={paragraphIndex}>
               {paragraph.sentences.map((sentence) => (
-                <div key={sentence.index} className={styles.pair}>
+                <div key={sentence.index} id={`sentence-${sentence.index}`} tabIndex={-1} className={styles.pair}>
                   <p lang="ja"><JapaneseText tokens={sentence.tokens} showReadings={showReadings} annotations={activeAnnotations} selection={selection} /></p>
                   {sentence.chinese && <p className={styles.translation} lang="zh-Hans">{sentence.chinese}</p>}
                   <DictionaryButton text={sentence.tokens.map((token) => token.surface).join('')} />

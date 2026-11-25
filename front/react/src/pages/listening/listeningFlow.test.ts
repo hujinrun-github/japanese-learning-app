@@ -1,6 +1,34 @@
 import { describe, expect, it } from 'vitest'
-import type { ListeningPhase, ListeningStage } from '@/types/listening'
-import { answerList, canSubmitAnswers, getListeningFilters, getListeningStepAction, needsBlindBaseline, restoreExercise, sentenceBounds, shouldReportPlaybackError } from './listeningFlow'
+import type { ListeningMaterial, ListeningPhase, ListeningStage } from '@/types/listening'
+import { answerList, canSubmitAnswers, getListeningFilters, getListeningStepAction, listeningPath, needsBlindBaseline, nextUnpracticedMaterial, restoreExercise, sentenceBounds, shouldReportPlaybackError } from './listeningFlow'
+
+describe('next listening material', () => {
+  const ready = (id: number, status: ListeningMaterial['status'] = 'new') => ({ id, status, training_ready: true })
+  const materials = [ready(1), ready(2, 'practiced'), ready(3, 'due'), { ...ready(4), training_ready: false }, ready(5)]
+
+  it.each([
+    { current: 1, expected: 5 },
+    { current: 2, expected: 5 },
+    { current: 5, expected: 1 },
+  ])('continues from $current to $expected in catalogue order', ({ current, expected }) => {
+    expect(nextUnpracticedMaterial(materials, current)?.id).toBe(expected)
+  })
+
+  it('leaves a completed result open when there is no eligible material', () => {
+    expect(nextUnpracticedMaterial(materials.slice(0, 4), 1)).toBeUndefined()
+    expect(nextUnpracticedMaterial([], 1)).toBeUndefined()
+  })
+
+  it.each([
+    ['', '/listening/5', '/listening'],
+    ['level=N2&status=due', '/listening/5?level=N2&status=due', '/listening?level=N2&status=due'],
+    ['level=unknown&status=unknown', '/listening/5', '/listening'],
+  ])('keeps the active catalogue filters from %s', (search, materialPath, cataloguePath) => {
+    const filters = getListeningFilters(new URLSearchParams(search))
+    expect(listeningPath(filters, 5)).toBe(materialPath)
+    expect(listeningPath(filters)).toBe(cataloguePath)
+  })
+})
 
 describe('listening step navigation', () => {
   it.each<{ saved: ListeningStage; target: ListeningStage; phases: ListeningPhase[]; ready?: boolean; hasAudio?: boolean; expected: string }>([

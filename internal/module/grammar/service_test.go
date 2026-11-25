@@ -214,6 +214,32 @@ func TestGrammarService_ScoreQuiz(t *testing.T) {
 	}
 }
 
+func TestGrammarService_ScoreQuizDoesNotRecordIncompleteAttempts(t *testing.T) {
+	store := newFakeGrammarStore()
+	store.seedPoint(grammar.GrammarPoint{ID: 1, QuizQuestions: []grammar.QuizQuestion{
+		{ID: 1, Answer: "から"}, {ID: 2, Answer: "まで"},
+	}})
+	svc := grammar.NewGrammarService(store)
+	for _, tc := range []struct {
+		name        string
+		submissions []grammar.QuizSubmission
+	}{
+		{"empty", nil},
+		{"partial", []grammar.QuizSubmission{{QuestionID: 1, Answer: "から"}}},
+		{"duplicate", []grammar.QuizSubmission{{QuestionID: 1, Answer: "から"}, {QuestionID: 1, Answer: "から"}}},
+		{"blank", []grammar.QuizSubmission{{QuestionID: 1, Answer: "から"}, {QuestionID: 2, Answer: " "}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := svc.ScoreQuiz(1, 1, tc.submissions); err == nil {
+				t.Fatal("incomplete quiz was accepted")
+			}
+			if record, err := store.GetRecord(1, 1); err != nil || record != nil {
+				t.Fatalf("record = %+v, err = %v", record, err)
+			}
+		})
+	}
+}
+
 func TestGrammarService_ScoreQuiz_UpdatesRecord(t *testing.T) {
 	store := newFakeGrammarStore()
 	store.seedPoint(grammar.GrammarPoint{

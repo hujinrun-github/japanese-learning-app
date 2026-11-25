@@ -74,11 +74,36 @@ func completeListeningTask(ctx context.Context, db TaskDB, uid int64, now time.T
 	return nil
 }
 
+type todayTaskDB interface {
+	TaskDB
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
 func (h *Handler) readToday(ctx context.Context, uid int64) (TodayPlan, error) {
-	var raw string
-	err := h.db.QueryRowContext(ctx, `SELECT plan_json FROM study_plans WHERE user_id=$1`, uid).Scan(&raw)
+	now := h.now()
+	today, err := h.readTodayState(ctx, h.db, uid, now, false)
+	if err != nil {
+		return TodayPlan{}, err
+	}
+	// The same idempotent command also runs just after practice is recorded.
+	for _, slot := range today.Slots {
+		for _, task := range slot.Tasks {
+			if _, _, changed := task.practiceCompletionChange(); changed {
+				return h.updatePracticeCheckIns(ctx, uid, now)
+			}
+		}
+	}
+	return today, nil
+}
+
+func (h *Handler) readTodayState(ctx context.Context, db todayTaskDB, uid int64, now time.Time, lock bool) (TodayPlan, error) {
+	query := `SELECT plan_json,plan_id FROM study_plans WHERE user_id=$1`
+	if lock {
+		query += ` FOR UPDATE`
+	}
+	var raw, planID string
+	err := db.QueryRowContext(ctx, query, uid).Scan(&raw, &planID)
 	if errors.Is(err, sql.ErrNoRows) {
-		now := h.now()
 		return TodayPlan{Date: now.Format("2006-01-02"), Timezone: now.Location().String(), Reason: "no_plan", Slots: []TodaySlot{}}, nil
 	}
 	if err != nil {
@@ -88,38 +113,50 @@ func (h *Handler) readToday(ctx context.Context, uid int64) (TodayPlan, error) {
 	if err := json.Unmarshal([]byte(raw), &p); err != nil {
 		return TodayPlan{}, fmt.Errorf("decode today's study plan: %w", err)
 	}
-	today, err := p.Today(h.now())
+	today, err := p.Today(now)
 	if err != nil {
 		return TodayPlan{}, err
 	}
-	if len(today.Slots) == 0 {
-		return today, nil
-	}
-	rows, err := h.db.QueryContext(ctx, `SELECT slot_id,task_id FROM study_plan_task_completions WHERE user_id=$1 AND study_date=$2`, uid, today.Date)
-	if err != nil {
-		return TodayPlan{}, fmt.Errorf("read study task completions: %w", err)
-	}
-	defer rows.Close()
-	completed := make(map[string]map[string]bool)
-	for rows.Next() {
-		var slotID, taskID string
-		if err := rows.Scan(&slotID, &taskID); err != nil {
-			return TodayPlan{}, fmt.Errorf("scan study task completion: %w", err)
+	if len(today.Slots) != 0 {
+		completions, err := readCompletionReasons(ctx, db, uid, planID, today.Date)
+		if err != nil {
+			return TodayPlan{}, err
 		}
-		if completed[slotID] == nil {
-			completed[slotID] = make(map[string]bool)
+		for i := range today.Slots {
+			for j := range today.Slots[i].Tasks {
+				task := &today.Slots[i].Tasks[j]
+				task.CompletionReason, task.Completed = completions[[2]string{today.Slots[i].ID, task.ID}]
+			}
 		}
-		completed[slotID][taskID] = true
 	}
-	if err := rows.Err(); err != nil {
-		return TodayPlan{}, fmt.Errorf("iterate study task completions: %w", err)
-	}
-	for i := range today.Slots {
-		for j := range today.Slots[i].Tasks {
-			today.Slots[i].Tasks[j].Completed = completed[today.Slots[i].ID][today.Slots[i].Tasks[j].ID]
-		}
+	if err := attachPracticeProgress(ctx, db, uid, now, h.wordTimezone, p, &today); err != nil {
+		return TodayPlan{}, err
 	}
 	return today, nil
+}
+
+func readCompletionReasons(ctx context.Context, db todayTaskDB, uid int64, planID, date string) (map[[2]string]string, error) {
+	rows, err := db.QueryContext(ctx, `SELECT c.slot_id,c.task_id,COALESCE(s.reason,'manual')
+		FROM study_plan_task_completions c LEFT JOIN study_plan_task_states s
+		  ON s.user_id=c.user_id AND s.plan_id=$3 AND s.study_date=c.study_date
+		  AND s.slot_id=c.slot_id AND s.task_id=c.task_id AND s.completed
+		WHERE c.user_id=$1 AND c.study_date=$2`, uid, date, planID)
+	if err != nil {
+		return nil, fmt.Errorf("read study task completions: %w", err)
+	}
+	defer rows.Close()
+	completed := make(map[[2]string]string)
+	for rows.Next() {
+		var slotID, taskID, reason string
+		if err := rows.Scan(&slotID, &taskID, &reason); err != nil {
+			return nil, fmt.Errorf("scan study task completion: %w", err)
+		}
+		completed[[2]string{slotID, taskID}] = reason
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate study task completions: %w", err)
+	}
+	return completed, nil
 }
 
 func (h *Handler) today(w http.ResponseWriter, r *http.Request) {
@@ -193,6 +230,10 @@ func (h *Handler) completeTask(w http.ResponseWriter, r *http.Request) {
 	}
 	if errors.Is(err, ErrStudyTaskNotFound) {
 		httputil.WriteError(w, 404, "ERR_STUDY_TASK_NOT_FOUND", "当天没有这项学习任务", "")
+		return
+	}
+	if errors.Is(err, ErrAutomaticStudyTask) {
+		httputil.WriteError(w, 409, "ERR_AUTOMATIC_STUDY_TASK", "练习记录已达标并自动打卡", "")
 		return
 	}
 	if err == nil {

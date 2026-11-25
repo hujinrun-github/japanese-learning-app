@@ -199,6 +199,7 @@ func loadErrataContentDocument(ctx context.Context, q errataContentQueryer, repo
 	doc.signature = []string{doc.content.Module, doc.content.ItemKey}
 	parts := strings.Split(doc.content.ItemKey, ":")
 	key := parts[0]
+	exactExample := len(parts) == 3 && parts[1] == "example"
 	if err := validateErrataContentKey(doc.content.Module, parts); err != nil {
 		return doc, err
 	}
@@ -210,16 +211,16 @@ func loadErrataContentDocument(ctx context.Context, q errataContentQueryer, repo
 		if err == nil {
 			root.columns = contentColumns("kanji_form|单词|text", "reading|假名读音|text", "meaning|中文释义|textarea", "part_of_speech|词性|text", "jlpt_level|JLPT 等级|text", "reading_type|音读或训读|text", "verb_type|自他动词|text")
 			doc.content.Title = rawString(root.data, "kanji_form") + " · " + rawString(root.data, "reading")
-			err = doc.addChildren(ctx, q, "word_examples", "word_example", "word_id=$1", []any{key}, lock)
+			err = doc.addExamples(ctx, q, "word", "word_id", parts, lock)
 		}
 	case "grammar":
 		root, err = doc.addOne(ctx, q, "grammar_points", "grammar", "id=$1", []any{key}, lock)
 		if err == nil {
 			root.columns = contentColumns("name|语法名称|text", "meaning|中文释义|textarea", "conjunction_rule|接续规则|textarea", "usage_note|用法说明|textarea", "jlpt_level|JLPT 等级|text")
 			doc.content.Title = rawString(root.data, "name")
-			err = doc.addChildren(ctx, q, "grammar_examples", "grammar_example", "grammar_point_id=$1", []any{key}, lock)
+			err = doc.addExamples(ctx, q, "grammar", "grammar_point_id", parts, lock)
 		}
-		if err == nil {
+		if err == nil && !exactExample {
 			condition, args := "grammar_point_id=$1", []any{key}
 			if len(parts) == 3 {
 				condition += " AND id=$2"
@@ -301,11 +302,12 @@ func loadErrataContentDocument(ctx context.Context, q errataContentQueryer, repo
 
 func validateErrataContentKey(module string, parts []string) error {
 	valid := false
+	example := len(parts) == 3 && parts[1] == "example" && positiveID(parts[2])
 	switch module {
 	case "word":
-		valid = len(parts) == 1 || len(parts) == 2 && (parts[1] == "recognition" || parts[1] == "dictation")
+		valid = example || len(parts) == 1 || len(parts) == 2 && (parts[1] == "recognition" || parts[1] == "dictation")
 	case "grammar":
-		valid = len(parts) == 1 || len(parts) == 3 && parts[1] == "quiz" && positiveID(parts[2])
+		valid = example || len(parts) == 1 || len(parts) == 3 && parts[1] == "quiz" && positiveID(parts[2])
 	case "speaking", "translation":
 		valid = len(parts) == 1
 	case "lesson":
@@ -376,6 +378,23 @@ func decodeContentRecord(table, prefix, raw, version string) (errataContentRecor
 	}
 	record.id = rawString(record.data, "id")
 	return record, nil
+}
+
+func (doc *errataContentDocument) addExamples(ctx context.Context, q errataContentQueryer, prefix, parentColumn string, parts []string, lock bool) error {
+	predicate, args := parentColumn+"=$1", []any{parts[0]}
+	exact := len(parts) == 3 && parts[1] == "example"
+	if exact {
+		predicate += " AND id=$2"
+		args = append(args, parts[2])
+	}
+	count := len(doc.records)
+	if err := doc.addChildren(ctx, q, prefix+"_examples", prefix+"_example", predicate, args, lock); err != nil {
+		return err
+	}
+	if exact && len(doc.records) == count {
+		return contentProblem(404, "该例句不存在或不属于报告中的条目")
+	}
+	return nil
 }
 
 func (doc *errataContentDocument) addChildren(ctx context.Context, q errataContentQueryer, table, prefix, predicate string, args []any, lock bool) error {

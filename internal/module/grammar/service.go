@@ -1,10 +1,14 @@
 package grammar
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 )
+
+var ErrIncompleteQuiz = errors.New("grammar quiz requires one answer per question")
 
 // GrammarStoreInterface defines data access methods required by GrammarService.
 type GrammarStoreInterface interface {
@@ -89,6 +93,9 @@ func (s *GrammarService) ScoreQuiz(userID, grammarPointID int64, submissions []Q
 		slog.Error("GrammarService.ScoreQuiz: grammar point not found", "err", err, "grammar_point_id", grammarPointID)
 		return nil, fmt.Errorf("grammar.GrammarService.ScoreQuiz GetByID: %w", err)
 	}
+	if len(submissions) == 0 || len(submissions) != len(p.QuizQuestions) {
+		return nil, ErrIncompleteQuiz
+	}
 
 	// Build answer map
 	answerMap := make(map[int64]QuizQuestion, len(p.QuizQuestions))
@@ -100,9 +107,10 @@ func (s *GrammarService) ScoreQuiz(userID, grammarPointID int64, submissions []Q
 	correctCount := 0
 	for _, sub := range submissions {
 		q, ok := answerMap[sub.QuestionID]
-		if !ok {
-			continue
+		if !ok || strings.TrimSpace(sub.Answer) == "" {
+			return nil, ErrIncompleteQuiz
 		}
+		delete(answerMap, sub.QuestionID)
 		correct := sub.Answer == q.Answer
 		if correct {
 			correctCount++
@@ -119,10 +127,7 @@ func (s *GrammarService) ScoreQuiz(userID, grammarPointID int64, submissions []Q
 		items = append(items, item)
 	}
 
-	score := 0
-	if len(submissions) > 0 {
-		score = correctCount * 100 / len(submissions)
-	}
+	score := correctCount * 100 / len(submissions)
 
 	result := &QuizResult{Score: score, Results: items}
 

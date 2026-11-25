@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -32,25 +33,37 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 		stored   string
 		reviewer translation.TranslationReviewer
 		want     string
+		japanese bool
+		readings map[string]string
 	}{
-		{"bank answer without AI", reference, nil, reference},
-		{"bank answer wins over AI alternative", reference, &translation.StubReviewer{
+		{name: "bank answer without AI", stored: reference, want: reference},
+		{name: "bank answer wins over AI alternative", stored: reference, reviewer: &translation.StubReviewer{
 			Feedback: translation.TranslationFeedback{ReferenceTranslation: generated},
-		}, reference},
-		{"AI creates missing reference", "", &translation.StubReviewer{
+		}, want: reference},
+		{name: "AI creates missing reference", reviewer: &translation.StubReviewer{
 			Feedback: translation.TranslationFeedback{ReferenceTranslation: generated},
-		}, generated},
-		{"bank answer survives AI error", reference, &translation.StubReviewer{Err: errors.New("review unavailable")}, reference},
-		{"no reference available", "", &translation.StubReviewer{}, ""},
+		}, want: generated},
+		{name: "bank answer survives AI error", stored: reference, reviewer: &translation.StubReviewer{Err: errors.New("review unavailable")}, want: reference},
+		{name: "no reference available", reviewer: &translation.StubReviewer{}},
+		{name: "Japanese bank answer", stored: "バス賃はいくらですか？", want: "バス賃はいくらですか？", japanese: true, readings: map[string]string{"賃": "ちん"}},
+		{name: "Japanese generated answer", reviewer: &translation.StubReviewer{
+			Feedback: translation.TranslationFeedback{ReferenceTranslation: "今日、一人で行きます。"},
+		}, want: "今日、一人で行きます。", japanese: true, readings: map[string]string{"今日": "きょう", "一人": "ひとり", "行き": "いき"}},
+		{name: "unresolved date keeps its original text", stored: "四月一日です。", want: "四月一日です。", japanese: true, readings: map[string]string{"四月": "しがつ"}},
+		{name: "kana-only answer", stored: "ありがとうございます。", want: "ありがとうございます。", japanese: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sourceID, err := store.SaveSource(translation.TranslationSource{Title: tc.name, SourceType: "manual"})
 			if err != nil {
 				t.Fatal(err)
 			}
-			sentenceID, err := store.SaveSentence(translation.TranslationSentence{
-				SourceID: sourceID, Direction: "jp2cn", SourceText: "激しい雨が降っています。", ReferenceTranslation: tc.stored,
-			})
+			sentence := translation.TranslationSentence{
+				SourceID: sourceID, Direction: "jp2cn", SourceText: "激しい雨が降っています。", ReferenceTranslation: tc.stored, JLPTLevel: "N5",
+			}
+			if tc.japanese {
+				sentence.Direction, sentence.SourceText = "cn2jp", "公车票价多少？"
+			}
+			sentenceID, err := store.SaveSentence(sentence)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -84,6 +97,9 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 				if err := json.Unmarshal(resp.Body.Bytes(), &questions); err != nil {
 					t.Fatal(err)
 				}
+				if len(questions.Data) == 0 {
+					t.Fatalf("GET %s returned no practice questions", path)
+				}
 				for _, q := range questions.Data {
 					if q.ReferenceTranslation != "" {
 						t.Errorf("GET %s revealed a reference translation before submission", path)
@@ -95,6 +111,10 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 				Data struct {
 					ID        int64  `json:"id"`
 					Reference string `json:"reference_translation"`
+					Tokens    []struct {
+						Surface string `json:"surface"`
+						Reading string `json:"reading"`
+					} `json:"reference_tokens"`
 				} `json:"data"`
 			}
 			readReference := func(resp *httptest.ResponseRecorder) int64 {
@@ -105,6 +125,25 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 				}
 				if result.Data.Reference != tc.want {
 					t.Errorf("reference = %q, want %q", result.Data.Reference, tc.want)
+				}
+				if len(tc.readings) == 0 && len(result.Data.Tokens) > 0 {
+					t.Errorf("unexpected reference tokens: %+v", result.Data.Tokens)
+				}
+				if len(tc.readings) > 0 {
+					var surfaces strings.Builder
+					readings := make(map[string]string)
+					for _, part := range result.Data.Tokens {
+						surfaces.WriteString(part.Surface)
+						if part.Reading != "" {
+							readings[part.Surface] = part.Reading
+						}
+					}
+					if surfaces.String() != tc.want {
+						t.Errorf("annotated text = %q, want %q", surfaces.String(), tc.want)
+					}
+					if !maps.Equal(readings, tc.readings) {
+						t.Errorf("readings = %v, want %v", readings, tc.readings)
+					}
 				}
 				return result.Data.ID
 			}

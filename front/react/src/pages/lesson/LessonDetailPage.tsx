@@ -12,7 +12,8 @@ import styles from './LessonPage.module.css'
 export function LessonDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
-  const { state } = useLocation()
+  const { state, hash } = useLocation()
+  const sentenceAnchor = /^#sentence-(?:0|[1-9]\d*)$/.test(hash) ? hash.slice(1) : null
   const listSearch = typeof state?.lessonListSearch === 'string' ? state.lessonListSearch : ''
   const listLocation = { pathname: '/lesson', search: listSearch }
   const [lesson, setLesson] = useState<Lesson | null>(null)
@@ -91,7 +92,7 @@ export function LessonDetailPage() {
         </div>
       </header>
 
-      <LessonReading key={lesson.id} lessonId={lesson.id} sentences={lesson.sentences} />
+      <LessonReading key={`${lesson.id}:${sentenceAnchor ?? ''}`} lessonId={lesson.id} sentences={lesson.sentences} sentenceAnchor={sentenceAnchor} />
     </div>
   )
 }

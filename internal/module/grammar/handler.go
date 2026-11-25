@@ -1,6 +1,7 @@
 package grammar
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -28,9 +29,10 @@ type NoteDigest struct {
 
 // GrammarHandler handles HTTP requests for the grammar module.
 type GrammarHandler struct {
-	svc     *GrammarService
-	noteSvc NoteDigestProvider
-	streak  user.StreakRecorder
+	svc         *GrammarService
+	noteSvc     NoteDigestProvider
+	streak      user.StreakRecorder
+	quizCheckIn func(context.Context, int64) error
 }
 
 // NewGrammarHandler creates a GrammarHandler.
@@ -47,6 +49,10 @@ func NewGrammarHandlerWithNotes(svc *GrammarService, noteSvc NoteDigestProvider)
 // current after a quiz is scored. Nil disables check-ins.
 func (h *GrammarHandler) SetStreakRecorder(r user.StreakRecorder) {
 	h.streak = r
+}
+
+func (h *GrammarHandler) SetQuizCheckIn(checkIn func(context.Context, int64) error) {
+	h.quizCheckIn = checkIn
 }
 
 // RegisterRoutes registers grammar routes onto the provided mux.
@@ -166,6 +172,11 @@ func (h *GrammarHandler) handleScoreQuiz(w http.ResponseWriter, r *http.Request)
 	}
 
 	result, err := h.svc.ScoreQuiz(userID, grammarPointID, submissions)
+	if errors.Is(err, ErrIncompleteQuiz) {
+		slog.DebugContext(r.Context(), "grammar quiz incomplete", "user_id", userID, "grammar_point_id", grammarPointID)
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_INCOMPLETE_QUIZ", err.Error(), "")
+		return
+	}
 	if err != nil {
 		slog.Error("handleScoreQuiz failed", "err", err, "user_id", userID)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to score quiz", "")
@@ -173,6 +184,11 @@ func (h *GrammarHandler) handleScoreQuiz(w http.ResponseWriter, r *http.Request)
 	}
 
 	user.RecordStudyDayBestEffort(h.streak, userID)
+	if h.quizCheckIn != nil {
+		if err := h.quizCheckIn(r.Context(), userID); err != nil {
+			slog.ErrorContext(r.Context(), "grammar practice check-in failed", "user_id", userID, "err", err)
+		}
+	}
 
 	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: result})
 }

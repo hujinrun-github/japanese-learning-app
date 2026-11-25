@@ -10,21 +10,32 @@ beforeAll(async () => {
   await i18n.init({ lng: 'zh', resources: { zh: { translation: zh } } })
 })
 
-describe('单词正确答案的读音与自他动词标记', () => {
+describe('单词正确答案的读音、词性与自他动词', () => {
   it.each([
-    { reading: 'おわる', reading_type: '2', verb_type: '自动词' },
-    { reading: 'おえる', reading_type: '2', verb_type: '他动词' },
-    { reading: 'ふく', reading_type: '2', verb_type: '自他两用' },
-  ])('在 $reading 旁显示 $verb_type', (word) => {
+    { reading: 'きょう', reading_type: '3', part_of_speech: '名詞', verb_type: '' },
+    { reading: 'おわる', reading_type: '2', part_of_speech: '五段動詞', verb_type: '自动词' },
+    { reading: 'おえる', reading_type: '2', part_of_speech: '一段動詞', verb_type: '他动词' },
+    { reading: 'ふく', reading_type: '2', part_of_speech: '五段動詞', verb_type: '自他两用' },
+  ])('在 $reading 旁显示已标注的词性和动词类型', (word) => {
     const html = renderToStaticMarkup(<WordAnswerReading word={word} />)
 
-    expect(html).toMatch(new RegExp(`${word.reading}</div><span[^>]*>${word.verb_type}</span>`))
+    expect(html).toMatch(new RegExp(`${word.reading}</div><span[^>]*>${word.part_of_speech}</span>`))
     expect(html).toContain(`>${word.reading_type}</span>`)
+    if (word.verb_type) expect(html).toContain(`>${word.verb_type}</span>`)
+    else expect(html).not.toMatch(/自动词|他动词|自他两用/)
+  })
+
+  it.each(['', '自动词'])('保留自他标签，词性为 "%s" 时只显示一次', (partOfSpeech) => {
+    const html = renderToStaticMarkup(
+      <WordAnswerReading word={{ reading: 'おわる', reading_type: '', part_of_speech: partOfSpeech, verb_type: '自动词' }} />,
+    )
+
+    expect(html.match(/>自动词<\/span>/g)).toHaveLength(1)
   })
 
   it.each(['2', ''])('未标注词汇不显示空标签，读音类型为 "%s"', (readingType) => {
     const html = renderToStaticMarkup(
-      <WordAnswerReading word={{ reading: 'ねこ', reading_type: readingType, verb_type: '' }} />,
+      <WordAnswerReading word={{ reading: 'ねこ', reading_type: readingType, part_of_speech: '', verb_type: '' }} />,
     )
 
     expect(html).toContain('ねこ</div></div>')

@@ -72,6 +72,7 @@ export interface DailyPlan {
 
 // Word
 export interface WordExample {
+  id?: number
   japanese: string
   chinese: string
   furigana_html?: string
@@ -119,6 +120,7 @@ export interface QuizQuestion {
 }
 
 export interface GrammarExample {
+  id?: number
   japanese: string
   chinese: string
   furigana_html?: string
@@ -429,6 +431,7 @@ export interface TranslationSource {
   source_url: string
   api_endpoint: string
   raw_content: string
+  jlpt_levels?: JLPTLevel[]
   direction?: string
   created_at: string
 }
@@ -440,6 +443,7 @@ export interface TranslationSentence {
   source_text: string
   reference_translation: string
   position: number
+  jlpt_level?: JLPTLevel
 }
 
 export interface TranslationRecord {
@@ -448,6 +452,7 @@ export interface TranslationRecord {
   sentence_id: number
   user_translation: string
   reference_translation?: string
+  reference_tokens?: FuriganaToken[]
   score: number
   rule_score: number
   ai_feedback?: TranslationFeedback

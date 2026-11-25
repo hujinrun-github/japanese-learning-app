@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,12 +30,12 @@ func NewTranslationStore(db queryer, deps store.StoreDeps) *TranslationStore {
 }
 
 func (s *TranslationStore) GetDailyProgress(ctx context.Context, userID int64, resolveTarget translation.StudyPlanTarget) (translation.DailyProgress, error) {
-	var dailyGoals string
+	var dailyGoals, profileLevels string
 	var rawPlan sql.NullString
 	err := s.db.QueryRowContext(ctx, `
-		SELECT u.daily_goals_json::text, p.plan_json::text
+		SELECT u.daily_goals_json::text, p.plan_json::text, to_json(u.jlpt_levels)::text
 		FROM users u LEFT JOIN study_plans p ON p.user_id = u.id
-		WHERE u.id = $1`, userID).Scan(&dailyGoals, &rawPlan)
+		WHERE u.id = $1`, userID).Scan(&dailyGoals, &rawPlan, &profileLevels)
 	if err != nil {
 		return translation.DailyProgress{}, fmt.Errorf("read translation targets: %w", translateError(err))
 	}
@@ -52,18 +53,37 @@ func (s *TranslationStore) GetDailyProgress(ctx context.Context, userID int64, r
 		}
 	}
 
-	completed, err := countTranslationsToday(ctx, s.db, userID, now)
+	levels := translationLevelScope(profileLevels)
+	completed, err := countTranslationsToday(ctx, s.db, userID, now, levels)
 	if err != nil {
 		return translation.DailyProgress{}, err
 	}
-	slog.Debug("resolved daily translation progress", "user_id", userID, "date", now.Format(time.DateOnly), "goal", goal, "completed", completed)
-	return translation.DailyProgress{Goal: goal, Completed: completed}, nil
+	slog.DebugContext(ctx, "resolved daily translation progress", "user_id", userID, "date", now.Format(time.DateOnly), "goal", goal, "completed", completed, "levels", levels)
+	return translation.DailyProgress{Goal: goal, Completed: completed, Levels: levels}, nil
 }
 
-func countTranslationsToday(ctx context.Context, db queryer, userID int64, now time.Time) (int, error) {
+func translationLevelScope(profileLevels string) []string {
+	var valid []string
+	for _, level := range parseJLPTLevels(profileLevels) {
+		switch level {
+		case "N5", "N4", "N3", "N2", "N1":
+			if !slices.Contains(valid, level) {
+				valid = append(valid, level)
+			}
+		}
+	}
+	if len(valid) == 0 {
+		return []string{"N5"}
+	}
+	return valid
+}
+
+func countTranslationsToday(ctx context.Context, db queryer, userID int64, now time.Time, levels []string) (int, error) {
 	start, end := dayWindow(now)
-	count, err := countRows(ctx, db, `SELECT COUNT(*) FROM translation_records
-		WHERE user_id = $1 AND practiced_at >= $2 AND practiced_at < $3`, userID, start.UTC(), end.UTC())
+	count, err := countRows(ctx, db, `SELECT COUNT(*)
+		FROM translation_records r JOIN translation_sentences s ON s.id = r.sentence_id
+		WHERE r.user_id = $1 AND r.practiced_at >= $2 AND r.practiced_at < $3
+		  AND s.jlpt_level = ANY(string_to_array($4, ','))`, userID, start.UTC(), end.UTC(), strings.Join(levels, ","))
 	if err != nil {
 		return 0, fmt.Errorf("count today's translations: %w", err)
 	}
@@ -80,7 +100,7 @@ func (s *TranslationStore) ListAllSentences(sourceID int64, direction string, of
 
 	args = append(args, limit, offset)
 	query := fmt.Sprintf(
-		`SELECT id, source_id, direction, source_text, reference_translation, position
+		`SELECT id, source_id, direction, source_text, reference_translation, position, jlpt_level
 		 FROM translation_sentences
 		 %s
 		 ORDER BY updated_at DESC, id DESC
@@ -112,14 +132,15 @@ func (s *TranslationStore) SaveSentence(sent translation.TranslationSentence) (i
 	var id int64
 	err = s.db.QueryRowContext(
 		context.Background(),
-		`INSERT INTO translation_sentences (source_id, direction, source_text, reference_translation, position, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6)
+		`INSERT INTO translation_sentences (source_id, direction, source_text, reference_translation, position, jlpt_level, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id`,
 		sourceID,
 		sent.Direction,
 		sent.SourceText,
 		sent.ReferenceTranslation,
 		sent.Position,
+		sent.JLPTLevel,
 		s.now().UTC(),
 	).Scan(&id)
 	if err != nil {
@@ -236,9 +257,15 @@ func (s *TranslationStore) SaveSource(src translation.TranslationSource) (int64,
 func (s *TranslationStore) ListSources() ([]translation.TranslationSource, error) {
 	rows, err := s.db.QueryContext(
 		context.Background(),
-		`SELECT id, title, source_type, source_url, api_endpoint, raw_content, created_at
-		 FROM translation_sources
-		 ORDER BY created_at DESC, id DESC`,
+		`SELECT s.id, s.title, s.source_type, s.source_url, s.api_endpoint, s.raw_content, s.created_at,
+		        COALESCE(levels.jlpt_levels, '[]'::json)::text
+		 FROM translation_sources s
+		 CROSS JOIN LATERAL (
+		     SELECT json_agg(DISTINCT jlpt_level ORDER BY jlpt_level DESC) AS jlpt_levels
+		     FROM translation_sentences
+		     WHERE source_id = s.id AND jlpt_level IN ('N5','N4','N3','N2','N1')
+		 ) levels
+		 ORDER BY s.created_at DESC, s.id DESC`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("postgres.TranslationStore.ListSources query: %w", translateError(err))
@@ -248,6 +275,7 @@ func (s *TranslationStore) ListSources() ([]translation.TranslationSource, error
 	var items []translation.TranslationSource
 	for rows.Next() {
 		var item translation.TranslationSource
+		var levelsJSON string
 		if err := rows.Scan(
 			&item.ID,
 			&item.Title,
@@ -256,8 +284,12 @@ func (s *TranslationStore) ListSources() ([]translation.TranslationSource, error
 			&item.APIEndpoint,
 			&item.RawContent,
 			&item.CreatedAt,
+			&levelsJSON,
 		); err != nil {
 			return nil, fmt.Errorf("postgres.TranslationStore.ListSources scan: %w", translateError(err))
+		}
+		if err := json.Unmarshal([]byte(levelsJSON), &item.JLPTLevels); err != nil {
+			return nil, fmt.Errorf("postgres.TranslationStore.ListSources decode levels: %w", err)
 		}
 		items = append(items, item)
 	}
@@ -274,7 +306,7 @@ func (s *TranslationStore) ListSentencesBySource(sourceID int64) ([]translation.
 	rows, err := s.db.QueryContext(
 		context.Background(),
 		// 练习题乱序返回，避免按 position 连续出题时相邻句子互相泄露上下文。
-		`SELECT id, source_id, direction, source_text, reference_translation, position
+		`SELECT id, source_id, direction, source_text, reference_translation, position, jlpt_level
 		 FROM translation_sentences
 		 WHERE source_id = $1
 		 ORDER BY RANDOM()`,
@@ -300,7 +332,7 @@ func (s *TranslationStore) GetSentenceByID(id int64) (*translation.TranslationSe
 	var pointsJSON string
 	err := s.db.QueryRowContext(
 		context.Background(),
-		`SELECT id, source_id, direction, source_text, reference_translation, position, array_to_json(points)::text
+		`SELECT id, source_id, direction, source_text, reference_translation, position, jlpt_level, array_to_json(points)::text
 		 FROM translation_sentences WHERE id = $1`,
 		id,
 	).Scan(
@@ -310,6 +342,7 @@ func (s *TranslationStore) GetSentenceByID(id int64) (*translation.TranslationSe
 		&item.SourceText,
 		&item.ReferenceTranslation,
 		&item.Position,
+		&item.JLPTLevel,
 		&pointsJSON,
 	)
 	if err != nil {
@@ -324,32 +357,33 @@ func (s *TranslationStore) GetSentenceByID(id int64) (*translation.TranslationSe
 	return &item, nil
 }
 
-func (s *TranslationStore) ListUnpracticedSentences(userID, sourceID int64, limit int) ([]translation.TranslationSentence, error) {
+func (s *TranslationStore) ListUnpracticedSentences(ctx context.Context, userID, sourceID int64, limit int, levels []string) ([]translation.TranslationSentence, error) {
 	rows, err := s.db.QueryContext(
-		context.Background(),
+		ctx,
 		`WITH practiced AS (
 		    SELECT DISTINCT ts.direction, TRIM(ts.source_text) AS prompt
 		    FROM translation_records tr
 		    JOIN translation_sentences ts ON ts.id = tr.sentence_id
 		    WHERE tr.user_id = $1
 		 ), candidates AS (
-		    SELECT ts.id, ts.source_id, ts.direction, ts.source_text, ts.reference_translation, ts.position,
+		    SELECT ts.id, ts.source_id, ts.direction, ts.source_text, ts.reference_translation, ts.position, ts.jlpt_level,
 		    ROW_NUMBER() OVER (
 		        PARTITION BY ts.direction, TRIM(ts.source_text) ORDER BY ts.position, ts.id
 		    ) AS prompt_rank
 		    FROM translation_sentences ts
 		    WHERE ($2::bigint = 0 OR ts.source_id = $2)
+		      AND ($4::text = '' OR ts.jlpt_level = ANY(string_to_array($4, ',')))
 		      AND NOT EXISTS (
 		          SELECT 1 FROM practiced p
 		          WHERE p.direction = ts.direction AND p.prompt = TRIM(ts.source_text)
 		      )
 		 )
-		 SELECT id, source_id, direction, source_text, reference_translation, position
+		 SELECT id, source_id, direction, source_text, reference_translation, position, jlpt_level
 		 FROM candidates
 		 WHERE prompt_rank = 1
 		 ORDER BY RANDOM()
 		 LIMIT NULLIF($3::int, 0)`,
-		userID, sourceID, limit,
+		userID, sourceID, limit, strings.Join(levels, ","),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("postgres.TranslationStore.ListUnpracticedSentences query: %w", translateError(err))
@@ -419,7 +453,7 @@ func (s *TranslationStore) GetRecord(id int64) (*translation.TranslationRecord, 
 	row := s.db.QueryRowContext(
 		context.Background(),
 		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at,
-		        reference_translation_snapshot
+		        reference_translation_snapshot, direction_snapshot
 		 FROM translation_records WHERE id = $1`,
 		id,
 	)
@@ -437,7 +471,7 @@ func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationR
 	rows, err := s.db.QueryContext(
 		context.Background(),
 		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at,
-		        reference_translation_snapshot
+		        reference_translation_snapshot, direction_snapshot
 		 FROM translation_records WHERE user_id = $1
 		 ORDER BY practiced_at DESC, id DESC`,
 		userID,
@@ -541,6 +575,7 @@ func scanTranslationRecord(row interface {
 		&feedbackJSON,
 		&record.PracticedAt,
 		&record.ReferenceTranslation,
+		&record.Direction,
 	); err != nil {
 		return nil, fmt.Errorf("postgres.scanTranslationRecord scan: %w", translateError(err))
 	}
@@ -565,6 +600,7 @@ func scanTranslationSentences(rows *sql.Rows) ([]translation.TranslationSentence
 			&item.SourceText,
 			&item.ReferenceTranslation,
 			&item.Position,
+			&item.JLPTLevel,
 		); err != nil {
 			return nil, fmt.Errorf("postgres.scanTranslationSentences scan: %w", translateError(err))
 		}
