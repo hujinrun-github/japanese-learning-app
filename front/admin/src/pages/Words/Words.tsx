@@ -4,6 +4,7 @@ import Modal from '@/components/Modal/Modal'
 import { TTSConfigFields, defaultTTSConfig, getDefaultTTSConfig, type TTSConfig } from '@/components/TTSConfigFields/TTSConfigFields'
 import { AudioRegenButton } from '@/components/AudioRegenButton/AudioRegenButton'
 import { buildBatchAudioPayload, formatBatchAudioResult, type BatchAudioResponse } from '@/util/ttsBatch'
+import { wordAudioPlaybackURL } from '@/util/audioHash'
 import styles from './Words.module.css'
 
 interface Word {
@@ -205,7 +206,7 @@ export default function WordsPage() {
                       <td><span className={`adm-tag ${POS_CSS[w.part_of_speech] || 'adm-tagOther'}`}>{POS_ICON[w.part_of_speech] || ''} {w.part_of_speech}</span>{w.verb_type && <span className="adm-tag adm-tagOther" style={{ marginLeft: 4 }}>{VERB_TYPE_LABEL[w.verb_type] || w.verb_type}</span>}</td>
                       <td><span className={`adm-levelBadge ${LVL_CSS[w.jlpt_level] || ''}`}>{w.jlpt_level}</span></td>
                       <td onClick={e => e.stopPropagation()}>
-                        <AudioRegenButton text={w.reading} audioUrl={w.audio_url ? `/audio/words/${w.audio_url}` : undefined} module="word" wordId={w.id} onRegenerated={() => fetchItems()} />
+                        <AudioRegenButton text={w.reading} audioUrl={wordAudioPlaybackURL(w.audio_url)} module="word" wordId={w.id} onRegenerated={() => fetchItems()} />
                       </td>
                       <td className="adm-actions" onClick={e => e.stopPropagation()}>
                         <button onClick={() => openEdit(w)}>✏️ Edit</button>

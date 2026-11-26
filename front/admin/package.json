@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test src/pages/Errata/errataCorrectionRules.test.mjs",
+    "test": "node --experimental-strip-types --test src/pages/Errata/errataCorrectionRules.test.mjs src/util/audioHash.test.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },

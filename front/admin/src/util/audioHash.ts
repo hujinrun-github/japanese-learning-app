@@ -14,3 +14,14 @@ export function exampleAudioUrl(hash: string): string {
 export function wordAudioUrl(filename: string): string {
   return `/audio/words/${filename}`
 }
+
+// The words API already returns a normalized path (e.g. /audio/words/<hash>.wav
+// or /api/v1/audio/<id>/stream). Older rows may still hold a bare filename.
+// Prefixing every value with /audio/words/ produced a doubled path, which 404'd
+// and silently fell back to browser TTS in AudioRegenButton.
+export function wordAudioPlaybackURL(value: string | null | undefined): string | undefined {
+  const raw = (value ?? '').trim()
+  if (!raw) return undefined
+  if (raw.startsWith('/') || /^https?:\/\//i.test(raw)) return raw
+  return wordAudioUrl(raw)
+}
