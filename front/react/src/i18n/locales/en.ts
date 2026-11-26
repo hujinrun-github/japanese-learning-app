@@ -106,6 +106,14 @@ const en = {
     levelSettings: 'Change practice levels',
     ungraded: 'Unrated',
     emptyForLevels: 'No unpracticed translation questions at {{levels}}.',
+    noReference: 'This question has no reference translation yet.',
+    assessment: {
+      reference_match: { title: 'Correct', detail: 'Your translation matches the reference.' },
+      equivalent: { title: 'Correct · Equivalent wording', detail: 'Your wording differs from the reference and preserves its meaning.' },
+      meaning_changed: { title: 'Meaning changed', detail: 'Your translation reverses an affirmation or negation. Check the reference translation.' },
+      unrecognized: { title: 'Self-check', detail: 'Local rules could not verify this translation. Compare the original and the reference for omissions or changes in meaning.' },
+      no_reference: { title: 'Unable to assess', detail: 'The question bank has no reference translation for this exercise yet.' },
+    },
   },
   settings: {
     title: 'Settings',

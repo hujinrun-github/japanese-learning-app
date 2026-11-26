@@ -106,6 +106,14 @@ const zh = {
     levelSettings: '调整练习等级',
     ungraded: '未分级',
     emptyForLevels: '{{levels}} 暂无未练习的翻译题。',
+    noReference: '这道题暂无参考译文。',
+    assessment: {
+      reference_match: { title: '译文正确', detail: '你的译文与参考译文一致。' },
+      equivalent: { title: '译文正确 · 同义表达', detail: '你的措辞与参考译文不同，意思一致。' },
+      meaning_changed: { title: '意思有变化', detail: '译文改变了原句的肯定或否定，请核对参考译文。' },
+      unrecognized: { title: '需自查', detail: '本地规则暂时无法确认这句译文。请对照原句和参考译文，检查有没有漏译或改变原意。' },
+      no_reference: { title: '暂无法判定', detail: '题库还没有这道题的参考译文。' },
+    },
   },
   settings: {
     title: '设置',

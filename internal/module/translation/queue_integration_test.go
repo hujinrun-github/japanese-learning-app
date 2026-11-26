@@ -68,7 +68,7 @@ func TestTranslationPracticeSkipsSubmittedPrompts(t *testing.T) {
 
 	const secret = "translation-queue-test"
 	mux := http.NewServeMux()
-	translation.NewTranslationHandler(translation.NewTranslationService(store, nil, nil)).RegisterRoutes(mux)
+	translation.NewTranslationHandler(translation.NewTranslationService(store, nil)).RegisterRoutes(mux)
 	handler := user.AuthMiddleware(secret, mux)
 	const daily = "/api/v1/translation/queue?count=20"
 	bySource := func(id int64) string {

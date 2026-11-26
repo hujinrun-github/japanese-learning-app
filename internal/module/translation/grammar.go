@@ -9,7 +9,6 @@ import (
 
 const (
 	grammarSourceBank  = "bank"
-	grammarSourceAI    = "ai"
 	grammarSourceLocal = "local"
 )
 
@@ -20,7 +19,7 @@ func grammarText(direction, source, reference string) string {
 	return source
 }
 
-func applyGrammarFeedback(feedback *TranslationFeedback, sentence TranslationSentence, reference string) {
+func referenceGrammar(sentence TranslationSentence, reference string) (string, []GrammarExplanation) {
 	japanese := grammarText(sentence.Direction, sentence.SourceText, reference)
 	var bankItems []GrammarExplanation
 	var rejected []string
@@ -43,42 +42,18 @@ func applyGrammarFeedback(feedback *TranslationFeedback, sentence TranslationSen
 			"rejected", rejected, "japanese", japanese)
 	}
 	if len(bankItems) > 0 {
-		feedback.GrammarExplanations = bankItems
-		feedback.GrammarSource = grammarSourceBank
-		return
+		return grammarSourceBank, bankItems
 	}
-	if feedback.GrammarSource == grammarSourceLocal {
-		return
+	if localItems := detectGrammarExplanations(japanese); len(localItems) > 0 {
+		return grammarSourceLocal, localItems
 	}
-
-	var verified []GrammarExplanation
-	for _, item := range feedback.GrammarExplanations {
-		point := strings.TrimSpace(item.GrammarPoint)
-		evidence := strings.TrimSpace(item.Evidence)
-		explanation := strings.TrimSpace(item.Explanation)
-		if point == "" || explanation == "" || seen[point] ||
-			utf8.RuneCountInString(evidence) < 2 || !strings.Contains(japanese, evidence) {
-			continue
-		}
-		seen[point] = true
-		verified = append(verified, GrammarExplanation{GrammarPoint: point, Evidence: evidence, Explanation: explanation})
-	}
-	if len(verified) > 0 {
-		feedback.GrammarExplanations = verified
-		feedback.GrammarSource = grammarSourceAI
-		return
-	}
-	feedback.GrammarExplanations = detectGrammarExplanations(japanese)
-	feedback.GrammarSource = ""
-	if len(feedback.GrammarExplanations) > 0 {
-		feedback.GrammarSource = grammarSourceLocal
-	}
+	return "", nil
 }
 
 // bankGrammarEvidence returns the literal Japanese substring that proves a
 // question-bank annotation occurs in this sentence. Category labels such as
 // 動詞 / 可能形 and one-character particles have no literal evidence, so they
-// are rejected and the reviewer's own analysis can take over.
+// are rejected and local clause detection can take over.
 func bankGrammarEvidence(japanese, point string) string {
 	evidence := strings.TrimLeft(strings.TrimSpace(point), "〜～~")
 	if utf8.RuneCountInString(evidence) < 2 || !strings.Contains(japanese, evidence) {

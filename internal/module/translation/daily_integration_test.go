@@ -43,7 +43,7 @@ func TestTranslationDailyPracticeMatchesSavedLevels(t *testing.T) {
 	}
 	const secret = "translation-level-test"
 	mux := http.NewServeMux()
-	translation.NewTranslationHandler(translation.NewTranslationService(st, nil, nil)).RegisterRoutes(mux)
+	translation.NewTranslationHandler(translation.NewTranslationService(st, nil)).RegisterRoutes(mux)
 	handler := user.AuthMiddleware(secret, mux)
 	token, _, err := user.SignToken(1, secret, time.Hour)
 	if err != nil {
@@ -143,7 +143,7 @@ func TestTranslationDailyProgressAndQueueUseTheScheduledGoal(t *testing.T) {
 	const secret = "translation-daily-test"
 	const queue = "/api/v1/translation/queue"
 	mux := http.NewServeMux()
-	translation.NewTranslationHandler(translation.NewTranslationService(store, nil, studyplan.ResolveTranslationTarget)).RegisterRoutes(mux)
+	translation.NewTranslationHandler(translation.NewTranslationService(store, studyplan.ResolveTranslationTarget)).RegisterRoutes(mux)
 	handler := user.AuthMiddleware(secret, mux)
 
 	for i, tc := range []struct {

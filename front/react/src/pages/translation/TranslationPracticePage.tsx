@@ -12,7 +12,7 @@ import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { grammarSearchPath, translationRoundPath } from './grammarLink'
 import styles from './TranslationPracticePage.module.css'
 
-const grammarSourceLabels = { bank: '题库标注', ai: 'AI 分析', local: '本地规则' }
+const grammarSourceLabels = { bank: '题库标注', local: '本地规则' }
 
 export function TranslationPracticePage() {
   const { t } = useTranslation()
@@ -72,7 +72,6 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [currentResult, setCurrentResult] = useState<TranslationRecord | null>(null)
-  const [aiPolling, setAiPolling] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -117,35 +116,11 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
       })
       setCurrentResult(rec)
       refreshProgress()
-
-      if (rec && !rec.ai_feedback && rec.score === rec.rule_score) {
-        setAiPolling(true)
-        pollForAIFeedback(rec.id)
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submit failed')
     } finally {
       setSubmitting(false)
     }
-  }
-
-  async function pollForAIFeedback(recordID: number) {
-    let attempts = 0
-    const maxAttempts = 15
-    const interval = setInterval(async () => {
-      attempts++
-      try {
-        const rec = await apiFetch<TranslationRecord>('GET', `/api/v1/translation/records/${recordID}`)
-        if (rec?.ai_feedback || attempts >= maxAttempts) {
-          clearInterval(interval)
-          setAiPolling(false)
-          if (rec) setCurrentResult(current => current?.id === recordID ? rec : current)
-        }
-      } catch {
-        clearInterval(interval)
-        setAiPolling(false)
-      }
-    }, 2000)
   }
 
   function handleNext() {
@@ -201,11 +176,12 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
 
   const sentence = sentences[currentIdx]
   const directionLabel = sentence.direction === 'jp2cn' ? '日→中' : '中→日'
-  const reference = currentResult?.reference_translation?.trim() || currentResult?.ai_feedback?.reference_translation?.trim()
-  const referenceTokens = sentence.direction === 'cn2jp' ? currentResult?.reference_tokens : undefined
-  const correction = currentResult?.ai_feedback?.corrected_translation?.trim()
-  const grammarSource = currentResult?.ai_feedback?.grammar_source
-  const grammar = grammarSource ? currentResult?.ai_feedback?.grammar_explanations : undefined
+  const reference = currentResult?.reference_translation?.trim()
+  const referenceTokens = currentResult?.reference_tokens
+  const assessment = currentResult?.assessment
+  const assessmentResult = assessment?.result ?? 'unrecognized'
+  const grammarSource = assessment?.grammar_source
+  const grammar = assessment?.grammar_explanations
 
   return (
     <div className={styles.page}>
@@ -246,22 +222,9 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
 
       {currentResult && (
         <div className={styles.result}>
-          <div className={styles.scores}>
-            <div className={styles.scoreItem}>
-              <span className={styles.scoreLabel}>即时评分</span>
-              <span className={styles.scoreValue}>{currentResult.rule_score}</span>
-            </div>
-            {currentResult.ai_feedback ? (
-              <div className={styles.scoreItem}>
-                <span className={styles.scoreLabel}>AI 评分</span>
-                <span className={styles.scoreValue}>{currentResult.ai_feedback.ai_score}</span>
-              </div>
-            ) : aiPolling ? (
-              <div className={styles.scoreItem}>
-                <span className={styles.scoreLabel}>AI 评分中…</span>
-                <Spinner size="sm" />
-              </div>
-            ) : null}
+          <div className={styles.assessment} data-result={assessmentResult} role="status">
+            <p className={styles.assessmentTitle}>{t(`translation.assessment.${assessmentResult}.title`)}</p>
+            <p className={styles.assessmentDetail}>{t(`translation.assessment.${assessmentResult}.detail`)}</p>
           </div>
 
           <section className={styles.referenceSection} aria-labelledby="translation-reference">
@@ -277,11 +240,11 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
                 {sentence.direction === 'cn2jp' && <DictionaryButton text={reference} />}
               </>
             ) : (
-              <p className={styles.grammarEmpty}>{aiPolling ? '正在获取参考译文…' : '这道题暂无参考译文。'}</p>
+              <p className={styles.grammarEmpty}>{t('translation.noReference')}</p>
             )}
           </section>
 
-          {currentResult.ai_feedback && (
+          {assessment && (
             <div className={styles.grammarSection}>
               <p className={styles.grammarLabel}>📚 涉及语法</p>
               {grammarSource && grammar?.length ? (
@@ -307,20 +270,6 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
               ) : (
                 <p className={styles.grammarEmpty}>本句暂无可靠的语法标注。</p>
               )}
-            </div>
-          )}
-
-          {currentResult.ai_feedback?.issue_description && (
-            <div className={styles.commentary}>
-              <p className={styles.commentaryLabel}>💬 AI 点评</p>
-              <p className={styles.commentaryText}>{currentResult.ai_feedback.issue_description}</p>
-            </div>
-          )}
-
-          {correction && correction !== reference && (
-            <div className={styles.correctedSection}>
-              <p className={styles.correctedLabel}>修改建议</p>
-              <p className={styles.correctedText}>{correction}</p>
             </div>
           )}
         </div>

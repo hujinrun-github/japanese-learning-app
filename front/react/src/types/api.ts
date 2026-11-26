@@ -424,6 +424,12 @@ export interface TranslationFeedback {
   reference_translation: string
 }
 
+export interface TranslationAssessment {
+  result: 'reference_match' | 'equivalent' | 'meaning_changed' | 'unrecognized' | 'no_reference'
+  grammar_explanations?: GrammarExplanation[]
+  grammar_source?: 'bank' | 'local'
+}
+
 export interface TranslationSource {
   id: number
   title: string
@@ -453,9 +459,10 @@ export interface TranslationRecord {
   user_translation: string
   reference_translation?: string
   reference_tokens?: FuriganaToken[]
-  score: number
-  rule_score: number
+  score?: number
+  rule_score?: number
   ai_feedback?: TranslationFeedback
+  assessment?: TranslationAssessment
   practiced_at: string
 }
 

@@ -106,6 +106,14 @@ const ja = {
     levelSettings: '練習レベルを変更',
     ungraded: 'レベル未設定',
     emptyForLevels: '{{levels}} に未練習の翻訳問題はありません。',
+    noReference: 'この問題にはまだ参考訳がありません。',
+    assessment: {
+      reference_match: { title: '正解', detail: 'あなたの訳は参考訳と一致しています。' },
+      equivalent: { title: '正解・同じ意味', detail: '表現は違いますが、参考訳と同じ意味です。' },
+      meaning_changed: { title: '意味が変わっています', detail: '肯定・否定が変わっています。参考訳を確認してください。' },
+      unrecognized: { title: '自分で確認', detail: 'ローカル判定では確認できませんでした。原文と参考訳を見比べ、抜けや意味の違いを確認してください。' },
+      no_reference: { title: '判定できません', detail: 'この問題にはまだ参考訳がありません。' },
+    },
   },
   settings: {
     title: '設定',

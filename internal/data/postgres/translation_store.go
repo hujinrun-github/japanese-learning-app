@@ -410,12 +410,27 @@ func (s *TranslationStore) SaveRecord(r translation.TranslationRecord) (int64, e
 		feedbackJSON = raw
 	}
 
+	var assessmentJSON *string
+	if r.Assessment != nil {
+		raw, err := json.Marshal(r.Assessment)
+		if err != nil {
+			return 0, fmt.Errorf("postgres.TranslationStore.SaveRecord marshal local assessment: %w", err)
+		}
+		serialized := string(raw)
+		assessmentJSON = &serialized
+	}
+
 	sent, err := s.GetSentenceByID(r.SentenceID)
 	if err != nil {
 		return 0, err
 	}
 	if sent == nil {
 		return 0, fmt.Errorf("postgres.TranslationStore.SaveRecord sentence %d: %w", r.SentenceID, sql.ErrNoRows)
+	}
+
+	reference := sent.ReferenceTranslation
+	if r.Assessment != nil {
+		reference = r.ReferenceTranslation
 	}
 
 	practicedAt := r.PracticedAt
@@ -428,8 +443,8 @@ func (s *TranslationStore) SaveRecord(r translation.TranslationRecord) (int64, e
 		context.Background(),
 		`INSERT INTO translation_records
 		 (user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json,
-		  source_text_snapshot, direction_snapshot, reference_translation_snapshot, position_snapshot, practiced_at)
-		 VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11)
+		  source_text_snapshot, direction_snapshot, reference_translation_snapshot, position_snapshot, practiced_at, local_assessment_json)
+		 VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12::jsonb)
 		 RETURNING id`,
 		r.UserID,
 		r.SentenceID,
@@ -439,9 +454,10 @@ func (s *TranslationStore) SaveRecord(r translation.TranslationRecord) (int64, e
 		string(feedbackJSON),
 		sent.SourceText,
 		sent.Direction,
-		sent.ReferenceTranslation,
+		reference,
 		sent.Position,
 		practicedAt.UTC(),
+		assessmentJSON,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("postgres.TranslationStore.SaveRecord: %w", translateError(err))
@@ -453,7 +469,7 @@ func (s *TranslationStore) GetRecord(id int64) (*translation.TranslationRecord, 
 	row := s.db.QueryRowContext(
 		context.Background(),
 		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at,
-		        reference_translation_snapshot, direction_snapshot
+		        reference_translation_snapshot, direction_snapshot, local_assessment_json::text
 		 FROM translation_records WHERE id = $1`,
 		id,
 	)
@@ -471,7 +487,7 @@ func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationR
 	rows, err := s.db.QueryContext(
 		context.Background(),
 		`SELECT id, user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json::text, practiced_at,
-		        reference_translation_snapshot, direction_snapshot
+		        reference_translation_snapshot, direction_snapshot, local_assessment_json::text
 		 FROM translation_records WHERE user_id = $1
 		 ORDER BY practiced_at DESC, id DESC`,
 		userID,
@@ -493,37 +509,6 @@ func (s *TranslationStore) ListRecords(userID int64) ([]translation.TranslationR
 		return nil, fmt.Errorf("postgres.TranslationStore.ListRecords rows: %w", translateError(err))
 	}
 	return items, nil
-}
-
-func (s *TranslationStore) UpdateRecordFeedback(recordID int64, score int, feedbackJSON string) error {
-	if feedbackJSON == "" {
-		feedbackJSON = "{}"
-	}
-
-	_, err := s.db.ExecContext(
-		context.Background(),
-		`UPDATE translation_records SET score = $2, ai_feedback_json = $3::jsonb WHERE id = $1`,
-		recordID,
-		score,
-		feedbackJSON,
-	)
-	if err != nil {
-		return fmt.Errorf("postgres.TranslationStore.UpdateRecordFeedback: %w", translateError(err))
-	}
-	return nil
-}
-
-func (s *TranslationStore) UpdateSentenceReference(sentenceID int64, reference string) error {
-	_, err := s.db.ExecContext(
-		context.Background(),
-		`UPDATE translation_sentences SET reference_translation = $2 WHERE id = $1 AND TRIM(reference_translation) = ''`,
-		sentenceID,
-		reference,
-	)
-	if err != nil {
-		return fmt.Errorf("postgres.TranslationStore.UpdateSentenceReference: %w", translateError(err))
-	}
-	return nil
 }
 
 func (s *TranslationStore) DeleteSource(id int64) error {
@@ -565,6 +550,7 @@ func scanTranslationRecord(row interface {
 }) (*translation.TranslationRecord, error) {
 	var record translation.TranslationRecord
 	var feedbackJSON string
+	var assessmentJSON sql.NullString
 	if err := row.Scan(
 		&record.ID,
 		&record.UserID,
@@ -576,6 +562,7 @@ func scanTranslationRecord(row interface {
 		&record.PracticedAt,
 		&record.ReferenceTranslation,
 		&record.Direction,
+		&assessmentJSON,
 	); err != nil {
 		return nil, fmt.Errorf("postgres.scanTranslationRecord scan: %w", translateError(err))
 	}
@@ -585,6 +572,13 @@ func scanTranslationRecord(row interface {
 			return nil, fmt.Errorf("postgres.scanTranslationRecord unmarshal ai_feedback: %w", err)
 		}
 		record.AIFeedback = &feedback
+	}
+	if assessmentJSON.Valid {
+		var assessment translation.TranslationAssessment
+		if err := json.Unmarshal([]byte(assessmentJSON.String), &assessment); err != nil {
+			return nil, fmt.Errorf("postgres.scanTranslationRecord unmarshal local assessment: %w", err)
+		}
+		record.Assessment = &assessment
 	}
 	return &record, nil
 }

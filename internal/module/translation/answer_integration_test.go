@@ -2,7 +2,6 @@ package translation_test
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"maps"
 	"net/http"
@@ -18,7 +17,7 @@ import (
 	"japanese-learning-app/internal/testdb"
 )
 
-func TestTranslationPracticeReferenceAnswer(t *testing.T) {
+func TestTranslationPracticeLocalAssessment(t *testing.T) {
 	db := testdb.Open(t, (pgdata.Adapter{}).RunMigrations)
 	if _, err := db.Exec(`INSERT INTO users (id, email, password_hash) VALUES
 		(1, 'learner@example.com', 'unused'), (2, 'other@example.com', 'unused')`); err != nil {
@@ -26,31 +25,20 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 	}
 	store := pgdata.NewTranslationStore(db, store.StoreDeps{})
 	const secret = "translation-answer-test"
-	const reference = "雨下得很大。"
-	const generated = "雨下得很猛。"
 	for _, tc := range []struct {
-		name     string
-		stored   string
-		reviewer translation.TranslationReviewer
-		want     string
-		japanese bool
-		readings map[string]string
+		name, source, answer, reference string
+		japanese                        bool
+		readings                        map[string]string
+		want                            translation.AssessmentResult
+		wantGrammar                     string
 	}{
-		{name: "bank answer without AI", stored: reference, want: reference},
-		{name: "bank answer wins over AI alternative", stored: reference, reviewer: &translation.StubReviewer{
-			Feedback: translation.TranslationFeedback{ReferenceTranslation: generated},
-		}, want: reference},
-		{name: "AI creates missing reference", reviewer: &translation.StubReviewer{
-			Feedback: translation.TranslationFeedback{ReferenceTranslation: generated},
-		}, want: generated},
-		{name: "bank answer survives AI error", stored: reference, reviewer: &translation.StubReviewer{Err: errors.New("review unavailable")}, want: reference},
-		{name: "no reference available", reviewer: &translation.StubReviewer{}},
-		{name: "Japanese bank answer", stored: "バス賃はいくらですか？", want: "バス賃はいくらですか？", japanese: true, readings: map[string]string{"賃": "ちん"}},
-		{name: "Japanese generated answer", reviewer: &translation.StubReviewer{
-			Feedback: translation.TranslationFeedback{ReferenceTranslation: "今日、一人で行きます。"},
-		}, want: "今日、一人で行きます。", japanese: true, readings: map[string]string{"今日": "きょう", "一人": "ひとり", "行き": "いき"}},
-		{name: "unresolved date keeps its original text", stored: "四月一日です。", want: "四月一日です。", japanese: true, readings: map[string]string{"四月": "しがつ"}},
-		{name: "kana-only answer", stored: "ありがとうございます。", want: "ありがとうございます。", japanese: true},
+		{name: "equivalent Chinese answer", source: "バスの運賃はいくらですか？", reference: "公车票价多少？", answer: "公交车的票价是多少钱？", want: translation.AssessmentEquivalent},
+		{name: "equivalent Japanese answer", source: "公车票价多少？", reference: "バス賃はいくらですか？", answer: "バスの運賃はいくらでしょうか。", japanese: true, readings: map[string]string{"賃": "ちん"}, want: translation.AssessmentEquivalent},
+		{name: "Japanese source grammar still available", source: "激しい雨が降っています。", reference: "雨下得很大。", answer: "雨下得真大。", want: translation.AssessmentUnrecognized, wantGrammar: "local"},
+		{name: "negative ending changes meaning", source: "今天不去。", reference: "今日は行きません。", answer: "今日は行きます。", japanese: true, readings: map[string]string{"今日": "きょう", "行き": "いき"}, want: translation.AssessmentMeaningChanged},
+		{name: "no reference available", source: "今日は晴れです。", answer: "今天是晴天。", want: translation.AssessmentNoReference},
+		{name: "unresolved date keeps its original text", source: "是四月一号。", reference: "四月一日です。", answer: "四月一日です。", japanese: true, readings: map[string]string{"四月": "しがつ"}, want: translation.AssessmentReferenceMatch},
+		{name: "kana-only answer", source: "谢谢。", reference: "ありがとうございます。", answer: "ありがとうございます。", japanese: true, want: translation.AssessmentReferenceMatch},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sourceID, err := store.SaveSource(translation.TranslationSource{Title: tc.name, SourceType: "manual"})
@@ -58,17 +46,17 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 				t.Fatal(err)
 			}
 			sentence := translation.TranslationSentence{
-				SourceID: sourceID, Direction: "jp2cn", SourceText: "激しい雨が降っています。", ReferenceTranslation: tc.stored, JLPTLevel: "N5",
+				SourceID: sourceID, Direction: "jp2cn", SourceText: tc.source, ReferenceTranslation: tc.reference, JLPTLevel: "N5",
 			}
 			if tc.japanese {
-				sentence.Direction, sentence.SourceText = "cn2jp", "公车票价多少？"
+				sentence.Direction = "cn2jp"
 			}
 			sentenceID, err := store.SaveSentence(sentence)
 			if err != nil {
 				t.Fatal(err)
 			}
 			mux := http.NewServeMux()
-			translation.NewTranslationHandler(translation.NewTranslationService(store, tc.reviewer, nil)).RegisterRoutes(mux)
+			translation.NewTranslationHandler(translation.NewTranslationService(store, nil)).RegisterRoutes(mux)
 			handler := user.AuthMiddleware(secret, mux)
 			request := func(userID int64, method, path, body string, status int) *httptest.ResponseRecorder {
 				t.Helper()
@@ -109,9 +97,11 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 
 			type recordResponse struct {
 				Data struct {
-					ID        int64  `json:"id"`
-					Reference string `json:"reference_translation"`
-					Tokens    []struct {
+					ID         int64                              `json:"id"`
+					Reference  string                             `json:"reference_translation"`
+					Assessment *translation.TranslationAssessment `json:"assessment"`
+					AIFeedback json.RawMessage                    `json:"ai_feedback"`
+					Tokens     []struct {
 						Surface string `json:"surface"`
 						Reading string `json:"reading"`
 					} `json:"reference_tokens"`
@@ -123,8 +113,8 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 				if err := json.Unmarshal(resp.Body.Bytes(), &result); err != nil {
 					t.Fatal(err)
 				}
-				if result.Data.Reference != tc.want {
-					t.Errorf("reference = %q, want %q", result.Data.Reference, tc.want)
+				if result.Data.Reference != tc.reference {
+					t.Errorf("reference = %q, want %q", result.Data.Reference, tc.reference)
 				}
 				if len(tc.readings) == 0 && len(result.Data.Tokens) > 0 {
 					t.Errorf("unexpected reference tokens: %+v", result.Data.Tokens)
@@ -138,17 +128,26 @@ func TestTranslationPracticeReferenceAnswer(t *testing.T) {
 							readings[part.Surface] = part.Reading
 						}
 					}
-					if surfaces.String() != tc.want {
-						t.Errorf("annotated text = %q, want %q", surfaces.String(), tc.want)
+					if surfaces.String() != tc.reference {
+						t.Errorf("annotated text = %q, want %q", surfaces.String(), tc.reference)
 					}
 					if !maps.Equal(readings, tc.readings) {
 						t.Errorf("readings = %v, want %v", readings, tc.readings)
 					}
 				}
+				if result.Data.Assessment == nil || result.Data.Assessment.Result != tc.want || result.Data.Assessment.GrammarSource != tc.wantGrammar {
+					t.Errorf("assessment = %+v, want %q with grammar source %q", result.Data.Assessment, tc.want, tc.wantGrammar)
+				}
+				if len(result.Data.AIFeedback) != 0 {
+					t.Errorf("new result unexpectedly includes AI feedback: %s", result.Data.AIFeedback)
+				}
 				return result.Data.ID
 			}
-			body := fmt.Sprintf(`{"sentence_id":%d,"user_translation":"我的回答。"}`, sentenceID)
+			body := fmt.Sprintf(`{"sentence_id":%d,"user_translation":%q}`, sentenceID, tc.answer)
 			recordID := readReference(request(1, http.MethodPost, "/api/v1/translation/submit", body, http.StatusOK))
+			if _, err := db.Exec(`UPDATE translation_sentences SET reference_translation = $1 WHERE id = $2`, "修订后的译文。", sentenceID); err != nil {
+				t.Fatal(err)
+			}
 			recordPath := fmt.Sprintf("/api/v1/translation/records/%d", recordID)
 			readReference(request(1, http.MethodGet, recordPath, "", http.StatusOK))
 			request(2, http.MethodGet, recordPath, "", http.StatusNotFound)

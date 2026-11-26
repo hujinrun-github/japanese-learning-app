@@ -47,7 +47,7 @@ type GrammarExplanation struct {
 	MatchedDBID  int64  `json:"matched_db_id,omitempty"`
 }
 
-// TranslationFeedback is the AI review result.
+// TranslationFeedback preserves feedback from previously graded records.
 type TranslationFeedback struct {
 	AIScore              int                  `json:"ai_score"`
 	GrammarExplanations  []GrammarExplanation `json:"grammar_explanations"`
@@ -57,19 +57,27 @@ type TranslationFeedback struct {
 	ReferenceTranslation string               `json:"reference_translation"`
 }
 
+// TranslationAssessment is the local result saved with a newly submitted answer.
+type TranslationAssessment struct {
+	Result              AssessmentResult     `json:"result"`
+	GrammarExplanations []GrammarExplanation `json:"grammar_explanations,omitempty"`
+	GrammarSource       string               `json:"grammar_source,omitempty"`
+}
+
 // TranslationRecord represents a user's translation practice.
 type TranslationRecord struct {
-	ID                   int64                `json:"id"`
-	UserID               int64                `json:"user_id"`
-	SentenceID           int64                `json:"sentence_id"`
-	Direction            string               `json:"-"`
-	UserTranslation      string               `json:"user_translation"`
-	ReferenceTranslation string               `json:"reference_translation,omitempty"`
-	ReferenceTokens      []word.FuriganaToken `json:"reference_tokens,omitempty"`
-	Score                int                  `json:"score"`
-	RuleScore            int                  `json:"rule_score"`
-	AIFeedback           *TranslationFeedback `json:"ai_feedback,omitempty"`
-	PracticedAt          time.Time            `json:"practiced_at"`
+	ID                   int64                  `json:"id"`
+	UserID               int64                  `json:"user_id"`
+	SentenceID           int64                  `json:"sentence_id"`
+	Direction            string                 `json:"-"`
+	UserTranslation      string                 `json:"user_translation"`
+	ReferenceTranslation string                 `json:"reference_translation,omitempty"`
+	ReferenceTokens      []word.FuriganaToken   `json:"reference_tokens,omitempty"`
+	Score                int                    `json:"score,omitempty"`
+	RuleScore            int                    `json:"rule_score,omitempty"`
+	AIFeedback           *TranslationFeedback   `json:"ai_feedback,omitempty"`
+	Assessment           *TranslationAssessment `json:"assessment,omitempty"`
+	PracticedAt          time.Time              `json:"practiced_at"`
 }
 
 // DailyProgress is the learner's effective translation target and progress.
