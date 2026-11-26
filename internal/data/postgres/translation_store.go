@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"japanese-learning-app/internal/module/mistake"
 	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/store"
 )
@@ -438,30 +439,61 @@ func (s *TranslationStore) SaveRecord(r translation.TranslationRecord) (int64, e
 		practicedAt = s.now().UTC()
 	}
 
+	ctx := context.Background()
 	var id int64
-	err = s.db.QueryRowContext(
-		context.Background(),
-		`INSERT INTO translation_records
-		 (user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json,
-		  source_text_snapshot, direction_snapshot, reference_translation_snapshot, position_snapshot, practiced_at, local_assessment_json)
-		 VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12::jsonb)
-		 RETURNING id`,
-		r.UserID,
-		r.SentenceID,
-		r.UserTranslation,
-		r.Score,
-		r.RuleScore,
-		string(feedbackJSON),
-		sent.SourceText,
-		sent.Direction,
-		reference,
-		sent.Position,
-		practicedAt.UTC(),
-		assessmentJSON,
-	).Scan(&id)
-	if err != nil {
-		return 0, fmt.Errorf("postgres.TranslationStore.SaveRecord: %w", translateError(err))
+	saveAttempt := func(db queryer) error {
+		err := db.QueryRowContext(
+			ctx,
+			`INSERT INTO translation_records
+			 (user_id, sentence_id, user_translation, score, rule_score, ai_feedback_json,
+			  source_text_snapshot, direction_snapshot, reference_translation_snapshot, position_snapshot, practiced_at, local_assessment_json)
+			 VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12::jsonb)
+			 RETURNING id`,
+			r.UserID,
+			r.SentenceID,
+			r.UserTranslation,
+			r.Score,
+			r.RuleScore,
+			string(feedbackJSON),
+			sent.SourceText,
+			sent.Direction,
+			reference,
+			sent.Position,
+			practicedAt.UTC(),
+			assessmentJSON,
+		).Scan(&id)
+		if err != nil {
+			return fmt.Errorf("postgres.TranslationStore.SaveRecord insert: %w", translateError(err))
+		}
+		return nil
 	}
+
+	if r.Assessment == nil || r.Assessment.Result != translation.AssessmentMeaningChanged {
+		if err := saveAttempt(s.db); err != nil {
+			return 0, err
+		}
+		return id, nil
+	}
+
+	err = withQueryerTx(ctx, s.db, func(tx queryer) error {
+		if err := saveAttempt(tx); err != nil {
+			return err
+		}
+		_, err := mistake.NewStore(tx).Save(ctx, r.UserID, mistake.Input{
+			Module:        "translation",
+			ItemKey:       fmt.Sprintf("translation:%d", r.SentenceID),
+			Prompt:        sent.SourceText,
+			UserAnswer:    r.UserTranslation,
+			CorrectAnswer: reference,
+			Explanation:   "译文改变了原句的肯定或否定。",
+			SourcePath:    fmt.Sprintf("/translation/practice?sentence_id=%d", r.SentenceID),
+		})
+		return err
+	})
+	if err != nil {
+		return 0, fmt.Errorf("postgres.TranslationStore.SaveRecord save attempt and mistake: %w", err)
+	}
+
 	return id, nil
 }
 

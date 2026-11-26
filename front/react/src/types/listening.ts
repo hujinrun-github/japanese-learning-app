@@ -65,7 +65,7 @@ export interface SaveListeningProgress {
   stage: ListeningStage
   sentence_index: number
   position_ms: number
-  bookmarks: number[]
+  bookmarks?: number[]
   draft_answers?: ListeningDraft | null
 }
 export interface SubmitListeningAttempt {

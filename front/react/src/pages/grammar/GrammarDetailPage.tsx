@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useSourceAnchor } from '@/hooks/useSourceAnchor'
 import { useState, useEffect } from 'react'
@@ -151,6 +152,7 @@ export function GrammarDetailPage({ fromTranslation = false }: { fromTranslation
 
       <div className={styles.nameRow}>
         <h1 className={styles.name}>{point.name}</h1>
+        <FavoriteButton target={{ kind: 'grammar', key: String(point.id) }} />
         <ErrataButton key={point.id} module="grammar" itemKey={String(point.id)} label={point.name} />
         <Badge level={point.jlpt_level} size="sm" />
         {point.user_status && <StatusBadge status={point.user_status} />}

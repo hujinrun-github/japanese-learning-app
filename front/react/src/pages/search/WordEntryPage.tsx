@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/Badge'
@@ -43,6 +44,7 @@ export function WordEntry({ word, contextualLookup = true }: { word: Word; conte
           <h1 lang="ja">{title}</h1>
           {word.reading !== title && <p lang="ja">{word.reading}</p>}
         </div>
+        <FavoriteButton target={{ kind: 'word', key: String(word.id) }} />
         <Badge level={word.jlpt_level} />
       </header>
       <button type="button" className={styles.audio} onClick={() => void speakWord(word.audio_url, word.reading || title)}>

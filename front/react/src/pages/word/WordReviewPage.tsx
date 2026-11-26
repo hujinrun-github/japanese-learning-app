@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useTodayStudyPlan } from '@/components/studyplan/useTodayStudyPlan'
@@ -445,6 +446,7 @@ export function WordReviewPage() {
           <p className={styles.progress}>
             {t('word.queue.progress', { current: currentIndex + 1, total: queue.length })}
           </p>
+          {card && <FavoriteButton target={{ kind: 'word', key: String(card.word.id) }} />}
           {card && (
             <ErrataButton
               key={`${card.word.id}:${mode}`}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { grammarSearchPath } from './grammarLink'
+import { grammarSearchPath, translationRoundPath } from './grammarLink'
 
 describe('grammarSearchPath', () => {
   it.each([
@@ -17,4 +17,11 @@ describe('grammarSearchPath', () => {
     expect(grammarSearchPath('のに', new URLSearchParams('mode=free&source_id=7&review=true&q=stale&level=N5')))
       .toBe('/translation/practice/grammar?mode=free&source_id=7&review=true&q=%E3%81%AE%E3%81%AB')
   })
+  it('keeps the mistake-book question when opening and returning from grammar', () => {
+    expect(grammarSearchPath('のに', new URLSearchParams('sentence_id=23')))
+      .toBe('/translation/practice/grammar?sentence_id=23&q=%E3%81%AE%E3%81%AB')
+    expect(translationRoundPath(new URLSearchParams('sentence_id=23&q=のに')))
+      .toBe('/translation/practice?sentence_id=23')
+  })
+
 })

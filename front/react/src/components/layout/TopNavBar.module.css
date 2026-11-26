@@ -35,14 +35,16 @@
 
 .nav {
   display: flex;
+  align-items: center;
   gap: var(--space-1);
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
 }
 
 .link {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
@@ -64,6 +66,26 @@
   color: var(--color-brand);
   font-weight: var(--font-weight-semibold);
 }
+
+.navGroup { position: relative; }
+
+.trigger {
+  gap: var(--space-2);
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+.trigger.active { background: var(--color-brand-light); }
+
+.chevron {
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.trigger[aria-expanded="true"] .chevron { transform: translateY(2px) rotate(225deg); }
 
 .userIcon {
   width: 44px; height: 44px;
@@ -110,6 +132,12 @@
   transform-origin: top right;
 }
 
+.navDropdown {
+  right: auto;
+  left: 0;
+  transform-origin: top left;
+}
+
 @keyframes dropIn {
   from { opacity: 0; transform: scale(0.95) translateY(-4px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
@@ -126,11 +154,17 @@
   font-size: var(--font-size-sm);
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
   transition: all var(--transition-fast);
 }
 .dropdownItem:hover {
   background: var(--color-brand-subtle);
   color: var(--color-text);
+}
+
+.dropdownItem.active {
+  background: var(--color-brand-light);
+  color: var(--color-brand);
 }
 
 @media (max-width: 1180px) {

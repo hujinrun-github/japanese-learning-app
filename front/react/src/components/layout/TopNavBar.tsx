@@ -1,27 +1,56 @@
-import { useState, useRef, useEffect } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect, type FocusEvent } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
-import { ACCOUNT_NAV_ITEMS, DESKTOP_NAV_ITEMS } from './navigation'
+import { ACCOUNT_NAV_ITEMS, DESKTOP_NAV_GROUPS, DESKTOP_PRIMARY_ITEMS, activeDesktopGroup, type DesktopGroupID } from './navigation'
 import styles from './TopNavBar.module.css'
+
+type Menu = DesktopGroupID | 'account'
 
 export function TopNavBar() {
   const { user, logout } = useAuth()
   const { t } = useTranslation()
+  const location = useLocation()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [openMenu, setOpenMenu] = useState<Menu | null>(null)
+  const openTrigger = useRef<HTMLButtonElement | null>(null)
+  const activeGroup = activeDesktopGroup(location.pathname)
+
+  useEffect(() => { setOpenMenu(null) }, [location.key])
 
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
+    if (!openMenu) return
+    function handleOutsideClick(event: PointerEvent) {
+      if (!openTrigger.current?.parentElement?.contains(event.target as Node)) setOpenMenu(null)
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      openTrigger.current?.focus()
+      setOpenMenu(null)
+    }
+    document.addEventListener('pointerdown', handleOutsideClick)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [openMenu])
+
+  function toggleMenu(menu: Menu, trigger: HTMLButtonElement) {
+    openTrigger.current = trigger
+    setOpenMenu(current => current === menu ? null : menu)
+  }
+
+  function dismissOnBlur(event: FocusEvent<HTMLDivElement>) {
+    if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpenMenu(null)
+  }
+
+  function navigateFromMenu(path: string) {
+    setOpenMenu(null)
+    navigate(path)
+  }
 
   return (
     <header className={styles.header}>
@@ -31,44 +60,65 @@ export function TopNavBar() {
           <span className={styles.logoText}>{t('common.appName')}</span>
         </NavLink>
 
-        <nav className={styles.nav}>
-          {DESKTOP_NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}
-            >
+        <nav className={styles.nav} aria-label={t('nav.mainNav')}>
+          {DESKTOP_PRIMARY_ITEMS.map(item => (
+            <NavLink key={item.to} to={item.to} end={item.end}
+              onClick={() => setOpenMenu(null)}
+              className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
               {t(item.labelKey)}
             </NavLink>
           ))}
+          {DESKTOP_NAV_GROUPS.map(group => {
+            const menuID = `desktop-nav-${group.id}`
+            return (
+              <div className={styles.navGroup} key={group.id} onBlur={dismissOnBlur}>
+                <button type="button" className={`${styles.link} ${styles.trigger} ${activeGroup === group.id ? styles.active : ''}`}
+                  aria-expanded={openMenu === group.id} aria-controls={menuID}
+                  aria-current={activeGroup === group.id ? 'true' : undefined}
+                  onClick={event => toggleMenu(group.id, event.currentTarget)}>
+                  {t(group.labelKey)}
+                  <span className={styles.chevron} aria-hidden="true" />
+                </button>
+                <div className={`${styles.dropdown} ${styles.navDropdown}`} id={menuID} hidden={openMenu !== group.id}>
+                  {group.items.map(item => (
+                    <NavLink key={item.to} to={item.to} end={item.end}
+                      onClick={() => setOpenMenu(null)}
+                      className={({ isActive }) => `${styles.dropdownItem} ${isActive ? styles.active : ''}`}>
+                      <span aria-hidden="true">{item.icon}</span>
+                      {t(item.labelKey)}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </nav>
 
         <div className={styles.user}>
           <div className={styles.desktopLanguage}><LanguageSwitcher /></div>
-          <div className={styles.userMenu} ref={menuRef}>
+          <div className={styles.userMenu} onBlur={dismissOnBlur}>
             <button
+              type="button"
               className={styles.userIcon}
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={event => toggleMenu('account', event.currentTarget)}
               title={t('nav.settings')}
               aria-label={t('nav.accountMenu')}
-              aria-expanded={menuOpen}
+              aria-expanded={openMenu === 'account'}
+              aria-controls="desktop-account-menu"
             >
               👤
             </button>
-            {menuOpen && (
-              <div className={styles.dropdown}>
-                <button className={styles.dropdownItem} onClick={() => { navigate('/'); setMenuOpen(false) }}>🏠 {t('nav.home')}</button>
-                {ACCOUNT_NAV_ITEMS.map((item) => (
-                  <button key={item.to} className={styles.dropdownItem} onClick={() => { navigate(item.to); setMenuOpen(false) }}>
-                    <span aria-hidden="true">{item.icon}</span> {t(item.labelKey)}
-                  </button>
-                ))}
-                <button className={styles.dropdownItem} onClick={() => { logout(); setMenuOpen(false) }}>
-                  ➡ {t('nav.logout')}
+            <div className={styles.dropdown} id="desktop-account-menu" hidden={openMenu !== 'account'}>
+              <button type="button" className={styles.dropdownItem} onClick={() => navigateFromMenu('/')}>🏠 {t('nav.home')}</button>
+              {ACCOUNT_NAV_ITEMS.map(item => (
+                <button type="button" key={item.to} className={styles.dropdownItem} onClick={() => navigateFromMenu(item.to)}>
+                  <span aria-hidden="true">{item.icon}</span> {t(item.labelKey)}
                 </button>
-              </div>
-            )}
+              ))}
+              <button type="button" className={styles.dropdownItem} onClick={() => { setOpenMenu(null); logout() }}>
+                ➡ {t('nav.logout')}
+              </button>
+            </div>
           </div>
           {user && <span className={styles.userName}>{user.name}</span>}
         </div>

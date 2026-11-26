@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
 import { useState, useEffect, useRef } from 'react'
@@ -285,6 +286,7 @@ export function WritingQueuePage() {
             <p className={styles.prompt} id="writing-instructions">
               {mode === 'essay' ? topic.essay_prompt : topic.sentence_prompt}
             </p>
+            <FavoriteButton target={{ kind: 'writing', key: String(topic.id) }} />
             <ErrataButton
               key={`${topic.id}:${mode}`}
               module="writing"

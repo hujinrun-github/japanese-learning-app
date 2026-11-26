@@ -24,6 +24,7 @@
 .assessmentDetail { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: var(--line-height-relaxed); }
 .assessment[data-result="reference_match"], .assessment[data-result="equivalent"] { background: var(--color-success-light); border-color: var(--color-success); }
 .assessment[data-result="meaning_changed"] { background: var(--color-error-light); border-color: var(--color-error); }
+.mistakeLink { display: inline-block; margin-top: var(--space-2); color: var(--color-brand); font-size: var(--font-size-sm); font-weight: 600; }
 
 .grammarSection { padding: var(--space-5); background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: var(--space-4); }
 .grammarLabel { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); margin: 0 0 var(--space-3) 0; }

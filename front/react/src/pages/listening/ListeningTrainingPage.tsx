@@ -1,3 +1,6 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
+import { useFavorites } from '@/pages/favorites/FavoritesProvider'
+import { useSourceAnchor } from '@/hooks/useSourceAnchor'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { completeListening, getListeningMaterials, getListeningSession, saveListeningProgress, submitListeningAttempt } from '@/api/listening'
@@ -17,11 +20,17 @@ export function ListeningTrainingPage() {
   const { id } = useParams()
   const [search] = useSearchParams()
   const filters = getListeningFilters(search)
-  return <ListeningTraining key={listeningPath(filters, Number(id))} materialID={Number(id)} filters={filters} />
+  const requestedSentence = search.get('sentence')
+  const favoriteSentence = requestedSentence && /^\d+$/.test(requestedSentence) ? Number(requestedSentence) : null
+  return <ListeningTraining key={`${listeningPath(filters, Number(id))}:${favoriteSentence}`}
+    materialID={Number(id)} filters={filters} favoriteSentence={favoriteSentence} />
 }
 
-function ListeningTraining({ materialID, filters }: { materialID: number; filters: ReturnType<typeof getListeningFilters> }) {
+function ListeningTraining({ materialID, filters, favoriteSentence }: {
+  materialID: number; filters: ReturnType<typeof getListeningFilters>; favoriteSentence: number | null
+}) {
   const navigate = useNavigate()
+  const favorites = useFavorites()
   const backPath = listeningPath(filters)
   const [session, setSession] = useState<ListeningSession | null>(null)
   const [exercise, setExercise] = useState<Exercise>(() => restoreExercise())
@@ -64,7 +73,8 @@ function ListeningTraining({ materialID, filters }: { materialID: number; filter
       const restored = restoreExercise(data.progress)
       setSession(data)
       publish(restored)
-      setReview(null)
+      const hasFavorite = favoriteSentence !== null && data.lesson.sentences.some(sentence => sentence.index === favoriteSentence)
+      setReview(hasFavorite ? { stage: 'intensive', sentenceIndex: favoriteSentence } : null)
       positionRef.current = restored.positionMs
       lastSavedPosition.current = restored.positionMs
       setShowJapanese(false)
@@ -78,7 +88,7 @@ function ListeningTraining({ materialID, filters }: { materialID: number; filter
       if (!controller.signal.aborted) setError(message(err, '听力训练加载失败'))
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [materialID, retry])
+  }, [materialID, retry, favoriteSentence])
 
   useEffect(() => () => {
     nextRequest.current?.abort()
@@ -99,7 +109,6 @@ function ListeningTraining({ materialID, filters }: { materialID: number; filter
       stage: next.stage,
       sentence_index: next.sentenceIndex,
       position_ms: Math.min(maxPosition, Math.max(0, Math.round(positionMs))),
-      bookmarks: next.bookmarks,
       draft_answers: phase && !submitted ? { phase, answers: answerList(session?.questions ?? [], next.answers[phase]), assisted: next.assisted[phase] } : null,
     }
   }
@@ -282,18 +291,16 @@ function ListeningTraining({ materialID, filters }: { materialID: number; filter
     }
   }
 
-  function toggleBookmark(index: number) {
-    if (mutatingRef.current) return
-    const current = stateRef.current
-    const next = { ...current, bookmarks: current.bookmarks.includes(index) ? current.bookmarks.filter((item) => item !== index) : [...current.bookmarks, index].sort((a, b) => a - b) }
-    publish(next)
-    void persist(next).catch(() => undefined)
-  }
+  useSourceAnchor(favoriteSentence === null ? null : `listening-sentence-${favoriteSentence}`,
+    !loading && review?.stage === 'intensive')
 
   if (loading) return <div className={styles.page}><div className={styles.loading}><Spinner /><span>正在恢复听力训练…</span></div></div>
   if (!session) return <div className={styles.page}><Link to={backPath}>返回听力库</Link><div className={styles.error} role="alert"><p>{error}</p><Button onClick={() => setRetry((value) => value + 1)}>重试加载</Button></div></div>
 
   const { lesson, questions, attempts } = session
+  const bookmarkCount = favorites?.status === 'ready'
+    ? lesson.sentences.filter(sentence => favorites.keys.has(`listening_sentence/${materialID}:${sentence.index}`)).length
+    : exercise.bookmarks.length
   const stage = review?.stage ?? exercise.stage
   const completed = exercise.stage === 'completed'
   const blind = attempts.find((attempt) => attempt.phase === 'blind')
@@ -336,7 +343,7 @@ function ListeningTraining({ materialID, filters }: { materialID: number; filter
 
   return <div className={styles.page}>
     <div className={styles.practiceNav}><Link to={backPath}>返回听力库</Link><span className={styles.muted} role="status">{saveStatus === 'saving' ? '正在保存…' : saveStatus === 'failed' ? '保存失败' : '进度已保存'}</span></div>
-    <header className={styles.header}><div><p className={styles.eyebrow}>🎧 教材精听</p><h1 lang="ja">{lesson.title}</h1></div><Badge level={lesson.jlpt_level} /></header>
+    <header className={styles.header}><div><p className={styles.eyebrow}>🎧 教材精听</p><h1 lang="ja">{lesson.title}</h1></div><div className={styles.sentenceActions}><Badge level={lesson.jlpt_level} /><FavoriteButton target={{ kind: 'listening', key: String(materialID) }} /></div></header>
     <nav className={styles.stepNav} aria-label="训练步骤" aria-describedby={stepHint ? 'listening-step-hint' : undefined}>
       <ol className={styles.steps}>{stages.map((item, index) => <li key={item}>
         <button
@@ -401,15 +408,14 @@ function ListeningTraining({ materialID, filters }: { materialID: number; filter
     </section>}
 
     {intensive && <section className={styles.intensivePanel} aria-label="逐句精听">
-      <div className={styles.sectionHeading}><h2>逐句突破</h2><span className={styles.muted}>已收藏 {exercise.bookmarks.length} 个难句</span></div>
+      <div className={styles.sectionHeading}><h2>逐句突破</h2><span className={styles.muted}>已收藏 {bookmarkCount} 个难句</span></div>
       <div className={styles.textToggles}><button type="button" aria-pressed={showJapanese} onClick={() => setShowJapanese(!showJapanese)}>{showJapanese ? '隐藏' : '显示'}日文</button><button type="button" aria-pressed={showChinese} onClick={() => setShowChinese(!showChinese)}>{showChinese ? '隐藏' : '显示'}中文</button></div>
       <div className={styles.sentences}>{lesson.sentences.map((sentence) => {
         const bounds = sentenceBounds(sentence)
         const selected = sentence.index === sentenceIndex
-        const bookmarked = exercise.bookmarks.includes(sentence.index)
         const japanese = sentence.tokens.map((token) => token.surface).join('')
-        return <article key={sentence.index} className={selected ? styles.activeSentence : styles.sentence}>
-          <div className={styles.sentenceHeader}><strong>第 {sentence.index + 1} 句</strong><button type="button" aria-pressed={bookmarked} onClick={() => toggleBookmark(sentence.index)}>{bookmarked ? '⭐ 已收藏难句' : '⭐ 收藏难句'}</button></div>
+        return <article key={sentence.index} id={`listening-sentence-${sentence.index}`} tabIndex={-1} className={selected ? styles.activeSentence : styles.sentence}>
+          <div className={styles.sentenceHeader}><strong>第 {sentence.index + 1} 句</strong><FavoriteButton target={{ kind: 'listening_sentence', key: `${materialID}:${sentence.index}` }} /></div>
           {showJapanese ? <p lang="ja" className={styles.japanese} data-dictionary-text>{japanese}</p> : <p className={styles.hiddenText}>日文已隐藏，先试着听一遍</p>}
           {showChinese && <p className={styles.translation}>{sentence.chinese || '暂无中文译文'}</p>}
           <div className={styles.sentenceActions}><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index)}>▶️ 播放这句</button><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index, true)}>🐢 0.75× 慢听</button>{showJapanese && japanese.trim() && <DictionaryButton text={japanese} />}{!bounds && <small>时间轴待补充，可使用整段音频</small>}</div>
@@ -426,7 +432,7 @@ function ListeningTraining({ materialID, filters }: { materialID: number; filter
     {stage === 'completed' && <section className={styles.resultPanel}>
       {completed && <p className={styles.eyebrow}>✅ 本轮训练已完成</p>}
       <h2>{completed ? '把听懂的内容留住' : '训练结果'}</h2>
-      <div className={styles.scoreGrid}><Score label="首次理解" attempt={blind} /><Score label="关文本复测" attempt={retest} /><div><span>难句收藏</span><strong>{exercise.bookmarks.length}<small> 句</small></strong></div></div>
+      <div className={styles.scoreGrid}><Score label="首次理解" attempt={blind} /><Score label="关文本复测" attempt={retest} /><div><span>难句收藏</span><strong>{bookmarkCount}<small> 句</small></strong></div></div>
       {completed && <p>下次复习：<strong>{formatDueDate(session.progress.due_at)}</strong>。复习时会重新盲听，再检查是否真正听懂。</p>}
       <p className={styles.muted}>本训练允许重听；首次结果指第一次作答。复测使用同一材料与题目，结果反映本篇掌握情况。{blind?.assisted || retest?.assisted ? '本轮使用过慢放辅助。' : ''}</p>
       {retest && <ListeningQuestions questions={questions} answers={{}} result={retest} onAnswer={() => undefined} />}

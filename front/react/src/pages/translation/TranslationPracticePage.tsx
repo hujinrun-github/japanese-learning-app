@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { useTranslation } from 'react-i18next'
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
 import { useDailyPracticeProgress } from '@/hooks/useDailyPracticeProgress'
@@ -61,7 +62,11 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
   const { progress, refreshProgress, jlptLevels } = useDailyPracticeProgress('translation')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const mode = searchParams.get('mode') || 'daily'
+  const retrySentenceID = searchParams.get('sentence_id')
+  const mode = retrySentenceID ? 'mistake' : searchParams.get('mode') || 'daily'
+  const fromFavorites = searchParams.get('from') === 'favorites'
+  const backPath = fromFavorites ? '/favorites' : retrySentenceID ? '/mistakes' : '/translation'
+  const backLabel = fromFavorites ? t('nav.favorites') : retrySentenceID ? t('translation.backToMistakes') : '戻る'
   const sourceID = searchParams.get('source_id')
   const review = searchParams.get('review') === 'true'
 
@@ -84,13 +89,13 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
       setCurrentResult(null)
       setUserTranslation('')
       try {
-        if (mode !== 'daily' && !sourceID) return
+        if (!retrySentenceID && mode !== 'daily' && !sourceID) return
+        const filters: Record<string, string> = retrySentenceID
+          ? { sentence_id: retrySentenceID }
+          : { source_id: sourceID ?? '', unpracticed: String(!review) }
         const path = mode === 'daily'
           ? '/api/v1/translation/queue'
-          : `/api/v1/translation/sentences?${new URLSearchParams({
-              source_id: sourceID ?? '',
-              unpracticed: String(!review),
-            })}`
+          : `/api/v1/translation/sentences?${new URLSearchParams(filters)}`
         const data = await apiFetch<TranslationSentence[]>('GET', path, undefined, controller.signal)
         if (!controller.signal.aborted) setSentences(data ?? [])
       } catch (err) {
@@ -102,7 +107,7 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
 
     void loadSentences()
     return () => controller.abort()
-  }, [mode, sourceID, review])
+  }, [mode, sourceID, review, retrySentenceID])
 
   async function handleSubmit() {
     if (!userTranslation.trim()) return
@@ -136,7 +141,7 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
   }
 
   if (sentences.length === 0) {
-    const canReview = mode !== 'daily' && sourceID && !review && !error
+    const canReview = mode === 'free' && sourceID && !review && !error
     let dailyMessage = '当前没有未练习的翻译题。'
     let showLevelSettings = false
     if (mode === 'daily' && progress.status === 'ready') {
@@ -149,7 +154,7 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
     }
     return (
       <div className={styles.page}>
-        <button className={styles.backBtn} onClick={() => navigate('/translation')}>← 戻る</button>
+        <button className={styles.backBtn} onClick={() => navigate(backPath)}>← {backLabel}</button>
         <DailyPracticeProgress progress={progress} />
         {error ? (
           <p className={styles.error} role="alert">{error}</p>
@@ -186,7 +191,7 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => navigate('/translation')}>← 戻る</button>
+        <button className={styles.backBtn} onClick={() => navigate(backPath)}>← {backLabel}</button>
         <span className={styles.directionBadge}>{directionLabel}</span>
         {sentence.jlpt_level && <Badge level={sentence.jlpt_level} size="sm" />}
         <span className={styles.progress}>{t('common.translationRound', { current: currentIdx + 1, total: sentences.length })}</span>
@@ -198,6 +203,7 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
         <p lang={sentence.direction === 'jp2cn' ? 'ja' : 'zh'}
           data-dictionary-text={sentence.direction === 'jp2cn' ? '' : undefined}>{sentence.source_text}</p>
         {sentence.direction === 'jp2cn' && <DictionaryButton text={sentence.source_text} />}
+        <FavoriteButton target={{ kind: 'translation', key: String(sentence.id) }} />
         <ErrataButton key={sentence.id} module="translation" itemKey={String(sentence.id)} label={sentence.source_text} />
       </div>
 
@@ -225,6 +231,9 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
           <div className={styles.assessment} data-result={assessmentResult} role="status">
             <p className={styles.assessmentTitle}>{t(`translation.assessment.${assessmentResult}.title`)}</p>
             <p className={styles.assessmentDetail}>{t(`translation.assessment.${assessmentResult}.detail`)}</p>
+            {assessmentResult === 'meaning_changed' && (
+              <Link className={styles.mistakeLink} to="/mistakes">{t('translation.savedToMistakes')}</Link>
+            )}
           </div>
 
           <section className={styles.referenceSection} aria-labelledby="translation-reference">

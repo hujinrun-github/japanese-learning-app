@@ -428,9 +428,8 @@ func (s *ListeningStore) SaveProgress(ctx context.Context, uid, id int64, req li
 	p.Stage = req.Stage
 	p.SentenceIndex = req.SentenceIndex
 	p.PositionMS = req.PositionMS
-	p.Bookmarks = req.Bookmarks
-	if p.Bookmarks == nil {
-		p.Bookmarks = []int{}
+	if req.Bookmarks != nil {
+		p.Bookmarks = req.Bookmarks
 	}
 	if err := saveListeningProgress(ctx, tx, uid, id, p); err != nil {
 		return p, err

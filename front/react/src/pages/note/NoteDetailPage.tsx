@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -244,6 +245,7 @@ export function NoteDetailPage() {
         <div className={styles.headerActions}>
           {!editing ? (
             <>
+              <FavoriteButton target={{ kind: 'note', key: String(note.id) }} />
               <button className={styles.actionBtn} onClick={startEditing}>{t('notes.edit')}</button>
               <button className={styles.actionBtn} onClick={handleDelete} disabled={deleting}>
                 {deleting ? <Spinner size="sm" /> : t('notes.delete')}

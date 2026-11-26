@@ -1,4 +1,6 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { useState, useEffect, useReducer, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '@/api/client'
 import { DailyPracticeProgress } from '@/components/ui/DailyPracticeProgress'
@@ -38,6 +40,9 @@ const STATUS_FILTER_OPTIONS: { key: PracticeStatus; labelKey: string }[] = [
 
 export function SpeakingPage() {
   const { t } = useTranslation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const materialID = searchParams.get('material_id')
+  const [favoriteMaterialError, setFavoriteMaterialError] = useState(false)
   const { progress, refreshProgress } = useDailyPracticeProgress('speaking')
 
   // material list state
@@ -134,6 +139,20 @@ export function SpeakingPage() {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    if (!materialID) return
+    const controller = new AbortController()
+    setFavoriteMaterialError(false)
+    apiFetch<SpeakingMaterial>('GET', `/api/v1/speaking/materials/${encodeURIComponent(materialID)}`, undefined, controller.signal)
+      .then(material => {
+        if (controller.signal.aborted) return
+        setPracticeMaterials([material])
+        void handleSelectMaterial(material)
+      })
+      .catch(() => { if (!controller.signal.aborted) setFavoriteMaterialError(true) })
+    return () => controller.abort()
+  }, [materialID])
+
   const practicedMaterials = new Set(records.map((record) => record.material_id))
   const filteredMaterials = materials.filter((material) =>
     activeStatus === 'all' || practicedMaterials.has(material.id) === (activeStatus === 'practiced'),
@@ -175,6 +194,11 @@ export function SpeakingPage() {
   }
 
   function handleBackToList() {
+    if (materialID) {
+      const params = new URLSearchParams(searchParams)
+      params.delete('material_id')
+      setSearchParams(params, { replace: true })
+    }
     resetEvaluation(null)
     recorder.reset()
     stopReferencePlayback()
@@ -277,6 +301,7 @@ export function SpeakingPage() {
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>{t('speaking.title')}</h1>
+        {materialID && favoriteMaterialError && <p role="alert">{t('favorites.unavailable')}</p>}
         <DailyPracticeProgress progress={progress} />
 
         {/* filter bar: type toggles */}
@@ -383,6 +408,7 @@ export function SpeakingPage() {
       {/* practice header */}
       <div className={styles.practiceHeader}>
         <h1 className={styles.practiceTitle}>{selectedMaterial.title}</h1>
+        <FavoriteButton target={{ kind: 'speaking', key: String(selectedMaterial.id) }} />
         <ErrataButton module="speaking" itemKey={String(selectedMaterial.id)} label={selectedMaterial.title} />
         <span className={`${styles.typeTag} ${selectedMaterial.type === 'shadow' ? styles.typeShadow : styles.typeFree}`}>
           {selectedMaterial.type === 'shadow' ? t('speaking.materials.shadowLabel') : t('speaking.materials.freeLabel')}

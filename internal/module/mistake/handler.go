@@ -48,7 +48,8 @@ func create(store *Store) http.HandlerFunc {
 		in.SourcePath = strings.TrimSpace(in.SourcePath)
 		slog.Debug("mistake create requested", "user_id", userID, "module", in.Module, "item_key", in.ItemKey)
 
-		if !validModule(in.Module) || !validItemKey(in.ItemKey) || !validText(in.Prompt, 1, 500) ||
+		// Translation mistakes are recorded with a server-graded attempt.
+		if in.Module == "translation" || !validModule(in.Module) || !validItemKey(in.ItemKey) || !validText(in.Prompt, 1, 500) ||
 			!validText(in.UserAnswer, 0, 500) || !validText(in.CorrectAnswer, 0, 500) ||
 			!validText(in.Explanation, 0, 1000) || !validSourcePath(in.SourcePath) {
 			slog.Error("mistake create rejected fields", "user_id", userID, "module", in.Module, "item_key", in.ItemKey)

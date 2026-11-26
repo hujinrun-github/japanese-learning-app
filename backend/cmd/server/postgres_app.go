@@ -13,6 +13,7 @@ import (
 	"japanese-learning-app/internal/data"
 	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/errata"
+	"japanese-learning-app/internal/module/favorite"
 	"japanese-learning-app/internal/module/flowspace"
 	"japanese-learning-app/internal/module/grammar"
 	"japanese-learning-app/internal/module/lesson"
@@ -171,6 +172,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	planH.RegisterRoutes(protectedMux)
 	errata.RegisterRoutes(protectedMux, errata.NewStore(db))
 	mistake.RegisterRoutes(protectedMux, mistake.NewStore(db))
+	favorite.RegisterRoutes(protectedMux, pgdata.NewFavoriteStore(db))
 
 	authenticated := user.AuthMiddleware(cfg.JWTSecret, protectedMux)
 	mux.Handle("/api/v1/study-plan", authenticated)
@@ -197,6 +199,8 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	mux.Handle("/api/v1/errata/", authenticated)
 	mux.Handle("/api/v1/mistakes", authenticated)
 	mux.Handle("/api/v1/mistakes/", authenticated)
+	mux.Handle("/api/v1/favorites", authenticated)
+	mux.Handle("/api/v1/favorites/", authenticated)
 
 	registerVideoStreamRoutes(mux, db, cfg)
 	registerAudioStreamRoutes(mux, db, cfg)

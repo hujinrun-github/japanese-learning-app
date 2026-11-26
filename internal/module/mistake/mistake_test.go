@@ -13,7 +13,9 @@ import (
 
 	pgdata "japanese-learning-app/internal/data/postgres"
 	"japanese-learning-app/internal/module/mistake"
+	"japanese-learning-app/internal/module/translation"
 	"japanese-learning-app/internal/module/user"
+	appstore "japanese-learning-app/internal/store"
 	"japanese-learning-app/internal/testdb"
 )
 
@@ -37,6 +39,8 @@ func newTestEnv(t *testing.T) testEnv {
 	store := mistake.NewStore(db)
 	mux := http.NewServeMux()
 	mistake.RegisterRoutes(mux, store)
+	translations := pgdata.NewTranslationStore(db, appstore.StoreDeps{})
+	translation.NewTranslationHandler(translation.NewTranslationService(translations, nil)).RegisterRoutes(mux)
 	token1, _, err := user.SignToken(1, testSecret, time.Hour)
 	if err != nil {
 		t.Fatal(err)
@@ -244,5 +248,118 @@ func TestMistakeListPagination(t *testing.T) {
 				t.Fatalf("query %q: items %d total %d, want %d/%d", tc.query, len(payload.Data.Items), payload.Data.Total, tc.wantCount, tc.wantTotal)
 			}
 		})
+	}
+}
+
+func TestTranslationMistakesFollowLocalAssessment(t *testing.T) {
+	env := newTestEnv(t)
+	translations := pgdata.NewTranslationStore(env.db, appstore.StoreDeps{})
+	sourceID, err := translations.SaveSource(translation.TranslationSource{Title: "错题验收", SourceType: "manual"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	saveSentence := func(position int, prompt, reference string) int64 {
+		t.Helper()
+		id, err := translations.SaveSentence(translation.TranslationSentence{
+			SourceID: sourceID, Direction: "cn2jp", SourceText: prompt, ReferenceTranslation: reference, Position: position,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	const prompt = "今天不去。"
+	const reference = "今日は行きません。"
+	polarity := saveSentence(0, prompt, reference)
+	fare := saveSentence(1, "公交车票价多少？", "バス賃はいくらですか？")
+	noReference := saveSentence(2, "明天见。", "")
+
+	submit := func(id int64, answer string, want translation.AssessmentResult) {
+		t.Helper()
+		res := env.request(t, http.MethodPost, "/api/v1/translation/submit", env.token1,
+			fmt.Sprintf(`{"sentence_id":%d,"user_translation":%q}`, id, answer), http.StatusOK)
+		var body struct {
+			Data translation.TranslationRecord `json:"data"`
+		}
+		if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+			t.Fatal(err)
+		}
+		if body.Data.Assessment == nil || body.Data.Assessment.Result != want {
+			t.Fatalf("assessment for %q = %+v, want %s", answer, body.Data.Assessment, want)
+		}
+	}
+	for _, tc := range []struct {
+		id     int64
+		answer string
+		want   translation.AssessmentResult
+	}{
+		{polarity, "行きません。", translation.AssessmentUnrecognized},
+		{polarity, reference, translation.AssessmentReferenceMatch},
+		{fare, "バスの運賃はいくらでしょうか。", translation.AssessmentEquivalent},
+		{noReference, "また明日。", translation.AssessmentNoReference},
+	} {
+		t.Run(string(tc.want), func(t *testing.T) {
+			submit(tc.id, tc.answer, tc.want)
+			if page := env.list(t, env.token1, "?module=translation&status=all"); page.Total != 0 {
+				t.Fatalf("unexpected translation mistakes: %+v", page)
+			}
+		})
+	}
+
+	env.request(t, http.MethodPost, "/api/v1/mistakes", env.token1,
+		`{"module":"translation","item_key":"translation:999","prompt":"试题","user_answer":"试答"}`, http.StatusBadRequest)
+
+	const wrongAnswer = "今日は行きます。"
+	submit(polarity, wrongAnswer, translation.AssessmentMeaningChanged)
+	page := env.list(t, env.token1, "?module=translation")
+	if page.Total != 1 || len(page.Items) != 1 {
+		t.Fatalf("wrong answer was not collected: %+v", page)
+	}
+	item := page.Items[0]
+	if item.Prompt != prompt || item.UserAnswer != wrongAnswer || item.CorrectAnswer != reference ||
+		item.Status != mistake.Unmastered || item.WrongCount != 1 || item.Module != "translation" ||
+		item.ItemKey != fmt.Sprintf("translation:%d", polarity) || item.SourcePath != fmt.Sprintf("/translation/practice?sentence_id=%d", polarity) {
+		t.Fatalf("incorrect mistake details: %+v", item)
+	}
+
+	question := env.request(t, http.MethodGet, fmt.Sprintf("/api/v1/translation/sentences?sentence_id=%d", polarity),
+		env.token1, "", http.StatusOK)
+	var queue struct {
+		Data []translation.TranslationSentence `json:"data"`
+	}
+	if err := json.Unmarshal(question.Body.Bytes(), &queue); err != nil {
+		t.Fatal(err)
+	}
+	if len(queue.Data) != 1 || queue.Data[0].ID != polarity || queue.Data[0].ReferenceTranslation != "" {
+		t.Fatalf("retry did not load just the original question: %+v", queue.Data)
+	}
+
+	env.request(t, http.MethodPatch, fmt.Sprintf("/api/v1/mistakes/%d", item.ID), env.token1, `{"status":"mastered"}`, http.StatusOK)
+	submit(polarity, "行きません。", translation.AssessmentUnrecognized)
+	page = env.list(t, env.token1, "?module=translation&status=mastered")
+	if page.Total != 1 || len(page.Items) != 1 || page.Items[0].WrongCount != 1 {
+		t.Fatalf("self-check changed a mastered mistake: %+v", page)
+	}
+	submit(polarity, "今日は行きます！", translation.AssessmentMeaningChanged)
+	page = env.list(t, env.token1, "?module=translation")
+	if page.Total != 1 || len(page.Items) != 1 || page.Items[0].ID != item.ID ||
+		page.Items[0].WrongCount != 2 || page.Items[0].UserAnswer != "今日は行きます！" {
+		t.Fatalf("repeat did not reopen the same item: %+v", page)
+	}
+	if page := env.list(t, env.token2, "?module=translation&status=all"); page.Total != 0 {
+		t.Fatalf("another account saw a translation mistake: %+v", page)
+	}
+
+	if _, err := env.db.Exec(`ALTER TABLE mistakes ADD CONSTRAINT test_mistake_write_failure CHECK (wrong_count <= 2)`); err != nil {
+		t.Fatal(err)
+	}
+	env.request(t, http.MethodPost, "/api/v1/translation/submit", env.token1,
+		fmt.Sprintf(`{"sentence_id":%d,"user_translation":%q}`, polarity, wrongAnswer), http.StatusInternalServerError)
+	var attempts int
+	if err := env.db.QueryRow(`SELECT count(*) FROM translation_records WHERE user_id = 1 AND sentence_id = $1`, polarity).Scan(&attempts); err != nil {
+		t.Fatal(err)
+	}
+	if attempts != 5 {
+		t.Fatalf("mistake write failed but number of saved attempts = %d, want 5", attempts)
 	}
 }

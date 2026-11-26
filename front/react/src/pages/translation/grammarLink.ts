@@ -2,7 +2,7 @@ const roundPath = '/translation/practice'
 
 export function translationRoundPath(search: URLSearchParams, subpath = '', grammarQuery = '') {
   const params = new URLSearchParams()
-  for (const key of ['mode', 'source_id', 'review']) {
+  for (const key of ['mode', 'source_id', 'review', 'sentence_id', 'from']) {
     const value = search.get(key)
     if (value !== null) params.set(key, value)
   }

@@ -102,6 +102,15 @@ func (s *TranslationService) GetFreeSentences(ctx context.Context, userID int64,
 	return nil, nil
 }
 
+// GetPracticeSentence loads the original question for a mistake-book retry.
+func (s *TranslationService) GetPracticeSentence(id int64) (*TranslationSentence, error) {
+	sentence, err := s.store.GetSentenceByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("load translation practice sentence: %w", err)
+	}
+	return sentence, nil
+}
+
 // DeleteSource deletes a source and all its sentences (cascaded by DB).
 func (s *TranslationService) DeleteSource(id int64) error {
 	slog.Debug("TranslationService.DeleteSource called", "source_id", id)

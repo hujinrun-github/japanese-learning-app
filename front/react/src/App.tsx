@@ -24,6 +24,7 @@ import { NoteDetailPage } from '@/pages/note/NoteDetailPage'
 import { StudyPlanPage } from '@/pages/studyplan/StudyPlanPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import { ErrataHistoryPage } from '@/pages/errata/ErrataHistoryPage'
+import { FavoritesPage } from '@/pages/favorites/FavoritesPage'
 import { MistakesPage } from '@/pages/mistakes/MistakesPage'
 import { ListeningPage } from '@/pages/listening/ListeningPage'
 import { ListeningTrainingPage } from '@/pages/listening/ListeningTrainingPage'
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/study-plan" element={<StudyPlanPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/errata" element={<ErrataHistoryPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/mistakes" element={<MistakesPage />} />
           </Route>
 

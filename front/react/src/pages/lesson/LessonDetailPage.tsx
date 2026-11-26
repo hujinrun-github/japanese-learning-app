@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -83,6 +84,7 @@ export function LessonDetailPage() {
           </div>
         </div>
         <div className={styles.detailActions}>
+          <FavoriteButton target={{ kind: 'lesson', key: String(lesson.id) }} />
           <ErrataButton key={lesson.id} module="lesson" itemKey={String(lesson.id)} label={lesson.title} />
           {lesson.shadowing_enabled && (
             <Link className={styles.shadowingCta} to={`/lesson/${lesson.id}/shadowing`}>

@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/pages/favorites/FavoriteButton'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { APIError } from '@/api/client'
@@ -354,6 +355,7 @@ export function ShadowingPage() {
         <div>
           <p className={styles.eyebrow}>{media.kind === 'video' ? 'Video Shadowing' : 'Audio Shadowing'}</p>
           <h1 className={styles.title}>{session.lesson.title}</h1>
+          <FavoriteButton target={{ kind: 'shadowing', key: String(session.lesson.id) }} />
           <ErrataButton module="shadowing" itemKey={String(session.lesson.id)} label={session.lesson.title} />
         </div>
         <div className={styles.progressPill}>

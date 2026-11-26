@@ -54,10 +54,17 @@ type Page struct {
 // Store persists mistakes in the shared SQL database. The SQL uses numbered
 // placeholders for PostgreSQL.
 type Store struct {
-	db *sql.DB
+	db queryer
 }
 
-func NewStore(db *sql.DB) *Store {
+// queryer lets callers save a mistake using the same transaction as an attempt.
+type queryer interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
+func NewStore(db queryer) *Store {
 	return &Store{db: db}
 }
 

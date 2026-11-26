@@ -85,12 +85,32 @@ func (h *TranslationHandler) handleGetDailyQueue(w http.ResponseWriter, r *http.
 	writePracticeSentences(w, r, sentences)
 }
 
-// handleGetSentences returns sentences optionally filtered by direction and source.
+// handleGetSentences loads a practice bank or the exact question for a retry.
 func (h *TranslationHandler) handleGetSentences(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(w, r)
 	if !ok {
 		return
 	}
+	if r.URL.Query().Has("sentence_id") {
+		id, err := strconv.ParseInt(r.URL.Query().Get("sentence_id"), 10, 64)
+		if err != nil || id <= 0 {
+			httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid sentence_id", r.Header.Get("X-Request-ID"))
+			return
+		}
+		sentence, err := h.svc.GetPracticeSentence(id)
+		if err != nil {
+			slog.Error("load translation practice sentence", "sentence_id", id, "err", err)
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "加载翻译题失败", r.Header.Get("X-Request-ID"))
+			return
+		}
+		if sentence == nil {
+			httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "这道翻译题已不可用。", r.Header.Get("X-Request-ID"))
+			return
+		}
+		writePracticeSentences(w, r, []TranslationSentence{*sentence})
+		return
+	}
+
 	var sourceID int64
 	if s := r.URL.Query().Get("source_id"); s != "" {
 		sourceID, _ = strconv.ParseInt(s, 10, 64)
@@ -117,7 +137,7 @@ type submitRequest struct {
 	UserTranslation string `json:"user_translation"`
 }
 
-// handleSubmit accepts a user's translation and returns the scored record.
+// handleSubmit accepts a user's translation and returns the locally assessed record.
 func (h *TranslationHandler) handleSubmit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(w, r)
 	if !ok {
