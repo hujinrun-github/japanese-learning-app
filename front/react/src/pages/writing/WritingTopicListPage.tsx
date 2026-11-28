@@ -71,9 +71,12 @@ export function WritingTopicListView({
       <div className={styles.header}>
         <h1 className={styles.title}>{t('writing.topicList.title')}</h1>
         <p className={styles.intro}>{t('writing.topicList.intro')}</p>
-        <Link className={styles.startLink} to={writingPracticePath()}>
-          {t('writing.topicList.startPractice')}
-        </Link>
+        <div className={styles.practiceLinks}>
+          <Link className={styles.startLink} to={writingPracticePath()}>
+            {t('writing.topicList.startPractice')}
+          </Link>
+          <Link className={styles.questionsLink} to="/writing/questions">{t('writing.questionPractice')}</Link>
+        </div>
         <div className={styles.filters}>
           <label className={styles.filter} htmlFor="writing-list-level">
             {t('writing.levelFilter')}

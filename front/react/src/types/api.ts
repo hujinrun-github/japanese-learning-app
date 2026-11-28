@@ -284,6 +284,7 @@ export interface WritingRecord {
   user_answer: string
   ai_feedback?: AIFeedback
   score: number
+  knowledge_links?: PracticeKnowledgeLink[]
   practiced_at: string
 }
 
@@ -452,6 +453,15 @@ export interface TranslationSentence {
   jlpt_level?: JLPTLevel
 }
 
+export interface PracticeKnowledgeLink {
+  kind: 'word' | 'grammar'
+  id: number
+  title: string
+  reading?: string
+  meaning: string
+  jlpt_level: JLPTLevel
+}
+
 export interface TranslationRecord {
   id: number
   user_id: number
@@ -463,6 +473,7 @@ export interface TranslationRecord {
   rule_score?: number
   ai_feedback?: TranslationFeedback
   assessment?: TranslationAssessment
+  knowledge_links?: PracticeKnowledgeLink[]
   practiced_at: string
 }
 

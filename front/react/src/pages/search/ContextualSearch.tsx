@@ -1,16 +1,17 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getDictionarySelection, selectionKeyword } from './contextQuery'
+import type { SearchEntry } from './SearchResults'
 import styles from './ContextualSearch.module.css'
 
-export type ContextualSearchTarget = { source?: string; keyword?: string }
+export type ContextualSearchTarget = { source?: string; keyword?: string; entry?: SearchEntry }
 const OpenSearchContext = createContext<((target: ContextualSearchTarget) => void) | null>(null)
 const ContextualSearchDialog = lazy(() => import('./ContextualSearchDialog'))
 
 export function ContextualSearchProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<ContextualSearchTarget | null>(null)
   const openSearch = useCallback((next: ContextualSearchTarget) => {
-    setTarget((current) => next.source || next.keyword ? next : current ?? next)
+    setTarget((current) => next.source || next.keyword || next.entry ? next : current ?? next)
   }, [])
 
   return (
@@ -39,6 +40,18 @@ export function FloatingSearchButton({ className, children, onOpen }: {
       }}>
       {children}
     </button>
+  )
+}
+
+export function DictionaryEntryButton({ entry, className, children }: {
+  entry: SearchEntry; className: string; children: ReactNode
+}) {
+  const openSearch = useContext(OpenSearchContext)
+  return (
+    <button type="button" className={className} aria-haspopup="dialog" onClick={(event) => {
+      event.currentTarget.focus({ preventScroll: true })
+      openSearch?.({ entry })
+    }}>{children}</button>
   )
 }
 

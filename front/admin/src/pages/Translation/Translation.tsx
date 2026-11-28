@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { adminFetch } from '@/api/client'
 import Modal from '@/components/Modal/Modal'
+import KnowledgeLinkEditor from '@/components/KnowledgeLinkEditor/KnowledgeLinkEditor'
 import styles from './Translation.module.css'
 
 interface TranslationSentence {
@@ -24,6 +25,7 @@ export default function TranslationPage() {
   const [error, setError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<TranslationSentence | null>(null)
+  const [linking, setLinking] = useState<TranslationSentence | null>(null)
   const [form, setForm] = useState(emptyForm)
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -100,6 +102,7 @@ export default function TranslationPage() {
                     <td className="adm-id">{s.position}</td>
                     <td className="adm-actions">
                       <button onClick={() => openEdit(s)}>✏️ Edit</button>
+                      <button type="button" onClick={() => setLinking(s)}>🔗 Link entries</button>
                       <button className="adm-btnDanger" onClick={() => handleDelete(s.id)}>🗑 Delete</button>
                     </td>
                   </tr>
@@ -125,6 +128,9 @@ export default function TranslationPage() {
           <button className="adm-saveBtn" onClick={handleSave}>Save</button>
         </div>
       </Modal>
+      {linking && <KnowledgeLinkEditor path={`/translation/${linking.id}/links`} sourceId={linking.id}
+        sourceText={linking.source_text} description="Entries appear in daily and free translation after submission."
+        onClose={() => setLinking(null)} />}
     </div>
   )
 }

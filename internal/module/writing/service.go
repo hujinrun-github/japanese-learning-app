@@ -48,6 +48,14 @@ func NewWritingService(store WritingStoreInterface, reviewer AIReviewer) *Writin
 	return &WritingService{store: store, reviewer: reviewer}
 }
 
+func (s *WritingService) GetPracticeQuestion(id int64) (*WritingQuestion, error) {
+	question, err := s.store.GetQuestionByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("load writing question %d: %w", id, err)
+	}
+	return question, nil
+}
+
 // GetDailyQueue returns today's writing questions for the user.
 // ExpectedAnswer is stripped before returning so it is never sent to the client.
 func (s *WritingService) GetDailyQueue(userID int64) ([]WritingQuestion, error) {

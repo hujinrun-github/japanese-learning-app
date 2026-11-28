@@ -85,6 +85,7 @@ describe('WritingTopicListView 展示主题列表三态与筛选结果', () => {
   it('顶部提供直接进入练习页的入口和进度统计', () => {
     const html = render()
     expect(html).toContain('href="/writing/practice"')
+    expect(html).toContain('href="/writing/questions"')
     expect(html).toContain('共 3 个主题')
     expect(html).toContain('已练习 2 个')
   })

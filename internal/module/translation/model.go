@@ -77,6 +77,7 @@ type TranslationRecord struct {
 	RuleScore            int                    `json:"rule_score,omitempty"`
 	AIFeedback           *TranslationFeedback   `json:"ai_feedback,omitempty"`
 	Assessment           *TranslationAssessment `json:"assessment,omitempty"`
+	KnowledgeLinks       []SentenceLink         `json:"knowledge_links,omitempty"`
 	PracticedAt          time.Time              `json:"practiced_at"`
 }
 

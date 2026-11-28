@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { DictionaryButton } from '@/pages/search/ContextualSearch'
-import type { ListeningAttempt, ListeningPhase, ListeningSession, ListeningStage, SaveListeningProgress } from '@/types/listening'
+import { PracticeKnowledgeLinks } from '@/pages/search/PracticeKnowledgeLinks'
+import { useLookup } from '@/pages/search/useLookup'
+import type { ListeningAttempt, ListeningKnowledgeLinks, ListeningPhase, ListeningSession, ListeningStage, SaveListeningProgress } from '@/types/listening'
 import { answerList, audioSourceLabel, canSubmitAnswers, formatDueDate, getListeningFilters, getListeningStepAction, listeningPath, needsBlindBaseline, nextUnpracticedMaterial, restoreExercise, sentenceBounds, shouldReportPlaybackError, STAGE_LABELS } from './listeningFlow'
 import { ListeningQuestions } from './ListeningQuestions'
 import styles from './ListeningPage.module.css'
@@ -58,6 +60,14 @@ function ListeningTraining({ materialID, filters, favoriteSentence }: {
   const [showChinese, setShowChinese] = useState(false)
   const [rate, setRate] = useState(1)
   const [looping, setLooping] = useState(false)
+  const stage = review?.stage ?? exercise.stage
+  const reviewingAnswers = session?.attempts.some((attempt) => attempt.phase === (stage === 'completed' ? 'retest' : stage))
+  const { result: linkLookup } = useLookup<ListeningKnowledgeLinks>(
+    !loading && session && (stage === 'intensive' || reviewingAnswers)
+      ? `/api/v1/listening/materials/${materialID}/knowledge-links?stage=${stage}&cycle=${session.progress.cycle}`
+      : null,
+  )
+  const knowledge = linkLookup.status === 'ready' ? linkLookup.data : undefined
 
   useEffect(() => {
     const controller = new AbortController()
@@ -301,7 +311,6 @@ function ListeningTraining({ materialID, filters, favoriteSentence }: {
   const bookmarkCount = favorites?.status === 'ready'
     ? lesson.sentences.filter(sentence => favorites.keys.has(`listening_sentence/${materialID}:${sentence.index}`)).length
     : exercise.bookmarks.length
-  const stage = review?.stage ?? exercise.stage
   const completed = exercise.stage === 'completed'
   const blind = attempts.find((attempt) => attempt.phase === 'blind')
   const retest = attempts.find((attempt) => attempt.phase === 'retest')
@@ -398,7 +407,7 @@ function ListeningTraining({ materialID, filters, favoriteSentence }: {
 
     {(stage === 'blind' || stage === 'retest') && <section aria-label="听力理解题">
       {baselineNeeded ? <div className={styles.empty}><h2>理解题已就绪</h2><p>先完成本轮首次盲听，再进行精听后的复测。</p><Button loading={busy} onClick={() => selectStep('blind')}>开始盲听理解</Button></div> : (trainingReady || result) ? <>
-        <ListeningQuestions questions={questions} answers={exercise.answers[phase]} result={result} disabled={busy || !!review} onAnswer={chooseAnswer} />
+        <ListeningQuestions questions={questions} answers={exercise.answers[phase]} result={result} knowledgeLinks={knowledge?.questions} disabled={busy || !!review} onAnswer={chooseAnswer} />
         <div className={styles.actions}>{result
           ? (stage === 'blind' ? <Button loading={busy} onClick={() => selectStep('intensive')}>进入逐句精听</Button>
             : completed ? <Button onClick={() => selectStep('completed')}>查看训练结果</Button>
@@ -409,6 +418,7 @@ function ListeningTraining({ materialID, filters, favoriteSentence }: {
 
     {intensive && <section className={styles.intensivePanel} aria-label="逐句精听">
       <div className={styles.sectionHeading}><h2>逐句突破</h2><span className={styles.muted}>已收藏 {bookmarkCount} 个难句</span></div>
+      <PracticeKnowledgeLinks links={knowledge?.material} />
       <div className={styles.textToggles}><button type="button" aria-pressed={showJapanese} onClick={() => setShowJapanese(!showJapanese)}>{showJapanese ? '隐藏' : '显示'}日文</button><button type="button" aria-pressed={showChinese} onClick={() => setShowChinese(!showChinese)}>{showChinese ? '隐藏' : '显示'}中文</button></div>
       <div className={styles.sentences}>{lesson.sentences.map((sentence) => {
         const bounds = sentenceBounds(sentence)
@@ -418,10 +428,11 @@ function ListeningTraining({ materialID, filters, favoriteSentence }: {
           <div className={styles.sentenceHeader}><strong>第 {sentence.index + 1} 句</strong><FavoriteButton target={{ kind: 'listening_sentence', key: `${materialID}:${sentence.index}` }} /></div>
           {showJapanese ? <p lang="ja" className={styles.japanese} data-dictionary-text>{japanese}</p> : <p className={styles.hiddenText}>日文已隐藏，先试着听一遍</p>}
           {showChinese && <p className={styles.translation}>{sentence.chinese || '暂无中文译文'}</p>}
+          {showJapanese && <PracticeKnowledgeLinks links={knowledge?.sentences?.[sentence.index]} />}
           <div className={styles.sentenceActions}><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index)}>▶️ 播放这句</button><button type="button" disabled={!bounds || !mediaURL} onClick={() => playSentence(sentence.index, true)}>🐢 0.75× 慢听</button>{showJapanese && japanese.trim() && <DictionaryButton text={japanese} />}{!bounds && <small>时间轴待补充，可使用整段音频</small>}</div>
         </article>
       })}</div>
-      {blind && <div className={styles.baseline}><h3>首次理解：{blind.correct_count}/{blind.total} 题</h3><ListeningQuestions questions={questions} answers={{}} result={blind} onAnswer={() => undefined} onEvidence={(index) => playSentence(index)} /></div>}
+      {blind && <div className={styles.baseline}><h3>首次理解：{blind.correct_count}/{blind.total} 题</h3><ListeningQuestions questions={questions} answers={{}} result={blind} knowledgeLinks={knowledge?.questions} onAnswer={() => undefined} onEvidence={(index) => playSentence(index)} /></div>}
       {baselineNeeded && <p className={styles.muted}>补做本轮首次理解题后即可复测。</p>}
       {!trainingReady && <p className={styles.muted}>{unavailableHint}</p>}
       <div className={styles.actions}>{baselineNeeded ? <Button loading={busy} onClick={() => selectStep('blind')}>补做首次理解题</Button>
@@ -435,7 +446,7 @@ function ListeningTraining({ materialID, filters, favoriteSentence }: {
       <div className={styles.scoreGrid}><Score label="首次理解" attempt={blind} /><Score label="关文本复测" attempt={retest} /><div><span>难句收藏</span><strong>{bookmarkCount}<small> 句</small></strong></div></div>
       {completed && <p>下次复习：<strong>{formatDueDate(session.progress.due_at)}</strong>。复习时会重新盲听，再检查是否真正听懂。</p>}
       <p className={styles.muted}>本训练允许重听；首次结果指第一次作答。复测使用同一材料与题目，结果反映本篇掌握情况。{blind?.assisted || retest?.assisted ? '本轮使用过慢放辅助。' : ''}</p>
-      {retest && <ListeningQuestions questions={questions} answers={{}} result={retest} onAnswer={() => undefined} />}
+      {retest && <ListeningQuestions questions={questions} answers={{}} result={retest} knowledgeLinks={knowledge?.questions} onAnswer={() => undefined} />}
       {completed && nextStatus === 'empty' && <p className={styles.muted} role="status">当前范围暂无可开始的未练习素材。</p>}
       {completed && nextStatus === 'error' && <p className={styles.error} role="alert">暂时无法加载下一篇，请重试。</p>}
       <div className={styles.actions}>{completed ? <>

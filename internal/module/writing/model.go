@@ -1,6 +1,10 @@
 package writing
 
-import "time"
+import (
+	"time"
+
+	"japanese-learning-app/internal/module/practicelinks"
+)
 
 // WritingType 写作练习类型
 type WritingType string
@@ -34,15 +38,16 @@ type AIFeedback struct {
 
 // WritingRecord 一次写作练习记录
 type WritingRecord struct {
-	TopicID     string      `json:"-"` // Stable topic association for progress and clearing the submitted draft.
-	ID          int64       `json:"id"`
-	UserID      int64       `json:"user_id"`
-	Type        WritingType `json:"type"`
-	Question    string      `json:"question"`
-	UserAnswer  string      `json:"user_answer"`
-	AIFeedback  *AIFeedback `json:"ai_feedback,omitempty"`
-	Score       int         `json:"score"`
-	PracticedAt time.Time   `json:"practiced_at"`
+	TopicID        string               `json:"-"` // Stable topic association for progress and clearing the submitted draft.
+	ID             int64                `json:"id"`
+	UserID         int64                `json:"user_id"`
+	Type           WritingType          `json:"type"`
+	Question       string               `json:"question"`
+	UserAnswer     string               `json:"user_answer"`
+	AIFeedback     *AIFeedback          `json:"ai_feedback,omitempty"`
+	Score          int                  `json:"score"`
+	PracticedAt    time.Time            `json:"practiced_at"`
+	KnowledgeLinks []practicelinks.Link `json:"knowledge_links,omitempty"`
 }
 
 type WritingDraft struct {

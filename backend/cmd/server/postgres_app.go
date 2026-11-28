@@ -113,11 +113,14 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	grammarH.SetStreakRecorder(userSvc)
 	grammarH.SetQuizCheckIn(studyPlanH.ReconcilePracticeGoals)
 	lessonH := lesson.NewLessonHandler(lessonSvc)
+	practiceLinks := pgdata.NewPracticeLinkStore(db)
 	listeningH := listening.NewHandler(pgdata.NewListeningStore(db, func(ctx context.Context, tx *sql.Tx, uid int64, now time.Time) error {
 		return studyplan.CompleteListeningTask(ctx, tx, uid, now)
 	}))
+	listeningH.SetKnowledgeLinks(practiceLinks)
 	speakingH := speaking.NewSpeakingHandler(speakingSvc)
 	speakingH.SetStreakRecorder(userSvc)
+	speakingH.SetKnowledgeLinks(practiceLinks)
 	speakingEvaluationH := speaking.NewEvaluationHandler(speakingSvc, cfg.AudioStorePath, newLessonAudioObjectLoader(db, cfg), evaluator)
 	if cfg.SpeakingASRURL != "" {
 		asr := speaking.NewVLLMScorer(cfg.SpeakingASRURL, cfg.SpeakingASRModel, time.Duration(cfg.SpeakingASRTimeoutSec)*time.Second)
@@ -136,6 +139,7 @@ func buildPostgresServerMux(ctx context.Context, cfg *config.Config, staticDir, 
 	}
 	writingH := writing.NewWritingHandler(writingSvc)
 	writingH.SetStreakRecorder(userSvc)
+	writingH.SetKnowledgeLinks(practiceLinks)
 	translationH := translation.NewTranslationHandler(translationSvc)
 	noteH := note.NewNoteHandler(noteSvc)
 	noteSyncH := notesync.NewHandler(noteSyncSvc)

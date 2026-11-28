@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/speaking', label: 'Speaking', icon: '🎙️' },
   { to: '/writing', label: 'Writing', icon: '✍️' },
   { to: '/translation', label: 'Translation', icon: '🔁' },
+  { to: '/practice-links', label: 'Practice links', icon: '🔗' },
   { to: '/shadowing-materials', label: 'Shadowing', icon: '🎬' },
   { to: '/users', label: 'Users', icon: '👥' },
   { to: '/records', label: 'Records', icon: '📊' },

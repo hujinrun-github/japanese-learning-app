@@ -146,6 +146,9 @@ type AdminTranslationStoreInterface interface {
 	SaveSentence(sent translation.TranslationSentence) (int64, error)
 	UpdateSentence(sent translation.TranslationSentence) error
 	DeleteSentence(id int64) error
+	GetSentenceByID(id int64) (*translation.TranslationSentence, error)
+	ListSentenceLinks(ctx context.Context, sentenceID int64) ([]translation.SentenceLink, error)
+	ReplaceSentenceLinks(ctx context.Context, sentenceID int64, links []translation.SentenceLinkRef) error
 }
 type AdminRecordStoreInterface interface{}
 type AdminImportStoreInterface interface{}

@@ -15,6 +15,7 @@ import { evaluateSpeaking } from '@/api/speaking'
 import { ScoreCard } from '@/pages/shadowing/ScoreCard'
 import { initialEvaluationState, speakingEvaluationReducer } from './speakingEvaluation'
 import { SpeakingText } from './SpeakingText'
+import { RemotePracticeKnowledgeLinks } from '@/pages/search/PracticeKnowledgeLinks'
 import { PronunciationFeedback } from './PronunciationFeedback'
 import { splitSpeakingSentences, type SpeakingSentence } from '@/util/speakingPlayback'
 import { toFuriganaTokens } from '@/util/furigana'
@@ -417,6 +418,7 @@ export function SpeakingPage() {
 
       <DailyPracticeProgress progress={progress} />
 
+      <RemotePracticeKnowledgeLinks path={`/api/v1/speaking/materials/${selectedMaterial.id}/knowledge-links`} />
       <p className={styles.playbackHint}>{t('speaking.practice.sentenceHint')}</p>
       <SpeakingText lines={practiceLines} annotations={furiganaLines}
         offsets={practiceSentences.map((sentence) => sentence.start)} pronunciation={evaluation?.pronunciation}

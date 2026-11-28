@@ -22,9 +22,9 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
   const [input, setInput] = useState(target.keyword ?? '')
   const [query, setQuery] = useState(target.keyword ?? '')
   const [filter, setFilter] = useState<SearchFilter>('all')
-  const [entry, setEntry] = useState<SearchEntry | null>(null)
+  const [entry, setEntry] = useState<SearchEntry | null>(target.entry ?? null)
   const invalid = !!input.trim() && !validSearchKeyword(input.trim())
-  const globalLookup = !target.source && !target.keyword
+  const globalLookup = !target.source && !target.keyword && !target.entry
   const fullSearchParams = new URLSearchParams()
   if (query) fullSearchParams.set('q', query)
   if (filter !== 'all') fullSearchParams.set('type', filter)
@@ -39,7 +39,7 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
     setInput(target.keyword ?? '')
     setQuery(target.keyword ?? '')
     setFilter('all')
-    setEntry(null)
+    setEntry(target.entry ?? null)
   }, [target])
 
   function search(keyword: string) {
@@ -111,7 +111,7 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
           {entry && (
             <>
               <button type="button" className={searchStyles.back}
-                onClick={() => { setEntry(null); close.current?.focus() }}>← {t('search.back')}</button>
+                onClick={() => { setEntry(null); close.current?.focus() }}>← {t(query ? 'search.back' : 'search.backToSearch')}</button>
               {entry.type === 'words' ? <WordPreview id={entry.id} /> : <GrammarPreview id={entry.id} />}
             </>
           )}

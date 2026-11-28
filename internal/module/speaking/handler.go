@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/practicelinks"
 	"japanese-learning-app/internal/module/user"
 )
 
@@ -14,6 +15,7 @@ import (
 type SpeakingHandler struct {
 	svc    *SpeakingService
 	streak user.StreakRecorder
+	links  practicelinks.Reader
 }
 
 // NewSpeakingHandler creates a SpeakingHandler.
@@ -27,6 +29,8 @@ func (h *SpeakingHandler) SetStreakRecorder(r user.StreakRecorder) {
 	h.streak = r
 }
 
+func (h *SpeakingHandler) SetKnowledgeLinks(links practicelinks.Reader) { h.links = links }
+
 // RegisterRoutes registers speaking routes.
 // Routes:
 //
@@ -39,6 +43,25 @@ func (h *SpeakingHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/speaking/records", h.handleListRecords)
 	mux.HandleFunc("GET /api/v1/speaking/materials", h.handleListMaterials)
 	mux.HandleFunc("GET /api/v1/speaking/materials/{id}", h.handleGetMaterial)
+	mux.HandleFunc("GET /api/v1/speaking/materials/{id}/knowledge-links", h.handleKnowledgeLinks)
+}
+
+func (h *SpeakingHandler) handleKnowledgeLinks(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid material id", "")
+		return
+	}
+	links := []practicelinks.Link{}
+	if h.links != nil {
+		links, err = h.links.ListLinks(r.Context(), practicelinks.Target{Kind: practicelinks.SpeakingMaterial, ID: strconv.FormatInt(id, 10)}, false)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "load speaking knowledge links", "material_id", id, "err", err)
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load knowledge links", "")
+			return
+		}
+	}
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: links})
 }
 
 type practiceRequest struct {

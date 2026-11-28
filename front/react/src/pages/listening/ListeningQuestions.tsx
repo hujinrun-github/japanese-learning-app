@@ -1,15 +1,18 @@
 import type { ListeningAttempt, ListeningQuestion } from '@/types/listening'
+import type { PracticeKnowledgeLink } from '@/types/api'
+import { PracticeKnowledgeLinks } from '@/pages/search/PracticeKnowledgeLinks'
 import styles from './ListeningPage.module.css'
 
 interface Props {
   questions: ListeningQuestion[]
   answers: Record<string, number>
   result?: ListeningAttempt
+  knowledgeLinks?: Record<string, PracticeKnowledgeLink[]>
   disabled?: boolean
   onAnswer: (questionID: string, option: number) => void
   onEvidence?: (index: number) => void
 }
-export function ListeningQuestions({ questions, answers, result, disabled, onAnswer, onEvidence }: Props) {
+export function ListeningQuestions({ questions, answers, result, knowledgeLinks, disabled, onAnswer, onEvidence }: Props) {
   return <div className={styles.questions}>{questions.map((question, index) => {
     const feedback = result?.results.find((item) => item.question_id === question.id)
     const selected = feedback?.option_index ?? answers[question.id]
@@ -23,6 +26,7 @@ export function ListeningQuestions({ questions, answers, result, disabled, onAns
         <strong>{feedback.correct ? '✅ 回答正确' : `正确答案：${question.options[feedback.correct_option_index]}`}</strong>
         <p data-dictionary-text>{feedback.explanation}</p>
         {onEvidence && feedback.evidence_sentence_index >= 0 && <button type="button" className={styles.textLink} onClick={() => onEvidence(feedback.evidence_sentence_index)}>🎧 回听第 {feedback.evidence_sentence_index + 1} 句</button>}
+        <PracticeKnowledgeLinks links={knowledgeLinks?.[question.id]} />
       </div>}
     </fieldset>
   })}</div>

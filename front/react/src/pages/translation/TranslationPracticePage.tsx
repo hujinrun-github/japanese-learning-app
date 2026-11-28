@@ -11,6 +11,7 @@ import type { TranslationSentence, TranslationRecord } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import { DictionaryButton } from '@/pages/search/ContextualSearch'
 import { grammarSearchPath, translationRoundPath } from './grammarLink'
+import { PracticeKnowledgeLinks } from '@/pages/search/PracticeKnowledgeLinks'
 import styles from './TranslationPracticePage.module.css'
 
 const grammarSourceLabels = { bank: '题库标注', local: '本地规则' }
@@ -252,6 +253,8 @@ function TranslationExercise({ onOpenGrammar }: { onOpenGrammar: (point: string,
               <p className={styles.grammarEmpty}>{t('translation.noReference')}</p>
             )}
           </section>
+
+          <PracticeKnowledgeLinks links={currentResult.knowledge_links} />
 
           {assessment && (
             <div className={styles.grammarSection}>
