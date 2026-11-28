@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/practicelinks"
 	"japanese-learning-app/internal/module/user"
 )
 
@@ -15,6 +17,7 @@ import (
 type WritingHandler struct {
 	svc    *WritingService
 	streak user.StreakRecorder
+	links  practicelinks.Reader
 }
 
 // NewWritingHandler creates a WritingHandler.
@@ -27,6 +30,8 @@ func NewWritingHandler(svc *WritingService) *WritingHandler {
 func (h *WritingHandler) SetStreakRecorder(r user.StreakRecorder) {
 	h.streak = r
 }
+
+func (h *WritingHandler) SetKnowledgeLinks(links practicelinks.Reader) { h.links = links }
 
 // RegisterRoutes registers writing routes.
 // Routes:
@@ -42,6 +47,8 @@ func (h *WritingHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/writing/input", h.handleSubmitInput)
 	mux.HandleFunc("POST /api/v1/writing/sentence", h.handleSubmitSentence)
 	mux.HandleFunc("GET /api/v1/writing/topics", h.handleListTopics)
+	mux.HandleFunc("GET /api/v1/writing/topics/{id}/knowledge-links", h.handleTopicHints)
+	mux.HandleFunc("GET /api/v1/writing/questions/{id}/knowledge-links", h.handleQuestionHints)
 	mux.HandleFunc("POST /api/v1/writing/topics/{id}", h.handleSubmitTopic)
 	mux.HandleFunc("GET /api/v1/writing/records", h.handleListRecords)
 	mux.HandleFunc("GET /api/v1/writing/drafts", h.handleListDrafts)
@@ -86,7 +93,7 @@ func (h *WritingHandler) handleSubmitInput(w http.ResponseWriter, r *http.Reques
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
 		return
 	}
-	if req.QuestionID == 0 || req.Question == "" || req.UserAnswer == "" {
+	if req.QuestionID <= 0 || req.Question == "" || strings.TrimSpace(req.UserAnswer) == "" {
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "question_id, question and user_answer are required", "")
 		return
 	}
@@ -99,12 +106,12 @@ func (h *WritingHandler) handleSubmitInput(w http.ResponseWriter, r *http.Reques
 	}
 
 	user.RecordStudyDayBestEffort(h.streak, userID)
-
-	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: rec})
+	h.writeSubmission(w, r, rec, practicelinks.Target{Kind: practicelinks.WritingQuestion, ID: strconv.FormatInt(req.QuestionID, 10)})
 }
 
 // submitSentenceRequest is the request body for POST /api/v1/writing/sentence.
 type submitSentenceRequest struct {
+	QuestionID int64  `json:"question_id"`
 	Question   string `json:"question"`
 	UserAnswer string `json:"user_answer"`
 }
@@ -122,11 +129,22 @@ func (h *WritingHandler) handleSubmitSentence(w http.ResponseWriter, r *http.Req
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid request body", "")
 		return
 	}
-	if req.Question == "" || req.UserAnswer == "" {
+	if req.QuestionID < 0 || (req.QuestionID == 0 && req.Question == "") || strings.TrimSpace(req.UserAnswer) == "" {
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "question and user_answer are required", "")
 		return
 	}
 
+	target := practicelinks.Target{Kind: practicelinks.WritingQuestion}
+	if req.QuestionID > 0 {
+		question, err := h.svc.GetPracticeQuestion(req.QuestionID)
+		if err != nil || question == nil || question.Type != WritingTypeSentence {
+			slog.DebugContext(r.Context(), "invalid sentence-writing question", "question_id", req.QuestionID, "err", err)
+			httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid sentence-writing question", "")
+			return
+		}
+		req.Question = question.Prompt
+		target.ID = strconv.FormatInt(req.QuestionID, 10)
+	}
 	rec, err := h.svc.SubmitSentence(userID, req.Question, req.UserAnswer)
 	if err != nil {
 		slog.Error("handleSubmitSentence failed", "err", err, "user_id", userID)
@@ -135,8 +153,7 @@ func (h *WritingHandler) handleSubmitSentence(w http.ResponseWriter, r *http.Req
 	}
 
 	user.RecordStudyDayBestEffort(h.streak, userID)
-
-	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: rec})
+	h.writeSubmission(w, r, rec, target)
 }
 
 // handleListRecords handles GET /api/v1/writing/records
@@ -211,8 +228,58 @@ func (h *WritingHandler) handleSubmitTopic(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		user.RecordStudyDayBestEffort(h.streak, userID)
-		httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: rec})
+		h.writeSubmission(w, r, rec, practicelinks.Target{Kind: practicelinks.WritingTopic, ID: topic.ID})
 		return
 	}
 	httputil.WriteError(w, http.StatusNotFound, "ERR_NOT_FOUND", "writing topic not found", "")
+}
+
+func (h *WritingHandler) writeSubmission(w http.ResponseWriter, r *http.Request, rec WritingRecord, target practicelinks.Target) {
+	rec.KnowledgeLinks = practicelinks.AfterSubmission(r.Context(), h.links, target)
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: rec})
+}
+
+func (h *WritingHandler) handleTopicHints(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if r.URL.Query().Get("mode") != "sentence" {
+		id = ""
+	}
+	h.writeHints(w, r, practicelinks.Target{Kind: practicelinks.WritingTopic, ID: id})
+}
+
+func (h *WritingHandler) handleQuestionHints(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid question ID", "")
+		return
+	}
+	question, err := h.svc.GetPracticeQuestion(id)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "load question for writing hints", "question_id", id, "err", err)
+		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing hints", "")
+		return
+	}
+	target := practicelinks.Target{Kind: practicelinks.WritingQuestion}
+	if question != nil && question.Type == WritingTypeSentence {
+		target.ID = strconv.FormatInt(id, 10)
+	}
+	h.writeHints(w, r, target)
+}
+
+func (h *WritingHandler) writeHints(w http.ResponseWriter, r *http.Request, target practicelinks.Target) {
+	if _, ok := user.UserIDFromContext(r.Context()); !ok {
+		httputil.WriteError(w, http.StatusUnauthorized, "ERR_UNAUTHORIZED", "unauthorized", "")
+		return
+	}
+	links := []practicelinks.Link{}
+	if h.links != nil && target.ID != "" {
+		var err error
+		links, err = h.links.ListLinks(r.Context(), target, true)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "load writing hints", "id", target.ID, "err", err)
+			httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", "failed to load writing hints", "")
+			return
+		}
+	}
+	httputil.WriteJSON(w, http.StatusOK, httputil.APIResponse{Data: links})
 }

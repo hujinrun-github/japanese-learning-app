@@ -76,6 +76,9 @@ const zh = {
   search: {
     title: '全局搜索',
     openFullPage: '打开完整搜索页',
+    knowledgeLinks: '关联单词与语法',
+    knowledgeHints: '指定语法提示',
+    backToSearch: '搜索其他词条',
     moveWindow: '拖动搜索框（也可用方向键移动）',
     inContext: '查词和语法',
     close: '关闭查词',
@@ -530,6 +533,12 @@ const zh = {
     score: '得分',
   },
   writing: {
+    questionPractice: '单题练习',
+    questionLoadError: '加载练习题失败',
+    nextQuestion: '下一题',
+    noQuestions: '暂无输入或造句练习题。',
+    questionRoundComplete: '本轮单题练习已完成',
+    newQuestionRound: '再练一组',
     title: '写作练习',
     intro: '围绕同一个主题，可以写一篇短文，也可以用指定语法造句。',
     topic: '本题主题',

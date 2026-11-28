@@ -149,12 +149,12 @@ func (h *TranslationHandler) handleSubmit(w http.ResponseWriter, r *http.Request
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "invalid JSON body", r.Header.Get("X-Request-ID"))
 		return
 	}
-	if req.SentenceID == 0 || req.UserTranslation == "" {
+	if req.SentenceID <= 0 || strings.TrimSpace(req.UserTranslation) == "" {
 		httputil.WriteError(w, http.StatusBadRequest, "ERR_BAD_REQUEST", "sentence_id and user_translation are required", r.Header.Get("X-Request-ID"))
 		return
 	}
 
-	rec, err := h.svc.SubmitTranslation(userID, req.SentenceID, req.UserTranslation)
+	rec, err := h.svc.SubmitTranslation(r.Context(), userID, req.SentenceID, req.UserTranslation)
 	if err != nil {
 		slog.Error("handleSubmit failed", "err", err)
 		httputil.WriteError(w, http.StatusInternalServerError, "ERR_INTERNAL", err.Error(), r.Header.Get("X-Request-ID"))

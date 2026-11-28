@@ -101,6 +101,10 @@ func (f *fakeStore) ListRecords(userID int64) ([]translation.TranslationRecord, 
 	return out, nil
 }
 
+func (f *fakeStore) ListSentenceLinks(context.Context, int64) ([]translation.SentenceLink, error) {
+	return nil, nil
+}
+
 func TestService_ImportSource(t *testing.T) {
 	store := newFakeStore()
 	svc := translation.NewTranslationService(store, nil)

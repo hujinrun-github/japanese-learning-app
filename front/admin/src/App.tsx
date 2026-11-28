@@ -10,6 +10,7 @@ import UsersPage from './pages/Users/Users'
 import RecordsPage from './pages/Records/Records'
 import ErrataPage from './pages/Errata/Errata'
 import ShadowingMaterialsPage from './pages/ShadowingMaterials/ShadowingMaterials'
+import PracticeLinksPage from './pages/PracticeLinks/PracticeLinks'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = sessionStorage.getItem('admin_token')
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="speaking" element={<SpeakingPage />} />
         <Route path="writing" element={<WritingPage />} />
         <Route path="translation" element={<TranslationPage />} />
+        <Route path="practice-links" element={<PracticeLinksPage />} />
         <Route path="shadowing-materials" element={<ShadowingMaterialsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="records" element={<RecordsPage />} />

@@ -76,6 +76,9 @@ const en = {
   search: {
     title: 'Dictionary search',
     openFullPage: 'Open search page',
+    knowledgeLinks: 'Related words and grammar',
+    knowledgeHints: 'Suggested grammar to use',
+    backToSearch: 'Search for another entry',
     moveWindow: 'Move search window (arrow keys also work)',
     inContext: 'Look up words and grammar',
     close: 'Close lookup',
@@ -530,6 +533,12 @@ const en = {
     score: 'Score',
   },
   writing: {
+    questionPractice: 'Short Exercises',
+    questionLoadError: 'Could not load exercise questions',
+    nextQuestion: 'Next question',
+    noQuestions: 'No typing or sentence exercises are available.',
+    questionRoundComplete: 'Exercise round complete',
+    newQuestionRound: 'Start another round',
     title: 'Writing Practice',
     intro: 'Choose a short essay or use a target grammar pattern to write a sentence on the same topic.',
     topic: 'Practice topic',

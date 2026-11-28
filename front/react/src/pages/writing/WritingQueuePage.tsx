@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import type { WritingDraft, WritingMode, WritingRecord, WritingTopic } from '@/types/api'
 import { ErrataButton } from '@/components/ui/ErrataButton'
 import { DictionaryButton } from '@/pages/search/ContextualSearch'
+import { PracticeKnowledgeLinks, RemotePracticeKnowledgeLinks } from '@/pages/search/PracticeKnowledgeLinks'
 import {
   filterWritingTopics,
   findWritingTopicIndex,
@@ -295,6 +296,8 @@ export function WritingQueuePage() {
             />
             {!feedback && (
               <>
+                {mode === 'sentence' && <RemotePracticeKnowledgeLinks
+                  path={`/api/v1/writing/topics/${encodeURIComponent(topic.id)}/knowledge-links?mode=sentence`} hints />}
                 <label className={styles.answerLabel} htmlFor="writing-answer">{t('writing.answerLabel')}</label>
                 <textarea
                   id="writing-answer"
@@ -358,6 +361,7 @@ export function WritingQueuePage() {
                   </div>
                 </div>
               )}
+              <PracticeKnowledgeLinks links={feedback.knowledge_links} />
 
               {feedback.ai_feedback?.corrected_sentence && (
                 <div className={styles.feedbackSection}>

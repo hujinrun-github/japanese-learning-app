@@ -1,4 +1,4 @@
-import type { JLPTLevel, Lesson, Sentence } from './api'
+import type { JLPTLevel, Lesson, PracticeKnowledgeLink, Sentence } from './api'
 
 export type ListeningStage = 'blind' | 'intensive' | 'retest' | 'completed'
 export type ListeningPhase = 'blind' | 'retest'
@@ -58,6 +58,11 @@ export interface ListeningSession {
   attempts: ListeningAttempt[]
   training_ready?: boolean
   audio_source?: ListeningAudioSource
+}
+export interface ListeningKnowledgeLinks {
+  material?: PracticeKnowledgeLink[]
+  sentences?: Record<number, PracticeKnowledgeLink[]>
+  questions?: Record<string, PracticeKnowledgeLink[]>
 }
 export interface SaveListeningProgress {
   expected_cycle: number

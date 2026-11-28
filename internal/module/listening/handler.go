@@ -1,6 +1,7 @@
 package listening
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,15 +10,25 @@ import (
 	"strconv"
 
 	"japanese-learning-app/internal/httputil"
+	"japanese-learning-app/internal/module/practicelinks"
 	"japanese-learning-app/internal/module/user"
 )
 
-type Handler struct{ store Store }
+type KnowledgeLinkStore interface {
+	ListListeningLinks(ctx context.Context, lessonID int64, includeContent, includeQuestions bool) (practicelinks.ListeningLinks, error)
+}
 
-func NewHandler(store Store) *Handler { return &Handler{store: store} }
+type Handler struct {
+	store Store
+	links KnowledgeLinkStore
+}
+
+func NewHandler(store Store) *Handler                         { return &Handler{store: store} }
+func (h *Handler) SetKnowledgeLinks(links KnowledgeLinkStore) { h.links = links }
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/listening/materials", h.list)
 	mux.HandleFunc("GET /api/v1/listening/materials/{id}", h.session)
+	mux.HandleFunc("GET /api/v1/listening/materials/{id}/knowledge-links", h.knowledgeLinks)
 	mux.HandleFunc("PUT /api/v1/listening/materials/{id}/progress", h.progress)
 	mux.HandleFunc("POST /api/v1/listening/materials/{id}/attempts", h.attempt)
 	mux.HandleFunc("POST /api/v1/listening/materials/{id}/complete", h.complete)
@@ -81,6 +92,56 @@ func (h *Handler) session(w http.ResponseWriter, r *http.Request) {
 	}
 	v, err := h.store.GetSession(r.Context(), uid, id)
 	writeResult(w, v, err)
+}
+
+func (h *Handler) knowledgeLinks(w http.ResponseWriter, r *http.Request) {
+	uid, id, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	cycle, err := strconv.Atoi(r.URL.Query().Get("cycle"))
+	stage := r.URL.Query().Get("stage")
+	if err != nil || cycle < 1 || (stage != "blind" && stage != "intensive" && stage != "retest" && stage != "completed") {
+		writeResult(w, nil, &Error{Status: http.StatusBadRequest, Code: "ERR_BAD_REQUEST", Message: "训练阶段或轮次无效"})
+		return
+	}
+	session, err := h.store.GetSession(r.Context(), uid, id)
+	if err != nil {
+		writeResult(w, nil, err)
+		return
+	}
+	content, questions := knowledgeVisibility(session, stage, cycle)
+	if h.links == nil || (!content && !questions) {
+		writeResult(w, practicelinks.ListeningLinks{}, nil)
+		return
+	}
+	links, err := h.links.ListListeningLinks(r.Context(), id, content, questions)
+	writeResult(w, links, err)
+}
+
+func knowledgeVisibility(session Session, stage string, cycle int) (content, questions bool) {
+	if session.Progress.Cycle != cycle {
+		return false, false
+	}
+	var blind, retest bool
+	for _, attempt := range session.Attempts {
+		blind = blind || attempt.Phase == "blind"
+		retest = retest || attempt.Phase == "retest"
+	}
+	if session.Progress.Stage == "retest" && !retest {
+		return false, false
+	}
+	switch stage {
+	case "intensive":
+		content = session.Progress.Stage == "intensive" || session.Progress.Stage == "completed" || retest
+		return content, content && blind
+	case "blind":
+		return false, blind
+	case "retest", "completed":
+		return false, retest
+	default:
+		return false, false
+	}
 }
 func (h *Handler) progress(w http.ResponseWriter, r *http.Request) {
 	uid, id, ok := h.scope(w, r)

@@ -15,6 +15,7 @@ import { TranslationListPage } from '@/pages/translation/TranslationListPage'
 import { TranslationPracticePage } from '@/pages/translation/TranslationPracticePage'
 import { WritingTopicListPage } from '@/pages/writing/WritingTopicListPage'
 import { WritingQueuePage } from '@/pages/writing/WritingQueuePage'
+import { WritingQuestionsPage } from '@/pages/writing/WritingQuestionsPage'
 import { LessonListPage } from '@/pages/lesson/LessonListPage'
 import { LessonDetailPage } from '@/pages/lesson/LessonDetailPage'
 import { ShadowingPage } from '@/pages/shadowing/ShadowingPage'
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/listening/:id" element={<ListeningTrainingPage />} />
             <Route path="/writing" element={<WritingTopicListPage />} />
             <Route path="/writing/practice" element={<WritingQueuePage />} />
+            <Route path="/writing/questions" element={<WritingQuestionsPage />} />
             <Route path="/lesson" element={<LessonListPage />} />
             <Route path="/lesson/:id" element={<LessonDetailPage />} />
             <Route path="/lesson/:id/shadowing" element={<ShadowingPage />} />

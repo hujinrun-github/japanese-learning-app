@@ -24,6 +24,7 @@ type StoreInterface interface {
 	SaveRecord(r TranslationRecord) (int64, error)
 	GetRecord(id int64) (*TranslationRecord, error)
 	ListRecords(userID int64) ([]TranslationRecord, error)
+	ListSentenceLinks(ctx context.Context, sentenceID int64) ([]SentenceLink, error)
 	DeleteSource(id int64) error
 }
 
@@ -127,7 +128,7 @@ func (s *TranslationService) ListSources() ([]TranslationSource, error) {
 }
 
 // SubmitTranslation checks the answer locally and saves the result with the attempt.
-func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, userTranslation string) (TranslationRecord, error) {
+func (s *TranslationService) SubmitTranslation(ctx context.Context, userID int64, sentenceID int64, userTranslation string) (TranslationRecord, error) {
 	slog.Debug("TranslationService.SubmitTranslation called", "user_id", userID, "sentence_id", sentenceID)
 
 	sent, err := s.store.GetSentenceByID(sentenceID)
@@ -156,6 +157,12 @@ func (s *TranslationService) SubmitTranslation(userID int64, sentenceID int64, u
 
 	rec.ID = recID
 	annotateReference(&rec)
+	links, err := s.store.ListSentenceLinks(ctx, sentenceID)
+	if err != nil {
+		slog.ErrorContext(ctx, "load knowledge links for saved translation", "record_id", recID, "sentence_id", sentenceID, "err", err)
+	} else {
+		rec.KnowledgeLinks = links
+	}
 	slog.Debug("TranslationService.SubmitTranslation done", "record_id", recID, "assessment", assessment.Result)
 	return rec, nil
 }

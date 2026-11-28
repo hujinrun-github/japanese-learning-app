@@ -2,7 +2,11 @@
 .header { margin-bottom: var(--space-6); }
 .title { font-size: var(--font-size-2xl); font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: var(--letter-spacing-tight); }
 .intro { color: var(--color-text-secondary); margin: var(--space-2) 0 var(--space-4); }
-.startLink { display: inline-flex; align-items: center; min-height: 44px; padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); background: var(--color-brand); color: #fff; font-size: var(--font-size-sm); font-weight: 700; text-decoration: none; }
+.practiceLinks { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.startLink, .questionsLink { display: inline-flex; align-items: center; min-height: 44px; padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); font-size: var(--font-size-sm); font-weight: 700; text-decoration: none; }
+.startLink { background: var(--color-brand); color: #fff; }
+.questionsLink { border: 1px solid var(--color-border); background: var(--color-bg-surface); color: var(--color-brand); }
+.questionsLink:hover { background: var(--color-brand-light); }
 .startLink:hover { background: var(--color-brand-hover); }
 .startLink:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
 
@@ -31,5 +35,5 @@
 @media (max-width: 560px) {
   .filters { grid-template-columns: 1fr; }
   .topicCard { padding: var(--space-4); }
-  .startLink { width: 100%; justify-content: center; }
+  .startLink, .questionsLink { justify-content: center; flex: 1 1 auto; }
 }

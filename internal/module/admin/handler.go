@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"japanese-learning-app/internal/module/errata"
+	"japanese-learning-app/internal/module/practicelinks"
 	"japanese-learning-app/internal/module/speaking"
 	"japanese-learning-app/internal/store"
 )
@@ -20,6 +21,7 @@ type HandlerConfig struct {
 	SpeakingStore          store.AdminSpeakingStoreInterface
 	WritingStore           store.AdminWritingStoreInterface
 	TranslationStore       store.AdminTranslationStoreInterface
+	PracticeLinks          practicelinks.AdminStore
 	UserStore              store.AdminUserStoreInterface
 	ErrataStore            *errata.Store
 	DB                     *sql.DB
@@ -75,6 +77,13 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /api/admin/translation", h.auth(h.createTranslation))
 	mux.HandleFunc("PUT /api/admin/translation/{id}", h.auth(h.updateTranslation))
 	mux.HandleFunc("DELETE /api/admin/translation/{id}", h.auth(h.deleteTranslation))
+	mux.HandleFunc("GET /api/admin/translation/{id}/links", h.auth(h.listTranslationLinks))
+	mux.HandleFunc("PUT /api/admin/translation/{id}/links", h.auth(h.replaceTranslationLinks))
+	if h.cfg.PracticeLinks != nil {
+		mux.HandleFunc("GET /api/admin/practice-links/{kind}", h.auth(h.listPracticeLinkSources))
+		mux.HandleFunc("GET /api/admin/practice-links/{kind}/{id}", h.auth(h.listPracticeLinks))
+		mux.HandleFunc("PUT /api/admin/practice-links/{kind}/{id}", h.auth(h.replacePracticeLinks))
+	}
 	// Users
 	mux.HandleFunc("GET /api/admin/users", h.auth(h.listUsers))
 	mux.HandleFunc("DELETE /api/admin/users/{id}", h.auth(h.deleteUser))

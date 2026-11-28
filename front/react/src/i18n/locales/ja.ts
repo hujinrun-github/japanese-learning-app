@@ -76,6 +76,9 @@ const ja = {
   search: {
     title: '辞書検索',
     openFullPage: '検索ページを開く',
+    knowledgeLinks: '関連する単語と文法',
+    knowledgeHints: '指定された文法のヒント',
+    backToSearch: '別の項目を検索',
     moveWindow: '検索ウィンドウを移動（矢印キーも使用可）',
     inContext: '単語・文法を調べる',
     close: '辞書検索を閉じる',
@@ -530,6 +533,12 @@ const ja = {
     score: 'スコア',
   },
   writing: {
+    questionPractice: '一問ずつ練習',
+    questionLoadError: '練習問題の読み込みに失敗しました',
+    nextQuestion: '次の問題',
+    noQuestions: '入力・一文作成の問題はまだありません。',
+    questionRoundComplete: '今回の練習が完了しました',
+    newQuestionRound: 'もう一度練習',
     title: '作文練習',
     intro: '同じテーマで短い作文を書くか、指定の文法を使って一文を作りましょう。',
     topic: '今回のテーマ',

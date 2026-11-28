@@ -54,6 +54,7 @@ func main() {
 		SpeakingStore:          runtime.Admin.Speaking,
 		WritingStore:           runtime.Admin.Writing,
 		TranslationStore:       runtime.Admin.Translation,
+		PracticeLinks:          pgdata.NewPracticeLinkStore(db),
 		UserStore:              runtime.Admin.Users,
 		ErrataStore:            errata.NewStore(db),
 		DB:                     db,

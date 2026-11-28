@@ -3,11 +3,12 @@ import { apiFetch } from '@/api/client'
 
 type LookupResult<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: T }
 
-export function useLookup<T>(path: string) {
+export function useLookup<T>(path: string | null) {
   const [response, setResponse] = useState<{ path: string; result: LookupResult<T> }>()
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
+    if (!path) return
     const controller = new AbortController()
     apiFetch<T>('GET', path, undefined, controller.signal).then(
       (data) => {
@@ -22,7 +23,7 @@ export function useLookup<T>(path: string) {
     return () => controller.abort()
   }, [path, attempt])
 
-  const result: LookupResult<T> = response?.path === path ? response.result : { status: 'loading' }
+  const result: LookupResult<T> = response && response.path === path ? response.result : { status: 'loading' }
   return {
     result,
     retry: () => {
