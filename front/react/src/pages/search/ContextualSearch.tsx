@@ -9,9 +9,9 @@ const OpenSearchContext = createContext<((target: ContextualSearchTarget) => voi
 const ContextualSearchDialog = lazy(() => import('./ContextualSearchDialog'))
 
 export function ContextualSearchProvider({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation()
+  const { key } = useLocation()
   const [target, setTarget] = useState<ContextualSearchTarget | null>(null)
-  useEffect(() => setTarget(null), [pathname])
+  useEffect(() => setTarget(null), [key])
 
   return (
     <OpenSearchContext.Provider value={setTarget}>
@@ -23,6 +23,22 @@ export function ContextualSearchProvider({ children }: { children: ReactNode }) 
         </Suspense>
       )}
     </OpenSearchContext.Provider>
+  )
+}
+
+export function FloatingSearchButton({ className, children, onOpen }: {
+  className: string; children: ReactNode; onOpen: () => void
+}) {
+  const openSearch = useContext(OpenSearchContext)
+  return (
+    <button type="button" className={className} aria-haspopup="dialog"
+      onClick={(event) => {
+        event.currentTarget.focus({ preventScroll: true })
+        onOpen()
+        openSearch?.({})
+      }}>
+      {children}
+    </button>
   )
 }
 

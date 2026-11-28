@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, type FocusEvent } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { matchPath, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { FloatingSearchButton } from '@/pages/search/ContextualSearch'
 import { ACCOUNT_NAV_ITEMS, DESKTOP_NAV_GROUPS, DESKTOP_PRIMARY_ITEMS, activeDesktopGroup, type DesktopGroupID } from './navigation'
 import styles from './TopNavBar.module.css'
 
@@ -16,6 +17,7 @@ export function TopNavBar() {
   const [openMenu, setOpenMenu] = useState<Menu | null>(null)
   const openTrigger = useRef<HTMLButtonElement | null>(null)
   const activeGroup = activeDesktopGroup(location.pathname)
+  const isSearchPage = !!matchPath('/search/*', location.pathname)
 
   useEffect(() => { setOpenMenu(null) }, [location.key])
 
@@ -61,7 +63,13 @@ export function TopNavBar() {
         </NavLink>
 
         <nav className={styles.nav} aria-label={t('nav.mainNav')}>
-          {DESKTOP_PRIMARY_ITEMS.map(item => (
+          {DESKTOP_PRIMARY_ITEMS.map(item => item.to === '/search' ? (
+            <FloatingSearchButton key={item.to}
+              className={`${styles.link} ${styles.trigger} ${isSearchPage ? styles.active : ''}`}
+              onOpen={() => setOpenMenu(null)}>
+              <span aria-hidden="true">{item.icon}</span>{t(item.labelKey)}
+            </FloatingSearchButton>
+          ) : (
             <NavLink key={item.to} to={item.to} end={item.end}
               onClick={() => setOpenMenu(null)}
               className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>

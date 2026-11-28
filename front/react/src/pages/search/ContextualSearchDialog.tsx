@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/Badge'
 import type { GrammarPoint, Word } from '@/types/api'
@@ -15,16 +16,22 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
   const title = useId()
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [input, setInput] = useState(target.keyword ?? '')
   const [query, setQuery] = useState(target.keyword ?? '')
   const [filter, setFilter] = useState<SearchFilter>('all')
   const [entry, setEntry] = useState<SearchEntry | null>(null)
   const invalid = !!input.trim() && !validSearchKeyword(input.trim())
+  const globalLookup = !target.source && !target.keyword
+  const fullSearchParams = new URLSearchParams()
+  if (query) fullSearchParams.set('q', query)
+  if (filter !== 'all') fullSearchParams.set('type', filter)
 
   useEffect(() => {
     if (!dialog.current?.open) dialog.current?.showModal()
-    close.current?.focus()
-  }, [])
+    if (globalLookup) inputRef.current?.focus()
+    else close.current?.focus()
+  }, [globalLookup])
 
   function search(keyword: string) {
     setInput(keyword)
@@ -42,7 +49,12 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
       onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close() }}>
       <div className={styles.panel}>
         <header className={styles.heading}>
-          <h2 id={title}>{t('search.inContext')}</h2>
+          <h2 id={title}>{t(globalLookup ? 'search.title' : 'search.inContext')}</h2>
+          {globalLookup && (
+            <Link className={styles.fullSearch} to={{ pathname: '/search', search: fullSearchParams.toString() }}>
+              {t('search.openFullPage')}
+            </Link>
+          )}
           <button className={styles.close} ref={close} type="button" aria-label={t('search.close')}
             onClick={() => dialog.current?.close()}>×</button>
         </header>
@@ -50,7 +62,7 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
           <div hidden={entry !== null}>
             {target.source && <SourceTerms source={target.source} keyword={query} onSelect={search} />}
             <form className={searchStyles.form} role="search" onSubmit={submit}>
-              <input type="search" value={input} onChange={(event) => setInput(event.target.value)}
+              <input ref={inputRef} type="search" value={input} onChange={(event) => setInput(event.target.value)}
                 placeholder={t('search.placeholder')} aria-label={t('search.placeholder')} aria-invalid={invalid}
                 spellCheck={false} autoComplete="off" />
               <button type="submit" className={searchStyles.submit} disabled={invalid}>{t('search.submit')}</button>

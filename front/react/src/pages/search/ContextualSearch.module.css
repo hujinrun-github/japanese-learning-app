@@ -69,6 +69,15 @@
 
 .heading h2 { margin: 0; font-size: var(--font-size-lg); }
 
+.fullSearch {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-inline-start: auto;
+  color: var(--color-brand);
+  font-size: var(--font-size-sm);
+}
+
 .close {
   flex: 0 0 44px;
   width: 44px;
