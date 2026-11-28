@@ -75,6 +75,7 @@ const zh = {
   },
   search: {
     title: '全局搜索',
+    openFullPage: '打开完整搜索页',
     inContext: '查词和语法',
     close: '关闭查词',
     dismissSelection: '取消选择',

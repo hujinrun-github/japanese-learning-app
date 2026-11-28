@@ -75,6 +75,7 @@ const ja = {
   },
   search: {
     title: '辞書検索',
+    openFullPage: '検索ページを開く',
     inContext: '単語・文法を調べる',
     close: '辞書検索を閉じる',
     dismissSelection: '選択を解除',

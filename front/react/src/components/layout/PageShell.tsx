@@ -16,14 +16,14 @@ export function PageShell({ children, title }: PageShellProps) {
   }, [title])
 
   return (
-    <div className={styles.shell}>
-      <TopNavBar />
-      <FavoritesProvider>
-        <ContextualSearchProvider>
+    <FavoritesProvider>
+      <ContextualSearchProvider>
+        <div className={styles.shell}>
+          <TopNavBar />
           <main className={styles.main}>{children}</main>
-        </ContextualSearchProvider>
-      </FavoritesProvider>
-      <BottomTabBar />
-    </div>
+          <BottomTabBar />
+        </div>
+      </ContextualSearchProvider>
+    </FavoritesProvider>
   )
 }

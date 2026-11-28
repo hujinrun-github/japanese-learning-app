@@ -75,6 +75,7 @@ const en = {
   },
   search: {
     title: 'Dictionary search',
+    openFullPage: 'Open search page',
     inContext: 'Look up words and grammar',
     close: 'Close lookup',
     dismissSelection: 'Clear selection',

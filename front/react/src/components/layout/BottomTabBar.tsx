@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { matchPath, NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { FloatingSearchButton } from '@/pages/search/ContextualSearch'
 import { MOBILE_MORE_ITEMS, MOBILE_PRIMARY_ITEMS } from './navigation'
 import styles from './BottomTabBar.module.css'
 
@@ -12,6 +13,7 @@ export function BottomTabBar() {
   const { pathname } = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
   const moreActive = MOBILE_MORE_ITEMS.some((item) => pathname.startsWith(item.to))
+  const isSearchPage = !!matchPath('/search/*', pathname)
 
   useEffect(() => {
     setMoreOpen(false)
@@ -65,7 +67,13 @@ export function BottomTabBar() {
       )}
 
       <nav className={styles.nav} aria-label={t('nav.mainNav')}>
-        {MOBILE_PRIMARY_ITEMS.map((tab) => (
+        {MOBILE_PRIMARY_ITEMS.map((tab) => tab.to === '/search' ? (
+          <FloatingSearchButton key={tab.to} className={`${styles.tab} ${isSearchPage ? styles.active : ''}`}
+            onOpen={() => setMoreOpen(false)}>
+            <span className={styles.icon} aria-hidden="true">{tab.icon}</span>
+            <span className={styles.label}>{t(tab.labelKey)}</span>
+          </FloatingSearchButton>
+        ) : (
           <NavLink
             key={tab.to}
             to={tab.to}
