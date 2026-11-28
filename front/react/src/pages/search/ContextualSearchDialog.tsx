@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import type { GrammarPoint, Word } from '@/types/api'
 import type { ContextualSearchTarget } from './ContextualSearch'
 import { dictionaryTerms, getDictionarySelection, validSearchKeyword } from './contextQuery'
+import { useFloatingSearchPosition } from './floatingSearchPosition'
 import { SearchResults, searchFilters, type SearchEntry, type SearchFilter } from './SearchResults'
 import { useLookup } from './useLookup'
 import { WordEntry } from './WordEntryPage'
@@ -17,6 +18,7 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { onKeyDown, ...dragHandlers } = useFloatingSearchPosition(dialog)
   const [input, setInput] = useState(target.keyword ?? '')
   const [query, setQuery] = useState(target.keyword ?? '')
   const [filter, setFilter] = useState<SearchFilter>('all')
@@ -28,10 +30,17 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
   if (filter !== 'all') fullSearchParams.set('type', filter)
 
   useEffect(() => {
-    if (!dialog.current?.open) dialog.current?.showModal()
+    if (!dialog.current?.open) dialog.current?.show()
     if (globalLookup) inputRef.current?.focus()
     else close.current?.focus()
-  }, [globalLookup])
+  }, [target, globalLookup])
+
+  useEffect(() => {
+    setInput(target.keyword ?? '')
+    setQuery(target.keyword ?? '')
+    setFilter('all')
+    setEntry(null)
+  }, [target])
 
   function search(keyword: string) {
     setInput(keyword)
@@ -45,24 +54,41 @@ export default function ContextualSearchDialog({ target, onClose }: { target: Co
   }
 
   return (
-    <dialog ref={dialog} className={styles.dialog} aria-labelledby={title} onClose={onClose}
-      onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close() }}>
+    <dialog ref={dialog} className={styles.dialog} aria-labelledby={title}
+      onCancel={(event) => event.preventDefault()}>
       <div className={styles.panel}>
         <header className={styles.heading}>
-          <h2 id={title}>{t(globalLookup ? 'search.title' : 'search.inContext')}</h2>
+          <div className={styles.dragArea} {...dragHandlers}>
+            <button type="button" className={styles.dragHandle} aria-label={t('search.moveWindow')}
+              title={t('search.moveWindow')} aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
+              onKeyDown={onKeyDown}>
+              <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                <circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" />
+                <circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" />
+                <circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" />
+              </svg>
+            </button>
+            <h2 id={title}>{t(globalLookup ? 'search.title' : 'search.inContext')}</h2>
+          </div>
           {globalLookup && (
             <Link className={styles.fullSearch} to={{ pathname: '/search', search: fullSearchParams.toString() }}>
               {t('search.openFullPage')}
             </Link>
           )}
           <button className={styles.close} ref={close} type="button" aria-label={t('search.close')}
-            onClick={() => dialog.current?.close()}>×</button>
+            onClick={() => {
+              dialog.current?.close()
+              onClose()
+            }}>×</button>
         </header>
         <div className={styles.body}>
           <div hidden={entry !== null}>
             {target.source && <SourceTerms source={target.source} keyword={query} onSelect={search} />}
             <form className={searchStyles.form} role="search" onSubmit={submit}>
               <input ref={inputRef} type="search" value={input} onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && !event.nativeEvent.isComposing) event.preventDefault()
+                }}
                 placeholder={t('search.placeholder')} aria-label={t('search.placeholder')} aria-invalid={invalid}
                 spellCheck={false} autoComplete="off" />
               <button type="submit" className={searchStyles.submit} disabled={invalid}>{t('search.submit')}</button>
