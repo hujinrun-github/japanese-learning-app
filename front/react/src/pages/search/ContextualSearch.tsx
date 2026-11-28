@@ -1,5 +1,4 @@
-import { createContext, lazy, Suspense, useContext, useEffect, useState, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
+import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getDictionarySelection, selectionKeyword } from './contextQuery'
 import styles from './ContextualSearch.module.css'
@@ -9,12 +8,13 @@ const OpenSearchContext = createContext<((target: ContextualSearchTarget) => voi
 const ContextualSearchDialog = lazy(() => import('./ContextualSearchDialog'))
 
 export function ContextualSearchProvider({ children }: { children: ReactNode }) {
-  const { key } = useLocation()
   const [target, setTarget] = useState<ContextualSearchTarget | null>(null)
-  useEffect(() => setTarget(null), [key])
+  const openSearch = useCallback((next: ContextualSearchTarget) => {
+    setTarget((current) => next.source || next.keyword ? next : current ?? next)
+  }, [])
 
   return (
-    <OpenSearchContext.Provider value={setTarget}>
+    <OpenSearchContext.Provider value={openSearch}>
       {children}
       {!target && <SelectionAction />}
       {target && (
